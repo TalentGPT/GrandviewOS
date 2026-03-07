@@ -55,7 +55,7 @@ app.use('/api', systemRoutes)
 app.use(express.static(distPath))
 
 // SPA fallback
-app.get('*', (_req, res) => {
+app.get('/{0,}(.*)', (_req, res) => {
   res.sendFile(join(distPath, 'index.html'))
 })
 
