@@ -81,20 +81,45 @@ router.get('/cost/breakdown', async (req, res) => {
 router.get('/cost/history', async (req, res) => {
   try {
     const days = parseInt(req.query.days as string || '7')
+    const since = new Date(Date.now() - days * 86400000)
+
+    // Try cost entries first
     const entries = await prisma.costEntry.findMany({
-      where: {
-        tenantId: req.tenantId!,
-        date: { gte: new Date(Date.now() - days * 86400000) },
-      },
+      where: { tenantId: req.tenantId!, date: { gte: since } },
       orderBy: { date: 'asc' },
     })
-    res.json(entries.map(e => ({
-      date: e.date.toISOString().split('T')[0],
-      totalCost: e.cost,
-      totalTokens: e.tokensIn + e.tokensOut,
-      byModel: { [e.model]: { cost: e.cost, tokens: e.tokensIn + e.tokensOut, sessions: e.sessions } },
-      byAgent: {},
-    })))
+
+    if (entries.length > 0) {
+      res.json(entries.map(e => ({
+        date: e.date.toISOString().split('T')[0],
+        totalCost: e.cost,
+        totalTokens: e.tokensIn + e.tokensOut,
+        byModel: { [e.model]: { cost: e.cost, tokens: e.tokensIn + e.tokensOut, sessions: e.sessions } },
+        byAgent: {},
+      })))
+      return
+    }
+
+    // Fallback: aggregate from sessions
+    const sessions = await prisma.session.findMany({
+      where: { tenantId: req.tenantId!, startedAt: { gte: since } },
+    })
+    const byDay: Record<string, { cost: number; tokens: number; byModel: Record<string, { cost: number; tokens: number; sessions: number }> }> = {}
+    for (const s of sessions) {
+      const day = s.startedAt.toISOString().split('T')[0]
+      if (!byDay[day]) byDay[day] = { cost: 0, tokens: 0, byModel: {} }
+      byDay[day].cost += s.totalCost
+      byDay[day].tokens += s.totalTokens
+      const m = s.model || 'unknown'
+      if (!byDay[day].byModel[m]) byDay[day].byModel[m] = { cost: 0, tokens: 0, sessions: 0 }
+      byDay[day].byModel[m].cost += s.totalCost
+      byDay[day].byModel[m].tokens += s.totalTokens
+      byDay[day].byModel[m].sessions++
+    }
+    const result = Object.entries(byDay).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
+      date, totalCost: d.cost, totalTokens: d.tokens, byModel: d.byModel, byAgent: {},
+    }))
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: String(err) })
   }
@@ -199,19 +224,145 @@ router.get('/reviews', async (req, res) => {
 })
 
 // GET /api/docs
-router.get('/docs', async (_req, res) => {
-  res.json({
-    'Overview': '# GrandviewOS\n\nAI-powered operating system for managing agent teams.',
-    'Architecture': '# Architecture\n\nPostgreSQL + Express + Prisma + React',
-  })
+router.get('/docs', async (req, res) => {
+  try {
+    const docs = await generateDocsFromAgents(req.tenantId!)
+    res.json(docs)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
 })
 
 // POST /api/docs/generate
-router.post('/docs/generate', async (_req, res) => {
-  res.json({
-    'Overview': '# GrandviewOS\n\nAI-powered operating system for managing agent teams.\n\n*Regenerated at ' + new Date().toISOString() + '*',
-  })
+router.post('/docs/generate', async (req, res) => {
+  try {
+    const docs = await generateDocsFromAgents(req.tenantId!)
+    res.json(docs)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
 })
+
+async function generateDocsFromAgents(tenantId: string): Promise<Record<string, string>> {
+  const agents = await prisma.agent.findMany({ where: { tenantId }, orderBy: { slug: 'asc' } })
+  const sessions = await prisma.session.findMany({ where: { tenantId } })
+  const totalTokens = sessions.reduce((s, x) => s + x.totalTokens, 0)
+  const totalCost = sessions.reduce((s, x) => s + x.totalCost, 0)
+
+  const docs: Record<string, string> = {}
+
+  docs['Overview'] = `# GrandviewOS
+
+AI-powered operating system for managing agent teams.
+
+## System Stats
+- **Agents:** ${agents.length}
+- **Sessions:** ${sessions.length}
+- **Total Tokens:** ${totalTokens.toLocaleString()}
+- **Total Cost:** $${totalCost.toFixed(2)}
+
+*Generated at ${new Date().toISOString()}*`
+
+  // Organization Chart
+  const deptGroups: Record<string, typeof agents> = {}
+  for (const a of agents) {
+    const dept = a.department || 'General'
+    if (!deptGroups[dept]) deptGroups[dept] = []
+    deptGroups[dept].push(a)
+  }
+  let orgDoc = '# Organization Chart\n\n'
+  for (const [dept, members] of Object.entries(deptGroups)) {
+    orgDoc += `## ${dept}\n\n`
+    for (const a of members) {
+      orgDoc += `- **${a.emoji || '🤖'} ${a.name}** — ${a.role} (${a.primaryModel})\n`
+      if (a.description) orgDoc += `  ${a.description}\n`
+    }
+    orgDoc += '\n'
+  }
+  docs['Organization Chart'] = orgDoc
+
+  // Team Workspaces
+  let wsDoc = '# Team Workspaces\n\nEach agent has workspace files that define their behavior.\n\n'
+  wsDoc += '| Agent | Files Available |\n|-------|----------------|\n'
+  for (const a of agents) {
+    const files = ['SOUL.md', 'IDENTITY.md', 'USER.md', 'TOOLS.md', 'AGENTS.md', 'MEMORY.md', 'HEARTBEAT.md']
+      .filter(f => {
+        const field = f.replace('.md', '').toLowerCase() + 'Md'
+        return (a as any)[field === 'soulMd' ? 'soulMd' : field]
+      })
+    wsDoc += `| ${a.emoji || ''} ${a.name} | ${files.join(', ') || 'None'} |\n`
+  }
+  docs['Team Workspaces'] = wsDoc
+
+  // Sub-Agents & Spawning
+  docs['Sub-Agents & Spawning'] = `# Sub-Agents & Spawning
+
+Agents can spawn sub-agents for delegated tasks. Sub-agents inherit context from their parent and report back on completion.
+
+## Current Agent Hierarchy
+
+${agents.filter(a => !a.parentId).map(a => `- **${a.emoji || ''} ${a.name}** (${a.role})\n${agents.filter(c => c.parentId === a.id).map(c => `  - ${c.emoji || ''} ${c.name} (${c.role})`).join('\n')}`).join('\n')}`
+
+  // Gateway vs Sub-Agents
+  docs['Gateway vs Sub-Agents'] = `# Gateway vs Sub-Agents
+
+## Gateway Mode
+The gateway manages all agent routing and session lifecycle. Each agent can run in shared or dedicated gateway mode.
+
+## Sub-Agent Mode
+Sub-agents are spawned on-demand for specific tasks. They are ephemeral and terminate after completion.
+
+## Agent Gateway Modes
+${agents.map(a => `- **${a.name}**: ${a.gatewayMode}`).join('\n')}`
+
+  // Voice Standup
+  docs['Voice Standup'] = `# Voice Standup
+
+The standup system enables scheduled or on-demand executive meetings between agents. Each standup generates a conversation transcript and action items.
+
+## How It Works
+1. Trigger a standup from the UI
+2. Participating agents generate their status updates
+3. A conversation transcript is produced
+4. Action items are extracted and tracked`
+
+  // Memory Architecture
+  docs['Memory Architecture'] = `# Memory Architecture
+
+Agents use a layered memory system:
+
+- **SOUL.md** — Core identity and personality
+- **MEMORY.md** — Long-term curated memories
+- **Daily notes** — \`memory/YYYY-MM-DD.md\` files for session logs
+- **HEARTBEAT.md** — Periodic check-in instructions
+
+Memory entries are stored in the database and synced to agent workspace files.`
+
+  // Task Manager
+  docs['Task Manager'] = `# Task Manager
+
+The Task Manager provides real-time visibility into all agent sessions.
+
+## Features
+- **Live Sessions** — View active and completed sessions
+- **Cron Jobs** — Schedule recurring agent tasks
+- **Cost Breakdown** — Track spending by model and agent
+- **Overnight Log** — Review autonomous overnight activity
+
+## Metrics
+- Total sessions: ${sessions.length}
+- Active sessions: ${sessions.filter(s => s.isActive).length}
+- Total cost: $${totalCost.toFixed(2)}`
+
+  // Partnership Pipeline
+  docs['Partnership Pipeline'] = `# Partnership Pipeline
+
+Track business partnerships through stages: Lead → Contact → Proposal → Negotiation → Closed.
+
+Use the Projects page to manage pipeline items.`
+
+  return docs
+}
 
 // GET /api/sync-state
 router.get('/sync-state', async (_req, res) => {

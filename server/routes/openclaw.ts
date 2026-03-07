@@ -118,4 +118,26 @@ router.post('/sync', async (req, res) => {
   }
 })
 
+// Proxy automations from bridge
+router.get('/automations', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>('/api/automations')
+    res.json(data || { automations: [] })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// Proxy projects from bridge
+router.get('/projects', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>('/api/projects')
+    res.json(data || { boardName: 'Projects', lastSynced: null, lists: [] })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 export default router

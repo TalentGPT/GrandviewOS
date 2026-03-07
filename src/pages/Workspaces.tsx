@@ -5,10 +5,32 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { useToast } from '../components/Toast'
-import { saveWorkspaceFile } from '../api/client'
+import { fetchAgents, fetchWorkspaceFile, saveWorkspaceFile } from '../api/client'
 import { fetchAgentPermissions, fetchIntegrations, syncAgentTools, fetchSyncState } from '../api/integrations-client'
 import type { AgentPermissions, IntegrationEntry } from '../types/integrations'
-import { workspaceAgents, workspaceFiles, workspaceContents } from '../data/mockWorkspaces'
+import { workspaceAgents as mockWorkspaceAgents, workspaceFiles as mockWorkspaceFiles, workspaceContents } from '../data/mockWorkspaces'
+
+interface WorkspaceAgent {
+  id: string
+  name: string
+  emoji: string
+  label: string
+}
+
+interface WorkspaceFile {
+  name: string
+  size: string
+}
+
+const WORKSPACE_FILES: WorkspaceFile[] = [
+  { name: 'SOUL.md', size: '' },
+  { name: 'IDENTITY.md', size: '' },
+  { name: 'USER.md', size: '' },
+  { name: 'TOOLS.md', size: '' },
+  { name: 'AGENTS.md', size: '' },
+  { name: 'MEMORY.md', size: '' },
+  { name: 'HEARTBEAT.md', size: '' },
+]
 
 export default function Workspaces() {
   const [searchParams] = useSearchParams()
@@ -23,6 +45,25 @@ export default function Workspaces() {
   const [allIntegrations, setAllIntegrations] = useState<IntegrationEntry[]>([])
   const [agentSyncState, setAgentSyncState] = useState<Record<string, { lastSync: string; status: string }>>({})
   const [syncingAgent, setSyncingAgent] = useState(false)
+  const [liveAgents, setLiveAgents] = useState<WorkspaceAgent[]>([])
+  const [content, setContent] = useState<string | null>(null)
+  const [loadingContent, setLoadingContent] = useState(false)
+
+  // Load agents from API
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await fetchAgents()
+      if (data && data.length > 0) {
+        setLiveAgents(data.map(a => ({
+          id: a.slug || a.id,
+          name: a.name,
+          emoji: a.emoji || '🤖',
+          label: a.role || '',
+        })))
+      }
+    }
+    load()
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -36,16 +77,34 @@ export default function Workspaces() {
     })
   }, [])
 
+  // Load file content when agent or file changes
+  useEffect(() => {
+    const load = async () => {
+      setLoadingContent(true)
+      const { data, error } = await fetchWorkspaceFile(selectedAgent, selectedFile)
+      if (data && data.content) {
+        setContent(data.content)
+      } else {
+        // Fall back to mock data
+        const mockKey = `${selectedAgent}-${selectedFile}`
+        setContent(workspaceContents[mockKey] || null)
+      }
+      setLoadingContent(false)
+    }
+    load()
+  }, [selectedAgent, selectedFile])
+
   useEffect(() => {
     const agentParam = searchParams.get('agent')
-    if (agentParam && workspaceAgents.some(a => a.id === agentParam)) {
+    const allAgents = liveAgents.length > 0 ? liveAgents : mockWorkspaceAgents
+    if (agentParam && allAgents.some(a => a.id === agentParam)) {
       setSelectedAgent(agentParam)
       setSelectedFile('SOUL.md')
     }
-  }, [searchParams])
+  }, [searchParams, liveAgents])
 
-  const contentKey = `${selectedAgent}-${selectedFile}`
-  const content = workspaceContents[contentKey]
+  const workspaceAgents = liveAgents.length > 0 ? liveAgents : mockWorkspaceAgents
+  const workspaceFiles = WORKSPACE_FILES
   const agent = workspaceAgents.find(a => a.id === selectedAgent)
 
   const handleEdit = async () => {
@@ -56,7 +115,7 @@ export default function Workspaces() {
         addToast(`Failed to save: ${error}`, 'error')
       } else {
         addToast(`${selectedFile} saved successfully ✓`)
-        workspaceContents[contentKey] = editContent
+        setContent(editContent)
       }
       setSaving(false)
     } else {
@@ -142,7 +201,11 @@ export default function Workspaces() {
 
         {/* Content — hidden on mobile when sidebar is open */}
         <div className={`${sidebarOpen ? 'hidden' : 'block'} md:block flex-1 overflow-y-auto p-4 md:p-6`}>
-          {content ? (
+          {loadingContent ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading...</div>
+            </div>
+          ) : content ? (
             <>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <div>

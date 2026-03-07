@@ -197,6 +197,52 @@ export function createEventSource(onMessage: (data: Record<string, unknown>) => 
   return es
 }
 
+// ---- Ideas ----
+
+export async function fetchIdeas(): Promise<FetchResult<any[]>> {
+  return apiFetch<any[]>('/ideas')
+}
+
+export async function createIdea(data: { title: string; description: string; tags?: string[]; status?: string; createdBy?: string }): Promise<FetchResult<any>> {
+  return apiFetch<any>('/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+}
+
+export async function updateIdea(id: string, data: { title?: string; description?: string; tags?: string[]; status?: string }): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/ideas/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+}
+
+export async function deleteIdea(id: string): Promise<FetchResult<{ ok: boolean }>> {
+  return apiFetch<{ ok: boolean }>(`/ideas/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function voteIdea(id: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/ideas/${encodeURIComponent(id)}/vote`, { method: 'POST' })
+}
+
+// ---- Ideation Logs ----
+
+export async function fetchIdeationLogs(params?: { source?: string; ideaId?: string }): Promise<FetchResult<any[]>> {
+  const q = new URLSearchParams()
+  if (params?.source) q.set('source', params.source)
+  if (params?.ideaId) q.set('ideaId', params.ideaId)
+  const qs = q.toString()
+  return apiFetch<any[]>(`/ideation-logs${qs ? `?${qs}` : ''}`)
+}
+
+export async function createIdeationLog(data: { content: string; source?: string; ideaId?: string }): Promise<FetchResult<any>> {
+  return apiFetch<any>('/ideation-logs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+}
+
+// ---- Weekly Reviews ----
+
+export async function fetchWeeklyReviews(): Promise<FetchResult<any[]>> {
+  return apiFetch<any[]>('/weekly-reviews')
+}
+
+export async function generateWeeklyReview(weekStart: string, weekEnd: string): Promise<FetchResult<any>> {
+  return apiFetch<any>('/weekly-reviews/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ weekStart, weekEnd }) })
+}
+
 // Model pricing per million tokens
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'claude-opus-4-6': { input: 15, output: 75 },
@@ -215,6 +261,82 @@ export function formatTokens(tokens: number): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`
   if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`
   return String(tokens)
+}
+
+// ---- Memory ----
+
+export async function fetchMemoryMain(): Promise<FetchResult<{ name: string; content: string }>> {
+  return apiFetch<{ name: string; content: string }>('/memory/main')
+}
+
+export async function fetchMemoryFiles(): Promise<FetchResult<{ files: Array<{ name: string; size: number; modified: string }> }>> {
+  return apiFetch<{ files: Array<{ name: string; size: number; modified: string }> }>('/memory/files')
+}
+
+export async function fetchMemoryFile(name: string): Promise<FetchResult<{ name: string; content: string }>> {
+  return apiFetch<{ name: string; content: string }>(`/memory/files/${encodeURIComponent(name)}`)
+}
+
+// ---- Briefs ----
+
+export interface Brief {
+  date: string
+  agentsActive: number
+  sessionsRun: number
+  tokensUsed: number
+  cost: number
+  events: string[]
+}
+
+export async function fetchBriefs(date?: string): Promise<FetchResult<Brief[]>> {
+  const q = date ? `?date=${date}` : ''
+  return apiFetch<Brief[]>(`/briefs${q}`)
+}
+
+// ---- Automations ----
+
+export interface AutomationItem {
+  id: string
+  name: string
+  enabled: boolean
+  agent: string
+  schedule: string
+  timezone: string
+  scheduleKind: string
+  sessionTarget: string
+  lastRun: string | null
+  nextRun: string | null
+  lastStatus: string | null
+  lastError: string | null
+  consecutiveErrors: number
+  description: string
+}
+
+export async function fetchAutomations(): Promise<FetchResult<{ automations: AutomationItem[] }>> {
+  return apiFetch<{ automations: AutomationItem[] }>('/openclaw/automations')
+}
+
+// ---- Projects (Trello) ----
+
+export interface TrelloCard {
+  title: string
+  labels: string[]
+}
+
+export interface TrelloList {
+  list: string
+  count: number
+  cards: TrelloCard[]
+}
+
+export interface TrelloBoard {
+  boardName: string
+  lastSynced: string | null
+  lists: TrelloList[]
+}
+
+export async function fetchProjects(): Promise<FetchResult<TrelloBoard>> {
+  return apiFetch<TrelloBoard>('/openclaw/projects')
 }
 
 // ---- OpenClaw Connection ----

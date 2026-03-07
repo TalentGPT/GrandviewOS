@@ -215,4 +215,121 @@ router.get('/agents/:slug/files/:name', async (req, res) => {
   }
 })
 
+// --- Memory endpoints ---
+
+const WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE || join(OPENCLAW_DIR, 'workspace')
+const MEMORY_DIR = join(WORKSPACE_DIR, 'memory')
+const MEMORY_MD = join(WORKSPACE_DIR, 'MEMORY.md')
+
+router.get('/memory/main', async (_req, res) => {
+  try {
+    const content = await readFile(MEMORY_MD, 'utf-8')
+    res.json({ name: 'MEMORY.md', content })
+  } catch {
+    res.status(404).json({ error: 'MEMORY.md not found' })
+  }
+})
+
+router.get('/memory/files', async (_req, res) => {
+  try {
+    const entries = await readdir(MEMORY_DIR)
+    const files: Array<{ name: string; size: number; modified: string }> = []
+    for (const name of entries) {
+      try {
+        const s = await stat(join(MEMORY_DIR, name))
+        if (s.isFile()) files.push({ name, size: s.size, modified: s.mtime.toISOString() })
+      } catch { /* skip */ }
+    }
+    files.sort((a, b) => b.modified.localeCompare(a.modified))
+    res.json({ files })
+  } catch {
+    res.json({ files: [] })
+  }
+})
+
+router.get('/memory/files/:name', async (req, res) => {
+  try {
+    const name = req.params.name
+    if (name.includes('/') || name.includes('..')) { res.status(400).json({ error: 'Invalid filename' }); return }
+    const content = await readFile(join(MEMORY_DIR, name), 'utf-8')
+    res.json({ name, content })
+  } catch {
+    res.status(404).json({ error: 'File not found' })
+  }
+})
+
+// --- Automations (cron jobs with metadata) ---
+
+router.get('/automations', async (_req, res) => {
+  try {
+    const jobsFile = join(OPENCLAW_DIR, 'cron', 'jobs.json')
+    const content = await readFile(jobsFile, 'utf-8')
+    const data = JSON.parse(content)
+    const jobs = (data.jobs || []).map((j: any) => ({
+      id: j.id,
+      name: j.name || 'Unnamed',
+      enabled: j.enabled ?? true,
+      agent: j.agentId || 'main',
+      schedule: j.schedule?.expr || j.schedule?.kind || 'unknown',
+      timezone: j.schedule?.tz || 'UTC',
+      scheduleKind: j.schedule?.kind || 'cron',
+      sessionTarget: j.sessionTarget || 'isolated',
+      lastRun: j.state?.lastRunAtMs ? new Date(j.state.lastRunAtMs).toISOString() : null,
+      nextRun: j.state?.nextRunAtMs ? new Date(j.state.nextRunAtMs).toISOString() : null,
+      lastStatus: j.state?.lastStatus || null,
+      lastError: j.state?.lastError || null,
+      consecutiveErrors: j.state?.consecutiveErrors || 0,
+      description: j.payload?.message?.slice(0, 200) || '',
+    }))
+    res.json({ automations: jobs })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// --- Projects (parse trello-state.md) ---
+
+function parseTrelloState(content: string): Array<{ list: string; count: number; cards: Array<{ title: string; labels: string[] }> }> {
+  const lists: Array<{ list: string; count: number; cards: Array<{ title: string; labels: string[] }> }> = []
+  let currentList: { list: string; count: number; cards: Array<{ title: string; labels: string[] }> } | null = null
+
+  for (const line of content.split('\n')) {
+    const headerMatch = line.match(/^## (.+?)(?:\s*\((\d+)\))?\s*$/)
+    if (headerMatch) {
+      if (currentList) lists.push(currentList)
+      currentList = { list: headerMatch[1].trim(), count: parseInt(headerMatch[2] || '0'), cards: [] }
+      continue
+    }
+    if (currentList && line.startsWith('- ')) {
+      const cardText = line.slice(2).trim()
+      if (cardText === '_empty_') continue
+      // Extract labels in parentheses at end
+      const labelMatch = cardText.match(/\(([^)]+)\)\s*$/)
+      const labels = labelMatch ? labelMatch[1].split(',').map(l => l.trim()) : []
+      const title = labelMatch ? cardText.slice(0, cardText.lastIndexOf('(')).trim() : cardText
+      currentList.cards.push({ title, labels })
+    }
+  }
+  if (currentList) lists.push(currentList)
+  return lists
+}
+
+router.get('/projects', async (_req, res) => {
+  try {
+    const trelloFile = join(MEMORY_DIR, 'trello-state.md')
+    const content = await readFile(trelloFile, 'utf-8')
+    // Extract sync time
+    const syncMatch = content.match(/Last synced: (.+)/)
+    const lastSynced = syncMatch ? syncMatch[1].trim() : null
+    // Extract board name
+    const boardMatch = content.match(/^# (.+)/m)
+    const boardName = boardMatch ? boardMatch[1].trim() : 'Projects'
+
+    const lists = parseTrelloState(content)
+    res.json({ boardName, lastSynced, lists })
+  } catch (err) {
+    res.status(404).json({ error: 'trello-state.md not found' })
+  }
+})
+
 export default router

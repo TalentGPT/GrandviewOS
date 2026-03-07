@@ -24,7 +24,7 @@ export class OpenClawConnector {
     this.cache.set(key, { data, timestamp: Date.now() })
   }
 
-  private async fetch<T>(path: string): Promise<T | null> {
+  async fetch<T>(path: string): Promise<T | null> {
     if (!this.url) return null
     const cached = this.getCached<T>(path)
     if (cached) return cached

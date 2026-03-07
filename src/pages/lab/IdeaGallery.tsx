@@ -1,59 +1,95 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../../components/Toast'
 import PageHeader from '../../components/PageHeader'
+import { PageSkeleton } from '../../components/Skeleton'
+import { fetchIdeas, createIdea, voteIdea, updateIdea, deleteIdea } from '../../api/client'
 
 interface Idea {
   id: string
   title: string
   description: string
-  agent: string
-  agentEmoji: string
-  date: string
+  status: string
   tags: string[]
   votes: number
+  createdBy: string | null
+  createdAt: string
 }
 
-const MOCK_IDEAS: Idea[] = [
-  { id: 'i1', title: 'Agent-to-Agent Negotiations', description: 'Allow agents to negotiate resource allocation (tokens, priority) with each other before escalating to COO. Could reduce Muddy\'s bottleneck by 40%.', agent: 'Elon', agentEmoji: '🚀', date: '2026-03-07', tags: ['architecture', 'efficiency'], votes: 8 },
-  { id: 'i2', title: 'Community Karma System', description: 'Implement a karma/reputation system in Discord. Active helpers earn points, unlock roles. Clay tracks contributions and assigns tiers automatically.', agent: 'Clay', agentEmoji: '🦞', date: '2026-03-06', tags: ['community', 'gamification'], votes: 12 },
-  { id: 'i3', title: 'Self-Healing Pipelines', description: 'When a cron job fails, the responsible agent automatically diagnoses and fixes the issue before alerting. Nova already does this for security — extend to all automations.', agent: 'Nova', agentEmoji: '🛡️', date: '2026-03-05', tags: ['reliability', 'automation'], votes: 6 },
-  { id: 'i4', title: 'Voice-First Standup Format', description: 'Instead of text-then-TTS, generate standups directly as speech with natural interruptions and cross-talk. More realistic meeting simulation.', agent: 'Muddy', agentEmoji: '🐕', date: '2026-03-04', tags: ['voice', 'standup'], votes: 15 },
-  { id: 'i5', title: 'Partner API Marketplace', description: 'Create a self-service marketplace where partners can browse, test, and integrate with our APIs. Reduces manual onboarding work by 80%.', agent: 'Warren', agentEmoji: '💰', date: '2026-03-03', tags: ['partnerships', 'growth'], votes: 9 },
-  { id: 'i6', title: 'Mood-Based Model Selection', description: 'Analyze task complexity and urgency in real-time, automatically selecting the optimal model (Opus for complex, Flash for simple). Dynamic cost optimization.', agent: 'Atlas', agentEmoji: '🏗️', date: '2026-03-02', tags: ['cost', 'optimization'], votes: 11 },
-  { id: 'i7', title: 'Weekly Video Digest', description: 'Auto-generate a 2-minute video summary of the week using Motion\'s graphics capabilities. Share on social media for brand visibility.', agent: 'Gary', agentEmoji: '📣', date: '2026-03-01', tags: ['marketing', 'video'], votes: 7 },
-  { id: 'i8', title: 'Agent Dream Mode', description: 'During off-hours, agents review their memories and "dream" — generating creative solutions to open problems. Results reviewed in morning standup.', agent: 'Scribe', agentEmoji: '✍️', date: '2026-02-28', tags: ['creativity', 'memory'], votes: 18 },
-]
-
-const ALL_TAGS = [...new Set(MOCK_IDEAS.flatMap(i => i.tags))]
+const STATUS_OPTIONS = ['new', 'exploring', 'building', 'shipped', 'archived']
+const STATUS_COLORS: Record<string, string> = {
+  new: 'var(--accent-teal)',
+  exploring: 'var(--accent-green)',
+  building: 'var(--accent-orange)',
+  shipped: 'var(--accent-green)',
+  archived: 'var(--text-secondary)',
+}
 
 export default function IdeaGallery() {
   const { addToast } = useToast()
-  const [ideas, setIdeas] = useState(MOCK_IDEAS)
+  const [ideas, setIdeas] = useState<Idea[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [filterTag, setFilterTag] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
+  const [newTags, setNewTags] = useState('')
 
-  const filtered = filterTag ? ideas.filter(i => i.tags.includes(filterTag)) : ideas
+  const load = useCallback(async () => {
+    const { data } = await fetchIdeas()
+    if (data) setIdeas(data)
+    setLoading(false)
+  }, [])
 
-  const vote = (id: string) => {
-    setIdeas(prev => prev.map(i => i.id === id ? { ...i, votes: i.votes + 1 } : i))
-    addToast('Vote recorded')
-  }
+  useEffect(() => { load() }, [load])
 
-  const addIdea = () => {
-    if (!newTitle.trim()) return
-    const idea: Idea = {
-      id: `i${Date.now()}`, title: newTitle, description: newDesc,
-      agent: 'You', agentEmoji: '👤', date: new Date().toISOString().split('T')[0],
-      tags: ['new'], votes: 0,
+  const allTags = [...new Set(ideas.flatMap(i => i.tags))]
+
+  const filtered = ideas.filter(i => {
+    if (filterTag && !i.tags.includes(filterTag)) return false
+    if (filterStatus && i.status !== filterStatus) return false
+    return true
+  })
+
+  const vote = async (id: string) => {
+    const { data } = await voteIdea(id)
+    if (data) {
+      setIdeas(prev => prev.map(i => i.id === id ? { ...i, votes: data.votes } : i))
+      if (selectedIdea?.id === id) setSelectedIdea({ ...selectedIdea, votes: data.votes })
+      addToast('Vote recorded')
     }
-    setIdeas(prev => [idea, ...prev])
-    setNewTitle(''); setNewDesc(''); setShowAdd(false)
-    addToast('Idea added')
   }
+
+  const addIdea = async () => {
+    if (!newTitle.trim()) return
+    const tags = newTags.split(',').map(t => t.trim()).filter(Boolean)
+    const { data } = await createIdea({ title: newTitle, description: newDesc, tags })
+    if (data) {
+      setIdeas(prev => [data, ...prev])
+      setNewTitle(''); setNewDesc(''); setNewTags(''); setShowAdd(false)
+      addToast('Idea added')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    await deleteIdea(id)
+    setIdeas(prev => prev.filter(i => i.id !== id))
+    setSelectedIdea(null)
+    addToast('Idea deleted')
+  }
+
+  const handleStatusChange = async (id: string, status: string) => {
+    const { data } = await updateIdea(id, { status })
+    if (data) {
+      setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i))
+      if (selectedIdea?.id === id) setSelectedIdea({ ...selectedIdea, status })
+      addToast(`Status → ${status}`)
+    }
+  }
+
+  if (loading) return <PageSkeleton />
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
@@ -65,18 +101,27 @@ export default function IdeaGallery() {
         </button>
       </PageHeader>
 
-      {/* Tag filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      {/* Filters */}
+      <div className="flex gap-2 mb-2 flex-wrap">
         <button onClick={() => setFilterTag('')}
           className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer"
           style={{ background: !filterTag ? 'var(--accent-green)22' : 'var(--bg-3)', color: !filterTag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
           All
         </button>
-        {ALL_TAGS.map(tag => (
+        {allTags.map(tag => (
           <button key={tag} onClick={() => setFilterTag(tag === filterTag ? '' : tag)}
             className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer"
             style={{ background: filterTag === tag ? 'var(--accent-green)22' : 'var(--bg-3)', color: filterTag === tag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
             {tag}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map(s => (
+          <button key={s} onClick={() => setFilterStatus(s === filterStatus ? '' : s)}
+            className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer"
+            style={{ background: filterStatus === s ? (STATUS_COLORS[s] || 'var(--accent-green)') + '22' : 'var(--bg-3)', color: filterStatus === s ? (STATUS_COLORS[s] || 'var(--accent-green)') : 'var(--text-secondary)', border: 'none' }}>
+            {s}
           </button>
         ))}
       </div>
@@ -90,6 +135,8 @@ export default function IdeaGallery() {
                 className="px-3 py-2 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description..." rows={3}
                 className="px-3 py-2 rounded text-sm focus:outline-none resize-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+              <input value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="Tags (comma-separated)..."
+                className="px-3 py-2 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               <button onClick={addIdea} className="self-end px-4 py-1.5 rounded text-xs font-medium cursor-pointer"
                 style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Add Idea</button>
             </div>
@@ -114,22 +161,23 @@ export default function IdeaGallery() {
             </div>
             <div className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{idea.description}</div>
             <div className="flex items-center justify-between">
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {idea.tags.map(t => (
                   <span key={t} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>{t}</span>
                 ))}
               </div>
-              <div className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                <span>{idea.agentEmoji}</span>
-                <span>{idea.agent}</span>
-              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: (STATUS_COLORS[idea.status] || 'var(--text-secondary)') + '22', color: STATUS_COLORS[idea.status] || 'var(--text-secondary)' }}>{idea.status}</span>
             </div>
-            <div className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>{idea.date}</div>
+            <div className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>{new Date(idea.createdAt).toLocaleDateString()}</div>
           </motion.div>
         ))}
       </div>
 
-      {/* Expanded view modal */}
+      {filtered.length === 0 && (
+        <div className="text-center py-12 text-sm" style={{ color: 'var(--text-secondary)' }}>No ideas yet. Create one!</div>
+      )}
+
+      {/* Modal */}
       <AnimatePresence>
         {selectedIdea && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -146,19 +194,33 @@ export default function IdeaGallery() {
               </div>
               <p className="text-sm mb-4 leading-relaxed">{selectedIdea.description}</p>
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-sm">{selectedIdea.agentEmoji} {selectedIdea.agent}</span>
-                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{selectedIdea.date}</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{new Date(selectedIdea.createdAt).toLocaleDateString()}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: (STATUS_COLORS[selectedIdea.status] || 'var(--text-secondary)') + '22', color: STATUS_COLORS[selectedIdea.status] || 'var(--text-secondary)' }}>{selectedIdea.status}</span>
               </div>
               <div className="flex gap-1 mb-4">
                 {selectedIdea.tags.map(t => (
                   <span key={t} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>{t}</span>
                 ))}
               </div>
-              <button onClick={() => { vote(selectedIdea.id); setSelectedIdea({ ...selectedIdea, votes: selectedIdea.votes + 1 }) }}
-                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
-                style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
-                ▲ Upvote ({selectedIdea.votes})
-              </button>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Status:</span>
+                <select value={selectedIdea.status} onChange={e => handleStatusChange(selectedIdea.id, e.target.value)}
+                  className="text-xs px-2 py-1 rounded cursor-pointer" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
+                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => vote(selectedIdea.id)}
+                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                  style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
+                  ▲ Upvote ({selectedIdea.votes})
+                </button>
+                <button onClick={() => handleDelete(selectedIdea.id)}
+                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                  style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)44' }}>
+                  Delete
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

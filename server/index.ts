@@ -17,6 +17,10 @@ import permissionRoutes from './routes/permissions.js'
 import systemRoutes from './routes/system.js'
 import workspaceRoutes from './routes/workspace.js'
 import openclawRoutes from './routes/openclaw.js'
+import ideaRoutes from './routes/ideas.js'
+import ideationLogRoutes from './routes/ideation-logs.js'
+import weeklyReviewRoutes from './routes/weekly-reviews.js'
+import memoryRoutes from './routes/memory.js'
 
 const app = express()
 const PORT = parseInt(process.env.PORT || '3000', 10)
@@ -45,6 +49,10 @@ app.use('/api/llm-providers', llmRoutes)
 app.use('/api/agent-permissions', permissionRoutes)
 app.use('/api/workspace', workspaceRoutes)
 app.use('/api/openclaw', openclawRoutes)
+app.use('/api/ideas', ideaRoutes)
+app.use('/api/ideation-logs', ideationLogRoutes)
+app.use('/api/weekly-reviews', weeklyReviewRoutes)
+app.use('/api/memory', memoryRoutes)
 
 // System routes mounted at /api/system AND root /api level
 app.use('/api/system', systemRoutes)
