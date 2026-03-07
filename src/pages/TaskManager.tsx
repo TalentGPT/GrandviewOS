@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import StatCard from '../components/StatCard'
 import { PageSkeleton } from '../components/Skeleton'
 import { sessions as mockSessions, cronJobs, overnightLog } from '../data/mockSessions'
-import { fetchSessions, fetchSessionTranscript, formatCost, formatTokens, getModelColor, getModelShortName } from '../api/client'
+import { fetchSessions, fetchSessionTranscript, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
 import ModelFleetGrid from '../components/ModelFleetGrid'
+import CostBreakdownView from '../components/CostBreakdown'
 import type { ApiSession, SessionMessage } from '../types/api'
 import type { Session, TranscriptMessage } from '../data/mockSessions'
 
-type Tab = 'sessions' | 'cron' | 'overnight'
+type Tab = 'sessions' | 'cron' | 'overnight' | 'costs'
 type DataSource = 'live' | 'mock'
 
 // Convert API session to display format
@@ -260,11 +261,24 @@ export default function TaskManager() {
     load()
   }, [refreshCount])
 
-  // Auto-refresh every 10s when live
+  // SSE live updates + fallback polling
   useEffect(() => {
     if (!isLive) return
+
+    const es = createEventSource((data) => {
+      if (data.type === 'session:update' && data.sessions) {
+        setLiveSessions(data.sessions as ApiSession[])
+        setLiveError(false)
+      }
+    }, () => {
+      // SSE failed, fall back to polling
+    })
+
     const interval = setInterval(doRefresh, 10000)
-    return () => clearInterval(interval)
+    return () => {
+      es.close()
+      clearInterval(interval)
+    }
   }, [isLive, doRefresh])
 
   if (loading) return <PageSkeleton />
@@ -362,7 +376,7 @@ export default function TaskManager() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4">
-        {([['sessions', 'Active Sessions'], ['cron', 'Cron Jobs'], ['overnight', 'Overnight Log']] as const).map(([key, label]) => (
+        {([['sessions', 'Active Sessions'], ['cron', 'Cron Jobs'], ['overnight', 'Overnight Log'], ['costs', 'Cost Breakdown']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -511,6 +525,11 @@ export default function TaskManager() {
                 </div>
               )
             })}
+          </motion.div>
+        )}
+        {tab === 'costs' && (
+          <motion.div key="costs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <CostBreakdownView />
           </motion.div>
         )}
       </AnimatePresence>

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { useToast } from '../components/Toast'
+import { saveWorkspaceFile } from '../api/client'
 import { workspaceAgents, workspaceFiles, workspaceContents } from '../data/mockWorkspaces'
 
 export default function Workspaces() {
@@ -14,6 +15,7 @@ export default function Workspaces() {
   const [selectedFile, setSelectedFile] = useState('SOUL.md')
   const [isEdit, setIsEdit] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const agentParam = searchParams.get('agent')
@@ -27,10 +29,19 @@ export default function Workspaces() {
   const content = workspaceContents[contentKey]
   const agent = workspaceAgents.find(a => a.id === selectedAgent)
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (isEdit) {
-      // Switching from edit to preview = "save"
-      addToast(`${selectedFile} saved`)
+      // Save to disk
+      setSaving(true)
+      const { error } = await saveWorkspaceFile(selectedAgent, selectedFile, editContent)
+      if (error) {
+        addToast(`Failed to save: ${error}`, 'error')
+      } else {
+        addToast(`${selectedFile} saved successfully ✓`)
+        // Update local cache
+        workspaceContents[contentKey] = editContent
+      }
+      setSaving(false)
     } else {
       setEditContent(content || '')
     }
@@ -81,7 +92,6 @@ export default function Workspaces() {
       <div className="flex-1 overflow-y-auto p-6">
         {content ? (
           <>
-            {/* Breadcrumb */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -95,15 +105,14 @@ export default function Workspaces() {
                   ~/.openclaw/workspaces/{selectedAgent}/{selectedFile}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleEdit}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors"
-                  style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-hover)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
-                >
-                  {isEdit ? '💾 Save' : '✏️ Edit'}
-                </button>
-              </div>
+              <button
+                onClick={handleEdit}
+                disabled={saving}
+                className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors disabled:opacity-50"
+                style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-hover)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
+              >
+                {saving ? '⏳ Saving...' : isEdit ? '💾 Save' : '✏️ Edit'}
+              </button>
             </div>
 
             {isEdit ? (
@@ -126,7 +135,6 @@ export default function Workspaces() {
             <div className="text-center">
               <div className="text-4xl mb-3">📄</div>
               <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No content available for {agent?.name} / {selectedFile}</div>
-              <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Try selecting SOUL.md or MEMORY.md</div>
             </div>
           </div>
         )}

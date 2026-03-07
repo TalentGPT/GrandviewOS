@@ -4,6 +4,8 @@ import TopNavBar from './components/TopNavBar'
 import LeftSidebar from './components/LeftSidebar'
 import StatusBar from './components/StatusBar'
 import OperatorChat from './components/OperatorChat'
+import ErrorBoundary from './components/ErrorBoundary'
+import PageTitle from './components/PageTitle'
 import { ToastProvider } from './components/Toast'
 import TaskManager from './pages/TaskManager'
 import OrgChart from './pages/OrgChart'
@@ -11,6 +13,7 @@ import Standup from './pages/Standup'
 import Workspaces from './pages/Workspaces'
 import Docs from './pages/Docs'
 import Settings from './pages/Settings'
+import NotFound from './pages/NotFound'
 
 function App() {
   const [chatOpen, setChatOpen] = useState(false)
@@ -18,6 +21,8 @@ function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
+        <PageTitle />
+
         {/* Mobile warning */}
         <div className="mobile-warning fixed inset-0 bg-black flex items-center justify-center z-50 p-8">
           <div className="text-center">
@@ -33,15 +38,18 @@ function App() {
           <div className="flex flex-1 overflow-hidden">
             <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
             <main className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/task-manager" replace />} />
-                <Route path="/task-manager" element={<TaskManager />} />
-                <Route path="/org-chart" element={<OrgChart />} />
-                <Route path="/standup" element={<Standup />} />
-                <Route path="/workspaces" element={<Workspaces />} />
-                <Route path="/docs" element={<Docs />} />
-                <Route path="/settings" element={<Settings />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/task-manager" replace />} />
+                  <Route path="/task-manager" element={<TaskManager />} />
+                  <Route path="/org-chart" element={<OrgChart />} />
+                  <Route path="/standup" element={<Standup />} />
+                  <Route path="/workspaces" element={<Workspaces />} />
+                  <Route path="/docs" element={<Docs />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
             </main>
           </div>
           <StatusBar />

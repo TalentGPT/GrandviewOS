@@ -1,4 +1,4 @@
-import type { ApiSession, ApiAgent, SystemHealth, ApiConfig, SessionMessage } from '../types/api'
+import type { ApiSession, ApiAgent, SystemHealth, ApiConfig, SessionMessage, StandupResponse, CostBreakdown, DailyCostEntry } from '../types/api'
 
 const API_BASE = '/api'
 
@@ -7,9 +7,9 @@ interface FetchResult<T> {
   error: string | null
 }
 
-async function apiFetch<T>(path: string): Promise<FetchResult<T>> {
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<FetchResult<T>> {
   try {
-    const res = await fetch(`${API_BASE}${path}`)
+    const res = await fetch(`${API_BASE}${path}`, options)
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}` }
     }
@@ -44,8 +44,66 @@ export async function fetchWorkspaceFile(agentId: string, fileName: string): Pro
   return apiFetch<{ content: string }>(`/workspace/${agentId}/${fileName}`)
 }
 
+export async function saveWorkspaceFile(agentId: string, fileName: string, content: string): Promise<FetchResult<{ ok: boolean }>> {
+  return apiFetch<{ ok: boolean }>(`/workspace/${agentId}/${fileName}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  })
+}
+
 export async function fetchAgentFiles(agentId: string): Promise<FetchResult<Array<{ name: string; size: number }>>> {
   return apiFetch<Array<{ name: string; size: number }>>(`/agents/${agentId}/files`)
+}
+
+// Standups
+export async function triggerStandup(): Promise<FetchResult<{ id: string; status: string }>> {
+  return apiFetch<{ id: string; status: string }>('/standups', { method: 'POST' })
+}
+
+export async function fetchStandups(): Promise<FetchResult<StandupResponse[]>> {
+  return apiFetch<StandupResponse[]>('/standups')
+}
+
+export async function fetchStandup(id: string): Promise<FetchResult<StandupResponse>> {
+  return apiFetch<StandupResponse>(`/standups/${id}`)
+}
+
+export function getStandupAudioUrl(id: string): string {
+  return `${API_BASE}/standups/${id}/audio`
+}
+
+// Docs
+export async function fetchGeneratedDocs(): Promise<FetchResult<Record<string, string>>> {
+  return apiFetch<Record<string, string>>('/docs')
+}
+
+export async function regenerateDocs(): Promise<FetchResult<Record<string, string>>> {
+  return apiFetch<Record<string, string>>('/docs/generate', { method: 'POST' })
+}
+
+// Cost
+export async function fetchCostBreakdown(): Promise<FetchResult<CostBreakdown>> {
+  return apiFetch<CostBreakdown>('/cost/breakdown')
+}
+
+export async function fetchCostHistory(days: number = 7): Promise<FetchResult<DailyCostEntry[]>> {
+  return apiFetch<DailyCostEntry[]>(`/cost/history?days=${days}`)
+}
+
+// SSE
+export function createEventSource(onMessage: (data: Record<string, unknown>) => void, onError?: () => void): EventSource {
+  const es = new EventSource(`${API_BASE}/events`)
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data as string) as Record<string, unknown>
+      onMessage(data)
+    } catch { /* ignore parse errors */ }
+  }
+  es.onerror = () => {
+    if (onError) onError()
+  }
+  return es
 }
 
 // Model pricing per million tokens

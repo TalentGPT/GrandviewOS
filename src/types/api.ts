@@ -81,3 +81,50 @@ export interface CronJobInfo {
   nextRun: string
   status: string
 }
+
+// Standup types
+export interface StandupParticipant {
+  name: string
+  emoji: string
+  role: string
+  voice: string
+}
+
+export interface StandupConversationMessage {
+  speaker: string
+  text: string
+}
+
+export interface StandupActionItem {
+  text: string
+  assignee: string
+  done: boolean
+}
+
+export interface StandupResponse {
+  id: string
+  title: string
+  date: string
+  time: string
+  status: 'running' | 'complete' | 'error'
+  participants: StandupParticipant[]
+  conversation: StandupConversationMessage[]
+  actionItems: StandupActionItem[]
+  audioFile?: string
+  createdAt: string
+}
+
+// Cost types
+export interface CostBreakdown {
+  byModel: Record<string, { cost: number; tokens: number; sessions: number }>
+  byAgent: Record<string, { cost: number; tokens: number; sessions: number }>
+  total: { cost: number; tokens: number; sessions: number }
+}
+
+export interface DailyCostEntry {
+  date: string
+  totalCost: number
+  totalTokens: number
+  byModel: Record<string, { cost: number; tokens: number; sessions: number }>
+  byAgent: Record<string, { cost: number; tokens: number; sessions: number }>
+}
