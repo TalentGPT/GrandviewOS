@@ -26,7 +26,8 @@ async function main() {
 
   // Agent definitions
   const agents = [
-    { slug: 'ray-dalio', name: 'Ray Dalio', emoji: '📊', role: 'coo', persona: 'COO', department: 'operations', primaryModel: 'claude-opus-4-6', description: 'Chief Operating Philosopher. Designs systems where the best ideas win regardless of hierarchy. Runs company as idea meritocracy powered by data and radical transparency.' },
+    { slug: 'joe-hawn', name: 'Joe Hawn', emoji: '⚡', role: 'ceo', persona: 'CEO', department: 'executive', primaryModel: 'claude-opus-4-6', description: 'CEO of Grandview Tek. Strategic operator. Execution-focused.' },
+    { slug: 'ray-dalio', name: 'Ray Dalio', emoji: '📊', role: 'coo', persona: 'COO', department: 'operations', primaryModel: 'claude-opus-4-6', parentId: 'joe-hawn', description: 'Chief Operating Philosopher. Designs systems where the best ideas win regardless of hierarchy. Runs company as idea meritocracy powered by data and radical transparency.' },
     { slug: 'elon', name: 'Elon', emoji: '🚀', role: 'department_head', persona: 'CTO', department: 'engineering', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio' },
     { slug: 'steve-jobs', name: 'Steve Jobs', emoji: '🍎', role: 'department_head', persona: 'CMO', department: 'marketing', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Storyteller. Makes the product emotionally irresistible. Turns products into cultural movements. "Marketing is the art of making people believe a product will change their lives."' },
     { slug: 'marc-benioff', name: 'Marc Benioff', emoji: '☁️', role: 'department_head', persona: 'CRO', department: 'revenue', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Category Builder. Dominates markets by defining them. Created cloud CRM category at Salesforce. Revenue grew from startup to $30B+. "Define the category, build the platform, and let the ecosystem multiply your revenue."' },

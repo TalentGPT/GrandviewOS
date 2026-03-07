@@ -91,6 +91,7 @@ export const deprecatedAgents: Agent[] = [
 ]
 
 export const allActiveAgents: Agent[] = [
+  ceoAgent,
   cooAgent,
   ...departmentHeads,
   ...Object.values(divisions).flatMap(divs => divs.flatMap(d => d.agents)),
