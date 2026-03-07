@@ -44,13 +44,15 @@ function extractSessionMeta(lines: any[], filePath: string) {
   const messages = lines.filter(l => l.type === 'message')
   const costLines = lines.filter(l => l.type === 'usage' || l.type === 'custom' && l.customType === 'cost')
   
-  // Calculate tokens and cost from usage entries
+  // Calculate tokens and cost from message usage entries
   let totalTokens = 0
   let totalCost = 0
   for (const l of lines) {
-    if (l.type === 'usage' && l.usage) {
-      totalTokens += (l.usage.inputTokens || 0) + (l.usage.outputTokens || 0)
-      totalCost += l.usage.cost || 0
+    const usage = l.message?.usage || l.usage
+    if (usage) {
+      totalTokens += usage.totalTokens || ((usage.input || 0) + (usage.output || 0) + (usage.cacheRead || 0) + (usage.cacheWrite || 0))
+      const cost = typeof usage.cost === 'object' ? usage.cost.total || 0 : (usage.cost || 0)
+      totalCost += cost
     }
   }
 
@@ -112,13 +114,23 @@ router.get('/sessions/:id/transcript', async (req, res) => {
     const target = files.find(f => f.includes(req.params.id))
     if (!target) return res.status(404).json({ error: 'Session not found' })
     const lines = await readJsonl(target)
-    const messages = lines.filter(l => l.type === 'message').map(l => ({
-      role: l.message?.role || 'unknown',
-      content: typeof l.message?.content === 'string' ? l.message.content : 
-        Array.isArray(l.message?.content) ? l.message.content.map((c: any) => c.text || '').join('') : '',
-      timestamp: l.timestamp,
-    }))
-    res.json({ messages })
+    const meta = extractSessionMeta(lines, target)
+    const messages = lines.filter(l => l.type === 'message').map(l => {
+      const usage = l.message?.usage
+      return {
+        role: l.message?.role || 'unknown',
+        content: typeof l.message?.content === 'string' ? l.message.content : 
+          Array.isArray(l.message?.content) ? l.message.content.map((c: any) => c.text || '').join('') : '',
+        timestamp: l.timestamp,
+        isToolCall: l.message?.content?.some?.((c: any) => c.type === 'tool_use') || false,
+        toolName: l.message?.content?.find?.((c: any) => c.type === 'tool_use')?.name,
+        usage: usage ? {
+          totalTokens: usage.totalTokens || 0,
+          cost: { total: typeof usage.cost === 'object' ? usage.cost.total || 0 : usage.cost || 0 },
+        } : undefined,
+      }
+    })
+    res.json({ ...meta, messages })
   } catch (err) {
     res.status(500).json({ error: String(err) })
   }

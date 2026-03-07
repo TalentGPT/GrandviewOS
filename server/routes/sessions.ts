@@ -73,13 +73,41 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// GET /api/sessions/:id/transcript
+// GET /api/sessions/:id/transcript — fetch live from bridge
 router.get('/:id/transcript', async (req, res) => {
   try {
     const session = await prisma.session.findFirst({
       where: { tenantId: req.tenantId!, OR: [{ id: req.params.id }, { openclawId: req.params.id }] },
     })
     if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+
+    // Try fetching live transcript from bridge
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId! } })
+    if (tenant?.openclawUrl && tenant?.openclawToken) {
+      try {
+        const bridgeRes = await fetch(`${tenant.openclawUrl}/api/sessions/${encodeURIComponent(session.openclawId || session.id)}/transcript`, {
+          headers: { 'Authorization': `Bearer ${tenant.openclawToken}` },
+          signal: AbortSignal.timeout(10000),
+        })
+        if (bridgeRes.ok) {
+          const data = await bridgeRes.json() as any
+          res.json({
+            id: session.openclawId || session.id,
+            timestamp: session.startedAt.toISOString(),
+            lastActivity: session.lastActivity.toISOString(),
+            model: data.model || session.model,
+            provider: data.provider || session.provider || '',
+            messageCount: data.messageCount || session.messageCount,
+            totalTokens: data.totalTokens || session.totalTokens,
+            totalCost: data.totalCost || session.totalCost,
+            isActive: session.isActive,
+            title: session.title || 'Untitled Session',
+            messages: data.messages || [],
+          })
+          return
+        }
+      } catch { /* fall through to DB */ }
+    }
 
     res.json({
       id: session.openclawId || session.id,
