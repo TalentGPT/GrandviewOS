@@ -8,7 +8,7 @@ export default function NotFound() {
         <div className="text-6xl mb-4">🐕</div>
         <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>404</h1>
         <p className="text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Page not found</p>
-        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Muddy sniffed around but couldn&apos;t find this page.</p>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Ray Dalio looked around but couldn&apos;t find this page.</p>
         <Link
           to="/ops/task-manager"
           className="inline-block px-4 py-2 rounded-md text-sm font-medium no-underline"

@@ -254,7 +254,7 @@ export default function TaskManager() {
       lastRun: 'Never',
       nextRun: 'Pending',
       status: 'active' as const,
-      agent: 'Muddy',
+      agent: 'Ray Dalio',
       agentEmoji: '🐕',
       model: 'Opus 4.6',
       modelColor: 'var(--model-opus)',

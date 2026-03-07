@@ -19,20 +19,20 @@ export interface Division {
 }
 
 export const ceoAgent: Agent = {
-  id: 'marcelo', name: 'Marcelo Oliveira', emoji: '👤', role: 'Vision · Strategy · Final Decisions',
+  id: 'joe-hawn', name: 'Joe Hawn', emoji: '⚡', role: 'Vision · Strategy · Final Decisions',
   title: 'CEO', status: 'active', model: 'Human', modelColor: 'var(--accent-gold)',
 }
 
 export const cooAgent: Agent = {
-  id: 'muddy', name: 'Muddy', emoji: '🐕', role: 'Research · Delegation · Execution · Orchestration',
+  id: 'ray-dalio', name: 'Ray Dalio', emoji: '📊', role: 'Research · Delegation · Execution · Orchestration',
   title: 'COO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)',
-  description: 'Chief Operating Officer. A loyal, hardworking golden retriever who never sleeps.',
+  description: 'Chief Operating Philosopher. Designs systems where the best ideas win regardless of hierarchy. Runs company as idea meritocracy powered by data and radical transparency.',
 }
 
 export const departmentHeads: Agent[] = [
   { id: 'elon', name: 'Elon', emoji: '🚀', role: 'Engineering Lead', title: 'CTO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'engineering' },
   { id: 'gary', name: 'Gary', emoji: '📣', role: 'Marketing Lead', title: 'CMO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'marketing' },
-  { id: 'warren', name: 'Warren', emoji: '💰', role: 'Revenue Lead', title: 'CRO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'revenue' },
+  { id: 'ray-lane', name: 'Ray Lane', emoji: '💰', role: 'Revenue Lead', title: 'CRO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'revenue' },
 ]
 
 export const divisions: Record<string, Division[]> = {

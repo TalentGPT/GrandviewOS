@@ -26,10 +26,10 @@ async function main() {
 
   // Agent definitions
   const agents = [
-    { slug: 'muddy', name: 'Muddy', emoji: '🐕', role: 'coo', persona: 'COO', department: 'operations', primaryModel: 'claude-opus-4-6', description: 'Chief Operating Officer. A loyal, hardworking golden retriever.' },
-    { slug: 'elon', name: 'Elon', emoji: '🚀', role: 'department_head', persona: 'CTO', department: 'engineering', primaryModel: 'claude-opus-4-6', parentId: 'muddy' },
-    { slug: 'gary', name: 'Gary', emoji: '📣', role: 'department_head', persona: 'CMO', department: 'marketing', primaryModel: 'claude-opus-4-6', parentId: 'muddy' },
-    { slug: 'warren', name: 'Warren', emoji: '💰', role: 'department_head', persona: 'CRO', department: 'revenue', primaryModel: 'claude-opus-4-6', parentId: 'muddy' },
+    { slug: 'ray-dalio', name: 'Ray Dalio', emoji: '📊', role: 'coo', persona: 'COO', department: 'operations', primaryModel: 'claude-opus-4-6', description: 'Chief Operating Philosopher. Designs systems where the best ideas win regardless of hierarchy. Runs company as idea meritocracy powered by data and radical transparency.' },
+    { slug: 'elon', name: 'Elon', emoji: '🚀', role: 'department_head', persona: 'CTO', department: 'engineering', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio' },
+    { slug: 'gary', name: 'Gary', emoji: '📣', role: 'department_head', persona: 'CMO', department: 'marketing', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio' },
+    { slug: 'ray-lane', name: 'Ray Lane', emoji: '💰', role: 'department_head', persona: 'CRO', department: 'revenue', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Revenue Officer. Helped turn Oracle into the dominant enterprise software company of the 1990s. Built Oracle\'s global enterprise sales machine. Often cited as one of the greatest enterprise software operators ever.' },
     // Engineering
     { slug: 'nova', name: 'Nova', emoji: '🛡️', role: 'specialist', department: 'engineering', division: 'Backend & Security', primaryModel: 'codex-5.3', parentId: 'elon' },
     { slug: 'atlas', name: 'Atlas', emoji: '🏗️', role: 'specialist', department: 'engineering', division: 'Backend & Security', primaryModel: 'codex-5.3', parentId: 'elon' },
@@ -47,10 +47,10 @@ async function main() {
     { slug: 'canvas', name: 'Canvas', emoji: '🎭', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'gary' },
     { slug: 'motion', name: 'Motion', emoji: '🎬', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'gary' },
     // Revenue
-    { slug: 'deal', name: 'Deal', emoji: '🤝', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-6', parentId: 'warren' },
-    { slug: 'scout', name: 'Scout', emoji: '🔭', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-5', parentId: 'warren' },
-    { slug: 'closer', name: 'Closer', emoji: '💼', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-opus-4-6', parentId: 'warren' },
-    { slug: 'outreach', name: 'Outreach', emoji: '📧', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-sonnet-4-5', parentId: 'warren' },
+    { slug: 'deal', name: 'Deal', emoji: '🤝', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-6', parentId: 'ray-lane' },
+    { slug: 'scout', name: 'Scout', emoji: '🔭', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-5', parentId: 'ray-lane' },
+    { slug: 'closer', name: 'Closer', emoji: '💼', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-opus-4-6', parentId: 'ray-lane' },
+    { slug: 'outreach', name: 'Outreach', emoji: '📧', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-sonnet-4-5', parentId: 'ray-lane' },
   ]
 
   for (const a of agents) {
@@ -125,22 +125,22 @@ async function main() {
       tenantId: tenant.id,
       title: 'Executive Standup — March 7, 2026',
       participants: [
-        { name: 'Muddy', emoji: '🐕', role: 'COO', voice: 'en-US-GuyNeural' },
+        { name: 'Ray Dalio', emoji: '📊', role: 'COO', voice: 'en-US-GuyNeural' },
         { name: 'Elon', emoji: '🚀', role: 'CTO', voice: 'en-US-ChristopherNeural' },
         { name: 'Gary', emoji: '📣', role: 'CMO', voice: 'en-US-JasonNeural' },
-        { name: 'Warren', emoji: '💰', role: 'CRO', voice: 'en-GB-RyanNeural' },
+        { name: 'Ray Lane', emoji: '💰', role: 'CRO', voice: 'en-GB-RyanNeural' },
       ],
       transcript: [
-        { speaker: 'Muddy', text: 'Good morning team. Status updates please.' },
+        { speaker: 'Ray Dalio', text: 'Good morning team. Status updates please.' },
         { speaker: 'Elon', text: 'Engineering shipped 3 PRs. Pipeline green.' },
         { speaker: 'Gary', text: 'Newsletter open rate 34%. Community growing.' },
-        { speaker: 'Warren', text: 'TechCorp deal in final review.' },
-        { speaker: 'Muddy', text: 'Great work. Action items compiled.' },
+        { speaker: 'Ray Lane', text: 'TechCorp deal in final review.' },
+        { speaker: 'Ray Dalio', text: 'Great work. Action items compiled.' },
       ],
       actionItems: [
         { text: 'Ship cost breakdown view', assignee: 'Elon', done: false },
         { text: 'Complete TechCorp case study', assignee: 'Gary', done: false },
-        { text: 'Close TechCorp deal', assignee: 'Warren', done: true },
+        { text: 'Close TechCorp deal', assignee: 'Ray Lane', done: true },
       ],
       status: 'completed',
       completedAt: new Date(),

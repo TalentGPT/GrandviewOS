@@ -9,7 +9,7 @@ interface Props {
   totalDuration?: string
 }
 
-export default function PersistentAudioBar({ visible, speakerName = 'Muddy', speakerEmoji = '🐕', totalSegments = 23, totalDuration = '24s' }: Props) {
+export default function PersistentAudioBar({ visible, speakerName = 'Ray Dalio', speakerEmoji = '📊', totalSegments = 23, totalDuration = '24s' }: Props) {
   const [playing, setPlaying] = useState(false)
   const [segment, setSegment] = useState(1)
   const elapsed = segment
@@ -48,7 +48,7 @@ export default function PersistentAudioBar({ visible, speakerName = 'Muddy', spe
       {/* Speaker indicator */}
       <div className="flex items-center gap-1.5 shrink-0">
         <span>🐕</span>
-        <span className="text-xs font-medium" style={{ color: 'var(--accent-teal)' }}>Muddy</span>
+        <span className="text-xs font-medium" style={{ color: 'var(--accent-teal)' }}>Ray Dalio</span>
       </div>
 
       {/* Progress bar */}

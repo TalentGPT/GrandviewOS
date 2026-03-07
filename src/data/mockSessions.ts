@@ -42,7 +42,7 @@ export const sessions: Session[] = [
     transcript: [
       { role: 'user', content: 'Draft this week\'s newsletter. Focus on the new partnership announcements and community growth metrics.', timestamp: '08:12:04' },
       { role: 'assistant', content: 'I\'ll draft the newsletter with three sections:\n\n1. **Partnership Spotlight** — TechCorp integration announcement\n2. **Community Pulse** — 23% engagement increase, 45 new members\n3. **What\'s Next** — Upcoming features and roadmap preview\n\nLet me start writing...', timestamp: '08:12:08' },
-      { role: 'assistant', content: '## 🗞️ Muddy OS Weekly — Issue #12\n\n### Partnership Spotlight\nWe\'re thrilled to announce our integration with TechCorp! This means seamless API access for all Muddy OS users...\n\n### Community Pulse\nThis week saw incredible growth:\n- 45 new community members (+18% WoW)\n- 23% increase in Discord engagement\n- 12 community-contributed plugins\n\n### What\'s Next\nOur engineering team is working on Brain Module (V2) with memory viewer and daily briefs...', timestamp: '08:12:45' },
+      { role: 'assistant', content: '## 🗞️ GrandviewOS Weekly — Issue #12\n\n### Partnership Spotlight\nWe\'re thrilled to announce our integration with TechCorp! This means seamless API access for all GrandviewOS users...\n\n### Community Pulse\nThis week saw incredible growth:\n- 45 new community members (+18% WoW)\n- 23% increase in Discord engagement\n- 12 community-contributed plugins\n\n### What\'s Next\nOur engineering team is working on Brain Module (V2) with memory viewer and daily briefs...', timestamp: '08:12:45' },
       { role: 'user', content: 'Add a section about the voice standup feature launch.', timestamp: '08:13:02' },
       { role: 'assistant', content: 'Adding voice standup section...\n\n### 🎙️ Voice Standups Are Live!\nYour AI agents can now hold autonomous voice meetings. Using Microsoft open-source TTS, agents discuss priorities, report progress, and generate action items — all without human intervention. Listen to recordings right from the Standup tab.', timestamp: '08:13:15' },
     ],
@@ -79,10 +79,10 @@ export const sessions: Session[] = [
   {
     id: 's5', title: 'Daily Standup Prep', model: 'Opus 4.5', modelColor: 'var(--model-opus)',
     tokens: '18.7K', cost: '$0.85', status: 'Compiling agent reports...', statusType: 'idle', time: '15m ago',
-    agent: 'Muddy', agentEmoji: '🐕',
+    agent: 'Ray Dalio', agentEmoji: '📊',
     transcript: [
       { role: 'system', content: 'Daily standup preparation initiated.', timestamp: '07:45:00' },
-      { role: 'assistant', content: 'Gathering status from all department heads...\n\n**Engineering (Elon):** 2 PRs merged, security patch deployed\n**Marketing (Gary):** Newsletter 80% complete, social metrics up\n**Revenue (Warren):** 3 partner responses received, proposals in draft', timestamp: '07:45:30' },
+      { role: 'assistant', content: 'Gathering status from all department heads...\n\n**Engineering (Elon):** 2 PRs merged, security patch deployed\n**Marketing (Gary):** Newsletter 80% complete, social metrics up\n**Revenue (Ray Lane):** 3 partner responses received, proposals in draft', timestamp: '07:45:30' },
     ],
   },
   {
@@ -97,7 +97,7 @@ export const sessions: Session[] = [
   {
     id: 's7', title: 'Cron: Heartbeat Check', model: 'Opus 4.6', modelColor: 'var(--model-opus)',
     tokens: '5.1K', cost: '$0.12', status: 'All agents healthy ✓', statusType: 'idle', time: '25m ago',
-    agent: 'Muddy', agentEmoji: '🐕',
+    agent: 'Ray Dalio', agentEmoji: '📊',
     transcript: [
       { role: 'system', content: 'Heartbeat check — all agents.', timestamp: '07:30:00' },
       { role: 'assistant', content: 'Agent health check complete:\n- 21/21 active agents responding\n- 1 scaffolded agent (Sentinel) — not yet deployed\n- Average response time: 1.2s\n- No error states detected\n- Cost in last hour: $4.82\n\nHEARTBEAT_OK', timestamp: '07:30:08' },
@@ -134,9 +134,9 @@ export const sessions: Session[] = [
 ]
 
 export const cronJobs: CronJob[] = [
-  { id: 'c1', name: 'Heartbeat Check', schedule: 'Every 30 min', lastRun: '07:30 UTC', nextRun: '08:00 UTC', status: 'active', agent: 'Muddy', agentEmoji: '🐕', model: 'Opus 4.6', modelColor: 'var(--model-opus)', tokens: '5.1K', cost: '$0.12' },
+  { id: 'c1', name: 'Heartbeat Check', schedule: 'Every 30 min', lastRun: '07:30 UTC', nextRun: '08:00 UTC', status: 'active', agent: 'Ray Dalio', agentEmoji: '📊', model: 'Opus 4.6', modelColor: 'var(--model-opus)', tokens: '5.1K', cost: '$0.12' },
   { id: 'c2', name: 'Community Pulse', schedule: 'Every 2 hours', lastRun: '06:00 UTC', nextRun: '08:00 UTC', status: 'active', agent: 'Clay', agentEmoji: '🦞', model: 'Gemini Flash', modelColor: 'var(--model-gemini-flash)', tokens: '12.3K', cost: '$0.08' },
-  { id: 'c3', name: 'Daily Standup', schedule: 'Daily 08:00 UTC', lastRun: 'Yesterday', nextRun: '08:00 UTC', status: 'active', agent: 'Muddy', agentEmoji: '🐕', model: 'Opus 4.6', modelColor: 'var(--model-opus)', tokens: '45K', cost: '$2.10' },
+  { id: 'c3', name: 'Daily Standup', schedule: 'Daily 08:00 UTC', lastRun: 'Yesterday', nextRun: '08:00 UTC', status: 'active', agent: 'Ray Dalio', agentEmoji: '📊', model: 'Opus 4.6', modelColor: 'var(--model-opus)', tokens: '45K', cost: '$2.10' },
   { id: 'c4', name: 'Weekly Newsletter', schedule: 'Mon 09:00 UTC', lastRun: '3 days ago', nextRun: 'Mon 09:00', status: 'active', agent: 'Scribe', agentEmoji: '✍️', model: 'Opus 4.6', modelColor: 'var(--model-opus)', tokens: '60K', cost: '$3.40' },
   { id: 'c5', name: 'Security Scan', schedule: 'Daily 03:00 UTC', lastRun: '03:00 UTC', nextRun: 'Tomorrow 03:00', status: 'active', agent: 'Nova', agentEmoji: '🛡️', model: 'Codex 5.3', modelColor: 'var(--model-codex)', tokens: '30K', cost: '$0.85' },
   { id: 'c6', name: 'SEO Report', schedule: 'Weekly Fri', lastRun: '5 days ago', nextRun: 'Fri 10:00', status: 'paused', agent: 'Funnel', agentEmoji: '📈', model: 'Gemini Pro', modelColor: 'var(--model-gemini-pro)', tokens: '0', cost: '$0.00' },
@@ -146,14 +146,14 @@ export const cronJobs: CronJob[] = [
 export const overnightLog = [
   { time: '02:15 UTC', event: '🛡️ Nova completed nightly security scan — 0 critical issues', type: 'success' as const },
   { time: '02:45 UTC', event: '🦞 Clay responded to 3 community questions in Discord', type: 'info' as const },
-  { time: '03:00 UTC', event: '🐕 Muddy heartbeat — all agents healthy', type: 'success' as const },
+  { time: '03:00 UTC', event: '📊 Ray Dalio heartbeat — all agents healthy', type: 'success' as const },
   { time: '03:30 UTC', event: '🏗️ Atlas deployed auth middleware patch v2.1.4', type: 'success' as const },
   { time: '04:00 UTC', event: '🛡️ Nova dependency audit — 2 moderate vulnerabilities found', type: 'warning' as const },
   { time: '04:15 UTC', event: '📧 Outreach scheduled 2 follow-up emails for morning send', type: 'info' as const },
-  { time: '05:00 UTC', event: '🐕 Muddy heartbeat — all agents healthy', type: 'success' as const },
+  { time: '05:00 UTC', event: '📊 Ray Dalio heartbeat — all agents healthy', type: 'success' as const },
   { time: '05:30 UTC', event: '🏗️ Atlas API gateway error — connection timeout (auto-retry succeeded)', type: 'warning' as const },
   { time: '06:00 UTC', event: '🦞 Clay community pulse — 12 active members, 94% positive sentiment', type: 'info' as const },
   { time: '06:30 UTC', event: '📱 Viral posted scheduled tweet — "AI agent orchestration tips"', type: 'success' as const },
-  { time: '07:00 UTC', event: '🐕 Muddy heartbeat — all agents healthy', type: 'success' as const },
+  { time: '07:00 UTC', event: '📊 Ray Dalio heartbeat — all agents healthy', type: 'success' as const },
   { time: '07:15 UTC', event: '🖼️ Frame updated 12 UI components to new design system', type: 'success' as const },
 ]

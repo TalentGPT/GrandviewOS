@@ -1,13 +1,13 @@
 export const docsContent: Record<string, string> = {
-  'Overview': `# What is Muddy OS?
+  'Overview': `# What is GrandviewOS?
 
-Muddy OS is an AI Agent Operations System that lets a single human operator manage a fleet of 25+ AI agents organized in a corporate hierarchy. Built on OpenClaw infrastructure.
+GrandviewOS is an AI Agent Operations System that lets a single human operator manage a fleet of 25+ AI agents organized in a corporate hierarchy. Built on OpenClaw infrastructure.
 
 ## Architecture
 
 \`\`\`
 ┌─────────────────────────────────────────────┐
-│              Muddy OS Frontend               │
+│              GrandviewOS Frontend               │
 │       React + TypeScript SPA (Tab-Based)     │
 ├──────────┬──────────┬───────────────────────┤
 │   OPS    │  BRAIN   │         LAB            │
@@ -88,12 +88,12 @@ The org chart visualizes the entire agent hierarchy with interactive expand/coll
 ## Hierarchy
 
 \`\`\`
-        👤 CEO (Marcelo)
+        ⚡ CEO (Joe Hawn)
              │
-        🐕 COO (Muddy)
+        📊 COO (Ray Dalio)
         ┌────┼────┐
    🚀 CTO  📣 CMO  💰 CRO
-   (Elon)  (Gary)  (Warren)
+   (Elon)  (Gary)  (Ray Lane)
      │       │       │
    7 agents 7 agents 4 agents
 \`\`\`
@@ -139,7 +139,7 @@ Each agent has a dedicated workspace with identity, memory, and tools.
 
 \`\`\`
 ~/.openclaw/workspaces/
-├── muddy/           # COO
+├── ray-dalio/           # COO
 │   ├── SOUL.md
 │   ├── IDENTITY.md
 │   ├── USER.md
@@ -152,7 +152,7 @@ Each agent has a dedicated workspace with identity, memory, and tools.
 │       └── 2026-03-06.md
 ├── elon/            # CTO
 ├── gary/            # CMO
-├── warren/          # CRO
+├── ray-lane/          # CRO
 └── ...              # Specialists
 \`\`\`
 
@@ -169,7 +169,7 @@ Agents can spawn sub-agents for specialized tasks, creating a dynamic hierarchy.
 1. A department head receives a complex task
 2. They assess if existing specialists can handle it
 3. If not, they request a new specialist spawn
-4. COO (Muddy) approves and creates the workspace
+4. COO (Ray Dalio) approves and creates the workspace
 5. New agent inherits department context and tools
 
 ## Spawn Configuration
@@ -209,14 +209,14 @@ Understanding the difference between OpenClaw gateways and the agent hierarchy.
 
 \`\`\`
 ┌─────────────┐     ┌─────────────┐
-│   Clay's    │     │   Muddy's   │
+│   Clay's    │     │   Ray Dalio's   │
 │   Gateway   │     │   Gateway   │
 │  (Own)      │     │  (Shared)   │
 └──────┬──────┘     └──────┬──────┘
        │                   │
    ┌───┘               ┌──┴──────────┐
    │                   │              │
- 🦞 Clay          🐕 Muddy    All other
+ 🦞 Clay          📊 Ray Dalio    All other
  (Community)      (COO)       agents
 \`\`\`
 
@@ -229,7 +229,7 @@ Understanding the difference between OpenClaw gateways and the agent hierarchy.
 ## Why Separate Gateways?
 
 - **Clay** has its own gateway because it handles heavy Discord traffic
-- **All other agents** share Muddy's gateway for efficiency
+- **All other agents** share Ray Dalio's gateway for efficiency
 - Separate gateways prevent one agent's traffic from blocking others
 
 ## Sharing Model
@@ -237,8 +237,8 @@ Understanding the difference between OpenClaw gateways and the agent hierarchy.
 | Agent | Gateway | Reason |
 |-------|---------|--------|
 | Clay | Own | Heavy community traffic, needs isolation |
-| Muddy | Shared (primary) | Orchestrator, moderate traffic |
-| Others | Shared (Muddy's) | Lower traffic, cost efficiency |`,
+| Ray Dalio | Shared (primary) | Orchestrator, moderate traffic |
+| Others | Shared (Ray Dalio's) | Lower traffic, cost efficiency |`,
 
   'Voice Standup': `# Voice Standup
 

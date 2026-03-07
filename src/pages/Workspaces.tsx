@@ -35,7 +35,7 @@ const WORKSPACE_FILES: WorkspaceFile[] = [
 export default function Workspaces() {
   const [searchParams] = useSearchParams()
   const { addToast } = useToast()
-  const [selectedAgent, setSelectedAgent] = useState(searchParams.get('agent') || 'muddy')
+  const [selectedAgent, setSelectedAgent] = useState(searchParams.get('agent') || 'ray-dalio')
   const [selectedFile, setSelectedFile] = useState('SOUL.md')
   const [isEdit, setIsEdit] = useState(false)
   const [editContent, setEditContent] = useState('')

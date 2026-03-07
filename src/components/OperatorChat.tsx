@@ -11,7 +11,7 @@ interface ChatMessage {
 const MOCK_MESSAGES: ChatMessage[] = [
   { id: '1', from: 'coo', text: "Good morning! All 21 agents are healthy. Overnight: Nova completed security scan (0 critical), Clay handled 3 community questions. Cost since midnight: $4.82.", time: '07:00' },
   { id: '2', from: 'operator', text: "What's the status on the partnership proposals?", time: '08:15' },
-  { id: '3', from: 'coo', text: "Warren sent proposals to TechCorp and AIFlow yesterday. DataStream proposal is 80% drafted — expected by end of day. TechCorp responded positively, requesting a follow-up call this week.", time: '08:15' },
+  { id: '3', from: 'coo', text: "Ray Lane sent proposals to TechCorp and AIFlow yesterday. DataStream proposal is 80% drafted — expected by end of day. TechCorp responded positively, requesting a follow-up call this week.", time: '08:15' },
   { id: '4', from: 'operator', text: 'Great. Have Gary prepare a co-marketing plan for TechCorp.', time: '08:16' },
   { id: '5', from: 'coo', text: "On it. I'll delegate to Gary immediately. He already has co-marketing templates ready from last week — should have the TechCorp-specific plan by tomorrow morning. I'll update you at next standup.", time: '08:16' },
 ]
@@ -54,7 +54,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
             <div className="flex items-center gap-2">
               <span className="text-lg">🐕</span>
               <div>
-                <div className="text-sm font-semibold">Muddy — COO</div>
+                <div className="text-sm font-semibold">Ray Dalio — COO</div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[var(--accent-green)] pulse-dot"></span>
                   <span className="text-[10px]" style={{ color: 'var(--accent-green)' }}>Online</span>
@@ -74,7 +74,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                 }}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-semibold" style={{ color: msg.from === 'operator' ? 'var(--accent-gold)' : 'var(--accent-teal)' }}>
-                      {msg.from === 'operator' ? '👤 You' : '🐕 Muddy'}
+                      {msg.from === 'operator' ? '👤 You' : '📊 Ray Dalio'}
                     </span>
                     <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{msg.time}</span>
                   </div>
@@ -91,7 +91,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') sendMessage() }}
-                placeholder="Message Muddy..."
+                placeholder="Message Ray Dalio..."
                 className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
                 style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
               />

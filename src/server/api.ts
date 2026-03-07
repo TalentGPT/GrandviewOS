@@ -564,10 +564,10 @@ interface StandupData {
 }
 
 const AGENT_VOICES: Record<string, { voice: string; emoji: string; role: string }> = {
-  'Muddy': { voice: 'en-US-GuyNeural', emoji: '🐕', role: 'COO' },
+  'Ray Dalio': { voice: 'en-US-GuyNeural', emoji: '📊', role: 'COO' },
   'Elon': { voice: 'en-US-ChristopherNeural', emoji: '🚀', role: 'CTO' },
   'Gary': { voice: 'en-US-JasonNeural', emoji: '📣', role: 'CMO' },
-  'Warren': { voice: 'en-GB-RyanNeural', emoji: '💰', role: 'CRO' },
+  'Ray Lane': { voice: 'en-GB-RyanNeural', emoji: '💰', role: 'CRO' },
 }
 
 async function ensureDir(dir: string): Promise<void> {
@@ -579,7 +579,7 @@ async function generateStandupConversation(): Promise<Array<{ speaker: string; t
   try {
     const result = await new Promise<string>((res, rej) => {
       execFile('openclaw', ['run', '--model', 'anthropic/claude-sonnet-4-6', '--prompt',
-        `You are simulating an executive standup meeting for an AI company. Generate a JSON array of conversation turns. Each turn has "speaker" (one of: Muddy, Elon, Gary, Warren) and "text". Muddy is COO, Elon is CTO, Gary is CMO, Warren is CRO. Make it realistic, covering engineering, marketing, revenue, and action items. 5-7 turns. Return ONLY valid JSON array, no markdown.`
+        `You are simulating an executive standup meeting for an AI company. Generate a JSON array of conversation turns. Each turn has "speaker" (one of: Ray Dalio, Elon, Gary, Ray Lane) and "text". Ray Dalio is COO, Elon is CTO, Gary is CMO, Ray Lane is CRO. Make it realistic, covering engineering, marketing, revenue, and action items. 5-7 turns. Return ONLY valid JSON array, no markdown.`
       ], { timeout: 30000 }, (err, stdout) => {
         if (err) rej(err)
         else res(stdout)
@@ -599,11 +599,11 @@ async function generateStandupConversation(): Promise<Array<{ speaker: string; t
 
   const today = new Date().toISOString().split('T')[0]
   return [
-    { speaker: 'Muddy', text: `Good morning team. Let's run through our status for ${today}. We have a lot of moving pieces — I want crisp updates from each department. Elon, engineering first.` },
+    { speaker: 'Ray Dalio', text: `Good morning team. Let's run through our status for ${today}. We have a lot of moving pieces — I want crisp updates from each department. Elon, engineering first.` },
     { speaker: 'Elon', text: "Engineering is in good shape. We shipped 3 PRs yesterday — the WebSocket integration for real-time updates, the workspace file save endpoint, and a security patch Nova flagged. Build pipeline is green. One blocker: we need to decide on the chart library for the cost breakdown view. I'm recommending we keep it lightweight with inline SVG sparklines." },
     { speaker: 'Gary', text: "Marketing had a strong day. Newsletter open rate hit 34% — our best yet. Community grew by 18 members this week. Clay handled 12 support questions without escalation. I'm working on the case study for the TechCorp partnership — should be ready by tomorrow. Social engagement is up 23% week over week." },
-    { speaker: 'Warren', text: "Revenue update: TechCorp proposal is in final review — expecting a signature this week. AIFlow wants a demo call, which I've scheduled for Thursday. Pipeline is healthy at $4,500 monthly recurring. New lead from DataStream looks promising for a data integration partnership." },
-    { speaker: 'Muddy', text: "Solid updates across the board. Let me compile the action items. Elon — finalize the chart library decision and ship the cost breakdown view. Gary — complete the TechCorp case study and prep the partnership announcement. Warren — close the TechCorp deal and run the AIFlow demo. I'll update the CEO brief and monitor overnight costs. Let's reconvene tomorrow at the same time." },
+    { speaker: 'Ray Lane', text: "Revenue update: TechCorp proposal is in final review — expecting a signature this week. AIFlow wants a demo call, which I've scheduled for Thursday. Pipeline is healthy at $4,500 monthly recurring. New lead from DataStream looks promising for a data integration partnership." },
+    { speaker: 'Ray Dalio', text: "Solid updates across the board. Let me compile the action items. Elon — finalize the chart library decision and ship the cost breakdown view. Gary — complete the TechCorp case study and prep the partnership announcement. Ray Lane — close the TechCorp deal and run the AIFlow demo. I'll update the Joe Hawn brief and monitor overnight costs. Let's reconvene tomorrow at the same time." },
   ]
 }
 
@@ -613,10 +613,10 @@ function extractActionItems(_conversation: Array<{ speaker: string; text: string
     { text: 'Ship cost breakdown view in Task Manager', assignee: 'Elon', done: false },
     { text: 'Complete TechCorp partnership case study', assignee: 'Gary', done: false },
     { text: 'Prep partnership announcement for social channels', assignee: 'Gary', done: false },
-    { text: 'Close TechCorp deal — get signature', assignee: 'Warren', done: false },
-    { text: 'Run AIFlow demo call on Thursday', assignee: 'Warren', done: false },
-    { text: 'Update CEO brief with latest progress', assignee: 'Muddy', done: false },
-    { text: 'Monitor overnight cost trends', assignee: 'Muddy', done: false },
+    { text: 'Close TechCorp deal — get signature', assignee: 'Ray Lane', done: false },
+    { text: 'Run AIFlow demo call on Thursday', assignee: 'Ray Lane', done: false },
+    { text: 'Update Joe Hawn brief with latest progress', assignee: 'Ray Dalio', done: false },
+    { text: 'Monitor overnight cost trends', assignee: 'Ray Dalio', done: false },
   ]
 }
 
@@ -765,11 +765,11 @@ export async function generateDocs(): Promise<Record<string, string>> {
 
   docs['Task Manager'] = `# Task Manager\n\n*Auto-generated from ${sessions.length} sessions*\n\n## Current Statistics\n- **Active Sessions:** ${activeSessions.length}\n- **Total Sessions:** ${sessions.length}\n- **Total Tokens:** ${totalTokens >= 1000000 ? (totalTokens / 1000000).toFixed(1) + 'M' : totalTokens >= 1000 ? (totalTokens / 1000).toFixed(1) + 'K' : totalTokens}\n- **Total Cost:** $${totalCost.toFixed(2)}`
 
-  docs['Organization Chart'] = `# Organization Chart\n\n## Hierarchy\n\`\`\`\n        👤 CEO (Marcelo)\n             │\n        🐕 COO (Muddy)\n        ┌────┼────┐\n   🚀 CTO  📣 CMO  💰 CRO\n   (Elon)  (Gary)  (Warren)\n\`\`\`\n\n## Registered Agents (${agents.length})\n${agents.map(a => `- **${a.name}** — ${a.hasSoul ? '✅ SOUL' : '❌ SOUL'} ${a.hasMemory ? '✅ MEM' : '❌ MEM'} (${a.files.length} files)`).join('\n')}`
+  docs['Organization Chart'] = `# Organization Chart\n\n## Hierarchy\n\`\`\`\n        ⚡ CEO (Joe Hawn)\n             │\n        📊 COO (Ray Dalio)\n        ┌────┼────┐\n   🚀 CTO  📣 CMO  💰 CRO\n   (Elon)  (Gary)  (Ray Lane)\n\`\`\`\n\n## Registered Agents (${agents.length})\n${agents.map(a => `- **${a.name}** — ${a.hasSoul ? '✅ SOUL' : '❌ SOUL'} ${a.hasMemory ? '✅ MEM' : '❌ MEM'} (${a.files.length} files)`).join('\n')}`
 
   docs['Team Workspaces'] = `# Team Workspaces\n\n${agents.map(a => `### ${a.name}\n- **Path:** \`${a.workspace}\`\n- **Files:** ${a.files.join(', ') || 'None'}`).join('\n\n')}`
 
-  docs['Voice Standup'] = `# Voice Standup System\n\n## Agent Voice Assignments\n| Agent | Voice | Role |\n|-------|-------|------|\n| Muddy 🐕 | en-US-GuyNeural | COO |\n| Elon 🚀 | en-US-ChristopherNeural | CTO |\n| Gary 📣 | en-US-JasonNeural | CMO |\n| Warren 💰 | en-GB-RyanNeural | CRO |`
+  docs['Voice Standup'] = `# Voice Standup System\n\n## Agent Voice Assignments\n| Agent | Voice | Role |\n|-------|-------|------|\n| Ray Dalio 📊 | en-US-GuyNeural | COO |\n| Elon 🚀 | en-US-ChristopherNeural | CTO |\n| Gary 📣 | en-US-JasonNeural | CMO |\n| Ray Lane 💰 | en-GB-RyanNeural | CRO |`
 
   docs['Memory Architecture'] = `# Memory Architecture\n\n## Memory Types\n- **Daily Notes** (\`memory/YYYY-MM-DD.md\`)\n- **Long-term Memory** (\`MEMORY.md\`) — Found in ${agents.filter(a => a.hasMemory).length}/${agents.length} agents`
 

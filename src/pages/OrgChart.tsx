@@ -104,8 +104,8 @@ export default function OrgChart() {
   const deprecatedAgents = agents.filter(a => a.status === 'deprecated')
 
   // Find special agents
-  const ceo = agents.find(a => a.id === 'marcelo') || agents.find(a => a.role?.toLowerCase().includes('ceo'))
-  const coo = agents.find(a => a.id === 'muddy') || agents.find(a => a.role?.toLowerCase().includes('coo'))
+  const ceo = agents.find(a => a.id === 'joe-hawn') || agents.find(a => a.role?.toLowerCase().includes('ceo'))
+  const coo = agents.find(a => a.id === 'ray-dalio') || agents.find(a => a.role?.toLowerCase().includes('coo'))
 
   // Department heads
   const departments = ['engineering', 'marketing', 'revenue']
@@ -115,7 +115,7 @@ export default function OrgChart() {
   const deptHeads = departments.map(dept => {
     const head = activeAgents.find(a => a.department === dept && (
       a.role?.toLowerCase().includes('lead') || a.role?.toLowerCase().includes('chief') ||
-      a.role?.toLowerCase().includes('head') || a.id === 'elon' || a.id === 'gary' || a.id === 'warren'
+      a.role?.toLowerCase().includes('head') || a.id === 'elon' || a.id === 'gary' || a.id === 'ray-lane'
     ))
     return { dept, head: head || null }
   }).filter(d => d.head)
