@@ -39,22 +39,25 @@
 
 ### Transcript Summary
 
-Marcelo demonstrates **Muddy OS**, a custom operations dashboard built on OpenClaw that manages ~25 AI agents organized in a corporate hierarchy. The system features a desktop-like UI (Windows/Mac hybrid), a task manager showing real-time agent sessions and costs, an interactive org chart, autonomous voice standups between agents, per-agent workspaces with identity/memory/tools, and auto-updating documentation. The COO agent "Muddy" serves as the central orchestrator, delegating work to three department heads (CTO "Elon", CMO "Gary", CRO "Warren") who each manage specialized sub-agents.
+Marcelo demonstrates **Muddy OS**, a custom operations dashboard built on OpenClaw that manages ~25 AI agents organized in a corporate hierarchy. The system features a **tab-based single-page web application** (NOT a desktop metaphor) with a top navigation bar, a task manager showing real-time agent sessions and costs, an interactive org chart, autonomous voice standups between agents, per-agent workspaces with identity/memory/tools, and auto-updating documentation. The COO agent "Muddy" serves as the central orchestrator, delegating work to three department heads (CTO "Elon", CMO "Gary", CRO "Warren") who each manage specialized sub-agents. The app runs as a systemd --user service on port 7100 via Vite dev server.
 
 ### Key Observations
 
-1. **Desktop metaphor is central** — not a web-app dashboard, but a literal OS-like interface with icons, windows, taskbar
-2. **Agent identity is first-class** — each agent has a "soul" (personality file), user context, memory, and assigned tools
-3. **Hierarchy matters** — delegation flows CEO → COO → Department Heads → Specialists; this is enforced, not cosmetic
-4. **Multi-model is strategic** — different agents use different models based on task fit (e.g., Gemini 3 Flash for community because of heavy context)
-5. **Voice standups are a differentiator** — autonomous agent-to-agent meetings with TTS, producing action items
-6. **OpenClaw is the runtime** — Muddy OS is a UI/orchestration layer on top of OpenClaw's gateway, sessions, cron, and workspace primitives
+1. **Tab-based SPA, not desktop metaphor** — top nav bar with tabs (Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs), active tab highlighted with colored pill backgrounds, left sidebar with 3-4 floating icons for quick access. NO windows, NO taskbar, NO minimize/maximize.
+2. **Three-module architecture** — Ops (task management, org chart, workspaces, docs), Brain (memory viewer, daily briefs, automations, project tracking), Lab (idea gallery, prototype fleet, weekly reviews, ideation logs)
+3. **Agent identity is first-class** — each agent has a "soul" (personality file), user context, memory, and assigned tools
+4. **Hierarchy matters** — delegation flows CEO → COO → Department Heads → Specialists; this is enforced, not cosmetic
+5. **Multi-model is strategic** — different agents use different models based on task fit (e.g., Gemini 3 Flash for community because of heavy context)
+6. **Voice standups are a differentiator** — autonomous agent-to-agent meetings with TTS, producing action items
+7. **OpenClaw is the runtime** — Muddy OS is a UI/orchestration layer on top of OpenClaw's gateway, sessions, cron, and workspace primitives
+8. **No backend database** — reads directly from filesystem and config files
+9. **"Phosphor emerald aesthetics"** — dark-mode-first design system with teal/cyan primary accent, gold page border
 
 ### Confidence / Evidence Map
 
 | Feature | Source | Confidence | Evidence Type |
 |---------|--------|------------|---------------|
-| Desktop-like UI with icons/taskbar | Demo-derived | High | Shown on screen |
+| Tab-based SPA with top nav bar | Demo-derived | High | Shown on screen |
 | Task Manager (sessions, tokens, cost) | Demo-derived | High | Shown on screen |
 | Org chart with hierarchy | Demo-derived | High | Shown on screen, explained verbally |
 | Agent personalities/souls | Demo-derived | High | Explained verbally, workspace files shown |
@@ -82,15 +85,16 @@ Marcelo demonstrates **Muddy OS**, a custom operations dashboard built on OpenCl
 **Muddy OS** — AI Agent Operations System
 
 ### Vision
-A desktop-like operations dashboard that lets a single human operator manage a fleet of 25+ AI agents organized in a corporate hierarchy, with autonomous inter-agent communication, voice standups, real-time cost/session monitoring, and per-agent identity management — all running on OpenClaw infrastructure.
+A **tab-based single-page web application** that lets a single human operator manage a fleet of 25+ AI agents organized in a corporate hierarchy, with autonomous inter-agent communication, voice standups, real-time cost/session monitoring, and per-agent identity management — all running on OpenClaw infrastructure. The app is structured around three modules: **Ops** (current), **Brain** (V2), and **Lab** (V2).
 
 ### Problem Statement
 Managing many AI agents across different models, tasks, and contexts is chaotic without centralized orchestration. There's no visibility into what agents are doing, what they cost, or how they coordinate. Muddy OS solves this by providing:
-- A visual command center for all agent operations
+- A visual command center for all agent operations via tab-based navigation
 - Structured delegation through organizational hierarchy
 - Autonomous agent coordination (standups, chat rooms)
 - Real-time monitoring of sessions, tokens, and costs
 - Per-agent identity, memory, and workspace management
+- Filesystem-first architecture — no backend database, reads directly from OpenClaw workspace files and configs
 
 ### Target Users
 1. **Primary:** Solo operators / indie hackers running AI agent fleets on OpenClaw
@@ -98,7 +102,7 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 3. **Tertiary:** Builders studying multi-agent orchestration patterns
 
 ### Value Proposition
-> "One human, 25 AI agents, 24/7 operations" — Muddy OS turns OpenClaw's raw agent infrastructure into a manageable, visual, hierarchical operations system where agents self-organize, communicate autonomously, and report up through a chain of command.
+> "One human, 25 AI agents, 24/7 operations" — Muddy OS turns OpenClaw's raw agent infrastructure into a manageable, visual, hierarchical operations system where agents self-organize, communicate autonomously, and report up through a chain of command. Accessible at `192.168.1.112:7100/ops` via any browser.
 
 ---
 
@@ -119,8 +123,8 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 ### 3.2 Main Workflow (Daily Operations)
 **Confidence:** Demo-derived / High
 
-1. User opens Muddy OS dashboard → sees desktop with app icons
-2. Clicks Task Manager → views active sessions, idle agents, token usage, estimated cost
+1. User opens Muddy OS dashboard → sees tab-based UI with top navigation bar
+2. Clicks Task Manager tab → views active sessions, idle agents, token usage, estimated cost
 3. Reviews overnight log → sees what agents accomplished while sleeping
 4. Opens Org Chart → sees full hierarchy, clicks agent to view workspace
 5. Triggers or reviews voice standup → listens to agent meeting audio, reviews action items
@@ -163,28 +167,28 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 
 ## 4. Functional Requirements
 
-### 4.1 Ops Dashboard (Desktop Shell)
+### 4.1 Ops Dashboard (Tab-Based SPA)
 
 | ID | Requirement | Priority | Source | Confidence |
 |----|-------------|----------|--------|------------|
-| DASH-001 | Desktop-like shell with taskbar, icons, and windowed applications | MVP | Demo-derived | High |
-| DASH-002 | App icons for: Task Manager, Org Chart, Documentation, Settings | MVP | Demo-derived | High |
-| DASH-003 | Windows can be opened, closed, minimized, resized | MVP | Demo-derived | High |
-| DASH-004 | Multiple windows open simultaneously | MVP | Demo-derived | High |
-| DASH-005 | Desktop wallpaper / theme customization | V2 | Strong inference | Low |
-| DASH-006 | System tray with notifications (Telegram pings, standup complete) | V1 | Demo-derived | Medium |
-| DASH-007 | Clock / status bar in taskbar | MVP | Strong inference | Medium |
+| DASH-001 | Tab-based SPA with top navigation bar: Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs | MVP | Demo-derived | High |
+| DASH-002 | Active tab highlighted with colored pill background (teal for Task Manager, yellow/gold for Org Chart, orange for Standup/Workspaces, teal for Docs) | MVP | Demo-derived | High |
+| DASH-003 | Left floating sidebar with 3-4 small circular icons for quick access/app shortcuts | MVP | Demo-derived | High |
+| DASH-004 | Gold/yellow page border (2px) around entire viewport as distinctive branding | MVP | Demo-derived | High |
+| DASH-005 | Single-page sections controlled by tab navigation — NO draggable windows, NO window manager | MVP | Demo-derived | High |
+| DASH-006 | "Live" indicator (green pulsing dot + "Live" text) in Task Manager view | MVP | Demo-derived | High |
+| DASH-007 | Runs as systemd --user service on port 7100 via Vite dev server | MVP | Demo-derived | High |
 
 ### 4.2 Task Manager
 
 | ID | Requirement | Priority | Source | Confidence |
 |----|-------------|----------|--------|------------|
-| TM-001 | Display count of active sessions | MVP | Demo-derived | High |
-| TM-002 | Display count of idle agents | MVP | Demo-derived | High |
-| TM-003 | Display total token usage | MVP | Demo-derived | High |
-| TM-004 | Display estimated cost (aggregate) | MVP | Demo-derived | High |
-| TM-005 | Model fleet panel — list all models with agent assignments | MVP | Demo-derived | High |
-| TM-006 | Active session list — agent name, model, status, duration | MVP | Demo-derived | High |
+| TM-001 | 5 stat cards: Active, Idle, Total Sessions, Tokens Used, Total Cost | MVP | Demo-derived | High |
+| TM-002 | Total Cost card uses RED/CORAL text (#FF4444), all others use teal/cyan | MVP | Demo-derived | High |
+| TM-003 | "Live" indicator (green pulsing dot + "Live" text) + "Refresh" button top-right | MVP | Demo-derived | High |
+| TM-004 | Model Fleet: 2x3 grid of model cards, each showing icon, model name, description, agent names using it, status badge, cost, tokens, sessions count | MVP | Demo-derived | High |
+| TM-005 | Active Sessions: list format (not table), each row has green status dot, session title, model tags as colored pills, token count, cost, last status message preview, timestamp | MVP | Demo-derived | High |
+| TM-006 | Cron job entries visible in scrolled view — show repeated runs with token/cost per run | MVP | Demo-derived | High |
 | TM-007 | Click session → view live transcript | MVP | Demo-derived | High |
 | TM-008 | Cron jobs panel — list scheduled and weekly jobs | MVP | Demo-derived | High |
 | TM-009 | Create / edit / delete cron jobs | V1 | Strong inference | Medium |
@@ -192,35 +196,44 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 | TM-011 | Cost breakdown per agent / per model | V1 | Strong inference | Medium |
 | TM-012 | Historical token/cost charts | V2 | Build-required assumption | Low |
 | TM-013 | Kill / restart session from task manager | V1 | Strong inference | Medium |
+| TM-014 | Task card feed view: cards showing title, subtitle/description, category tags (Self Improvement, Feature, etc.), status badges ("Completed" green, "Building" yellow/amber), timestamps. Scrollable vertical feed. | V1 | Demo-derived (zoom recording) | High |
+| TM-015 | "Resume" button state on audio player (standup can be paused/resumed) | MVP | Demo-derived | High |
 
 ### 4.3 Org Chart
 
 | ID | Requirement | Priority | Source | Confidence |
 |----|-------------|----------|--------|------------|
-| ORG-001 | Visual hierarchy: CEO → COO → Department Heads → Specialists | MVP | Demo-derived | High |
-| ORG-002 | Each node shows: agent name, persona name, role, model(s) | MVP | Demo-derived | High |
-| ORG-003 | Click node → open agent workspace detail | MVP | Demo-derived | High |
-| ORG-004 | Add / remove agents to hierarchy via UI | V1 | Strong inference | Medium |
-| ORG-005 | Drag-and-drop reorganization | V2 | Build-required assumption | Low |
-| ORG-006 | Department grouping with visual sections | MVP | Demo-derived | High |
-| ORG-007 | Show agent status (active/idle/error) on node | V1 | Strong inference | Medium |
-| ORG-008 | Division and subdivision nesting within departments | MVP | Demo-derived | High |
+| ORG-001 | 5 stat cards: Chiefs (3), Total Agents (25), Active (21 green), Scaffolded (1 yellow), Deprecated (7 red) | MVP | Demo-derived | High |
+| ORG-002 | CEO node: photo avatar, gold/bronze border glow, "Vision · Strategy · Final Decisions" subtitle | MVP | Demo-derived | High |
+| ORG-003 | COO node: teal/green glowing border, green status dot on avatar | MVP | Demo-derived | High |
+| ORG-004 | Department heads: each has model badge as colored pill (e.g., Opus 4.6 red/orange pill) | MVP | Demo-derived | High |
+| ORG-005 | Divisions are COLLAPSIBLE accordion rows with chevron toggles | MVP | Demo-derived | High |
+| ORG-006 | "Expand All / Collapse All" buttons in header | MVP | Demo-derived | High |
+| ORG-007 | LEGEND section at bottom with status indicators (Active green, Scaffolded yellow, Future green dot, Deprecated red X) and model badge color key (Opus red, Codex reddish, Sonnet green, Haiku purple, Gemini Flash teal, Gemini Pro teal, Nano Banana Pro olive) | MVP | Demo-derived | High |
+| ORG-008 | Deprecated Agents section at bottom: red X icon, "Deprecated Agents (7)", collapsible | MVP | Demo-derived | High |
+| ORG-009 | Division and subdivision nesting within departments | MVP | Demo-derived | High |
+| ORG-010 | Add / remove agents to hierarchy via UI | V1 | Strong inference | Medium |
+| ORG-011 | Drag-and-drop reorganization | V2 | Build-required assumption | Low |
 
 ### 4.4 Voice Standups
 
 | ID | Requirement | Priority | Source | Confidence |
 |----|-------------|----------|--------|------------|
-| VS-001 | Trigger autonomous multi-agent voice meeting | MVP | Demo-derived | High |
-| VS-002 | Each agent speaks with distinct TTS voice | MVP | Demo-derived | High |
-| VS-003 | Use Microsoft open-source TTS (not ElevenLabs) | MVP | Demo-derived | High |
-| VS-004 | Meeting produces structured action items checklist | MVP | Demo-derived | High |
-| VS-005 | Audio file generated and playable in dashboard | MVP | Demo-derived | High |
-| VS-006 | Telegram notification with audio when standup complete | MVP | Demo-derived | High |
-| VS-007 | Agent personalities reflected in speech patterns | V1 | Demo-derived | Medium |
-| VS-008 | Schedule standups via cron | V1 | Strong inference | Medium |
-| VS-009 | Agents set up own inter-agent chat room | V1 | Demo-derived | Medium |
-| VS-010 | Standup history / archive | V1 | Strong inference | Medium |
-| VS-011 | Configurable meeting participants | V1 | Strong inference | Medium |
+| VS-001 | Meeting Archive button (green) + "+ New Standup" button | MVP | Demo-derived | High |
+| VS-002 | "← Back to Archive" breadcrumb navigation | MVP | Demo-derived | High |
+| VS-003 | Meeting card: title, date/time with calendar emoji, participant badges as colored pills with emoji avatars | MVP | Demo-derived | High |
+| VS-004 | Audio player: green "Play" pill button with speaker icon, flanking skip buttons (<<, >>), speaker indicator showing current speaker, progress showing segment/total (e.g., "1/23 - 4s/24s") | MVP | Demo-derived | High |
+| VS-005 | Conversation: speaker-labeled blocks with emoji avatar + name (bold) + role badge (COO/CRO/CMO/CTO in muted uppercase), full paragraph text per turn, clear vertical spacing between turns | MVP | Demo-derived | High |
+| VS-006 | Deliverables checklist (numbered 1-10) alongside conversation | MVP | Demo-derived | High |
+| VS-007 | Action Items section: checkboxes with agent emoji for assignee, strikethrough when complete, file links included | MVP | Demo-derived | High |
+| VS-008 | "All Tasks Complete 10/10" celebration state with 🎉 | MVP | Demo-derived | High |
+| VS-009 | When selecting a deliverable item, right panel shows the actual artifact (e.g., JSON schema preview) | MVP | Demo-derived | High |
+| VS-010 | Bottom persistent audio player bar (Spotify-style) with play/pause, seek, elapsed/total time | MVP | Demo-derived | High |
+| VS-011 | Each agent speaks with distinct TTS voice (Microsoft open-source TTS, not ElevenLabs) | MVP | Demo-derived | High |
+| VS-012 | Telegram notification with audio when standup complete | MVP | Demo-derived | High |
+| VS-013 | Schedule standups via cron | V1 | Strong inference | Medium |
+| VS-014 | Agents set up own inter-agent chat room | V1 | Demo-derived | Medium |
+| VS-015 | Configurable meeting participants | V1 | Strong inference | Medium |
 
 ### 4.5 Agent Workspaces
 
@@ -242,11 +255,11 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 
 | ID | Requirement | Priority | Source | Confidence |
 |----|-------------|----------|--------|------------|
-| DOC-001 | Auto-generated documentation for the ops platform | V1 | Demo-derived | Medium |
-| DOC-002 | Real-time updates as system changes | V1 | Demo-derived | Medium |
-| DOC-003 | Agents can reference documentation | V1 | Demo-derived | Medium |
-| DOC-004 | Documentation viewer in dashboard | V1 | Demo-derived | Medium |
-| DOC-005 | Markdown-based documentation format | V1 | Strong inference | Medium |
+| DOC-001 | Left sidebar: "DOCUMENTATION" with 9 nav items (Overview, Task Manager, Organization Chart, Team Workspaces, Sub-Agents & Spawning, Gateway vs Sub-Agents, Voice Standup, Partnership Pipeline, Memory Architecture) | MVP | Demo-derived | High |
+| DOC-002 | Main area: rendered markdown documentation | MVP | Demo-derived | High |
+| DOC-003 | Auto-generated and auto-updated by agents | MVP | Demo-derived | High |
+| DOC-004 | Real-time updates as system changes | V1 | Demo-derived | Medium |
+| DOC-005 | Agents can reference documentation | V1 | Demo-derived | Medium |
 
 ### 4.7 Communication & Notifications
 
@@ -258,6 +271,28 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 | COM-004 | Operator-to-COO chat interface | MVP | Strong inference | High |
 | COM-005 | Discord integration (community bot Clay) | V1 | Demo-derived | Medium |
 
+### 4.8 Brain Module (V2)
+
+> **Source:** Docs screenshot showing three-module architecture. Brain module is not yet built but documented as planned.
+
+| ID | Requirement | Priority | Source | Confidence |
+|----|-------------|----------|--------|------------|
+| BRAIN-001 | Memory Viewer — browse and search agent memory files across all workspaces | V2 | Demo-derived (docs) | Medium |
+| BRAIN-002 | Daily Briefs — auto-generated daily summaries of agent activity | V2 | Demo-derived (docs) | Medium |
+| BRAIN-003 | Automations — view and manage automated workflows and triggers | V2 | Demo-derived (docs) | Medium |
+| BRAIN-004 | Project Tracking — track progress across multi-agent projects | V2 | Demo-derived (docs) | Medium |
+
+### 4.9 Lab Module (V2)
+
+> **Source:** Docs screenshot showing three-module architecture. Lab module is not yet built but documented as planned.
+
+| ID | Requirement | Priority | Source | Confidence |
+|----|-------------|----------|--------|------------|
+| LAB-001 | Idea Gallery — collect and display agent-generated ideas | V2 | Demo-derived (docs) | Medium |
+| LAB-002 | Prototype Fleet — manage experimental agent configurations and prototypes | V2 | Demo-derived (docs) | Medium |
+| LAB-003 | Weekly Reviews — structured weekly review summaries | V2 | Demo-derived (docs) | Medium |
+| LAB-004 | Ideation Logs — log and browse ideation sessions | V2 | Demo-derived (docs) | Medium |
+
 ---
 
 ## 5. UX/UI Specification
@@ -265,93 +300,94 @@ Managing many AI agents across different models, tasks, and contexts is chaotic 
 ### 5.1 Sitemap
 
 ```
-Muddy OS Desktop
-├── Taskbar
-│   ├── Start Menu / App Launcher
-│   ├── Active Window Indicators
-│   ├── System Tray (notifications, clock)
-│   └── Agent Status Summary
-├── Desktop
-│   ├── App Icons
-│   │   ├── Task Manager
-│   │   ├── Org Chart
-│   │   ├── Documentation
-│   │   ├── Voice Standups
-│   │   ├── Settings
-│   │   └── Chat (Operator → COO)
-│   └── Desktop Widgets (optional V2)
-├── Task Manager Window
-│   ├── Overview Panel (active, idle, tokens, cost)
-│   ├── Model Fleet Panel
-│   ├── Active Sessions List
-│   │   └── Session Detail / Transcript View
-│   ├── Cron Jobs Panel
-│   └── Overnight Log
-├── Org Chart Window
-│   ├── Hierarchy Visualization
-│   ├── Agent Detail Panel (on click)
-│   └── Add/Edit Agent Form
-├── Agent Workspace Window
-│   ├── SOUL.md Editor
-│   ├── USER.md Editor
-│   ├── Tools Configuration
-│   ├── Memory Browser
-│   ├── Model / Gateway Config
-│   └── Assigned Agents List
-├── Voice Standups Window
-│   ├── Standup Player
-│   ├── Action Items List
-│   ├── Meeting History
-│   └── Schedule / Trigger Controls
-├── Documentation Window
-│   └── Markdown Viewer/Editor
-└── Settings Window
-    ├── Operator Profile
-    ├── Gateway Management
-    ├── Model Fleet Config
-    ├── Notification Preferences
-    └── Theme / Appearance
+Muddy OS (Tab-Based SPA — 192.168.1.112:7100)
+├── Gold/Yellow Page Border (2px around entire viewport)
+├── Top Navigation Bar
+│   ├── "Muddy-OS" logo/home tab
+│   ├── Task Manager tab (teal pill when active)
+│   ├── Org Chart tab (yellow/gold pill when active)
+│   ├── Standup tab (orange pill when active)
+│   ├── Workspaces tab (orange pill when active)
+│   └── Docs tab (teal pill when active)
+├── Left Floating Sidebar
+│   └── 3-4 small circular icons (app shortcuts / quick actions)
+├── OPS MODULE (Current — /ops)
+│   ├── Task Manager (/ops — default)
+│   │   ├── 5 Stat Cards (Active, Idle, Total Sessions, Tokens Used, Total Cost)
+│   │   ├── "Live" Indicator + "Refresh" Button
+│   │   ├── Model Fleet (2x3 grid of model cards)
+│   │   ├── Active Sessions List (with colored model pills)
+│   │   └── Cron Jobs (scrollable, with per-run token/cost)
+│   ├── Org Chart
+│   │   ├── 5 Stat Cards (Chiefs, Total Agents, Active, Scaffolded, Deprecated)
+│   │   ├── CEO → COO → Department Heads hierarchy
+│   │   ├── Collapsible Division Accordions
+│   │   ├── Legend (status + model badge colors)
+│   │   └── Deprecated Agents Section
+│   ├── Standup
+│   │   ├── Meeting Archive + "+ New Standup"
+│   │   ├── Meeting Card (title, date, participants)
+│   │   ├── Audio Player (segment-based, speaker indicator)
+│   │   ├── Conversation (speaker-labeled blocks with role badges)
+│   │   ├── Deliverables Checklist (1-10)
+│   │   ├── Action Items (checkboxes, assignees, file links)
+│   │   ├── Artifact Preview Panel
+│   │   └── Persistent Bottom Audio Bar (Spotify-style)
+│   ├── Workspaces
+│   │   ├── Left Sidebar: Agent List + File Tree
+│   │   └── Right Content: Agent Header + File Preview/Edit
+│   └── Docs
+│       ├── Left Sidebar: 9 Documentation Nav Items
+│       └── Main Area: Rendered Markdown
+├── BRAIN MODULE (V2 — /brain)
+│   ├── Memory Viewer
+│   ├── Daily Briefs
+│   ├── Automations
+│   └── Project Tracking
+└── LAB MODULE (V2 — /lab)
+    ├── Idea Gallery
+    ├── Prototype Fleet
+    ├── Weekly Reviews
+    └── Ideation Logs
 ```
 
 ### 5.2 Key Screens
 
-#### Screen 1: Desktop Shell
+#### Screen 1: Tab-Based Shell
 
-![Task Manager - Desktop Shell](screenshots/01-task-manager.png)
+![Task Manager - Shell](screenshots/01-task-manager.png)
 
-> **UI Reference:** Dark theme with gold/amber accents. Top nav bar: `Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs`. Left sidebar has 3 colored app icons. NOT a traditional desktop with taskbar — it's a **web app with tab navigation**. Background is dark (#0d1117 range) with subtle red/gradient wallpaper visible on edges.
+> **UI Reference:** Dark theme (#000 to #0A0A0A background) with gold/yellow 2px page border around entire viewport. Top nav bar: `Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs` — active tab has colored pill background (teal for Task Manager). Left floating sidebar has 3-4 small circular icons for quick access. Pure black background with teal/cyan (#00E5FF to #00BCD4) as primary accent color. "Phosphor emerald aesthetics" design system.
 
 **Components:**
-- `<Taskbar>` — fixed bottom bar, 48px height, blur background
-- `<AppIcon>` — 64x64 icon + label, double-click to open, drag to reposition
-- `<SystemTray>` — notification bell (badge count), clock, agent status indicator (green = all healthy)
-- `<WindowManager>` — handles window open/close/minimize/resize/focus/z-order
+- `<TopNavBar>` — fixed top bar with tab items, each tab is a colored pill when active
+- `<TabItem>` — text label, colored pill background when active (teal/gold/orange depending on module)
+- `<LeftFloatingSidebar>` — 3-4 small circular icons, positioned left side, floating over content
+- `<PageBorder>` — 2px gold/yellow border around entire viewport
 
 **Interactions:**
-- Double-click icon → open app window (centered, default size)
-- Click taskbar indicator → focus/minimize window
-- Drag window title bar → reposition
-- Drag window edge → resize
-- Click X → close window
-- Click — → minimize to taskbar
+- Click tab → navigate to that section (SPA route change)
+- Active tab highlighted with colored pill background
+- Left sidebar icons → quick access to common actions
+- NO window management — single content area below nav bar
 
 #### Screen 2: Task Manager
 
 ![Task Manager](screenshots/01-task-manager.png)
 
-> **UI Reference:** 5 stat cards in a row: Active (1, green), Idle (3, gray), Total Sessions (50, white), Tokens Used (7.6M, blue), Total Cost ($62.96, gold). "Model Fleet" section below with 6 cards in 2x3 grid — each card shows model name, description, agent names, status badge (Active/Standby), cost, tokens, sessions. "Active Sessions" section at bottom as a list with green status dots, model tags, token count, cost per session. Top-right has "Live" indicator + "Refresh" button.
+> **UI Reference:** 5 stat cards in a row: Active (1, teal/cyan), Idle (3, teal/cyan), Total Sessions (50, teal/cyan), Tokens Used (7.6M, teal/cyan), Total Cost ($62.96, **RED #FF4444**). "Model Fleet" section below with 6 cards in 2x3 grid — each card shows icon, model name, description, agent names using it, status badge (Active/Standby), cost, tokens, sessions count. "Active Sessions" section below as a list format (NOT table), each row has: green status dot, session title, model tags as colored pills, token count, cost, last status message preview, timestamp. Top-right has "Live" indicator (green pulsing dot + "Live" text) + "Refresh" button. Cron job entries visible when scrolled — show repeated runs with token/cost per run. URL: `192.168.1.112:7100/ops`.
 
 **Components:**
-- `<StatCard>` — icon, label, value, color-coded background
-- `<ModelFleetList>` — model name, color dot, agent count, expandable to show agent names
-- `<SessionTable>` — sortable columns: Agent, Model, Status (active/idle/error), Duration, Tokens
-- `<SessionTranscriptModal>` — click row → slide-in panel showing live transcript with auto-scroll
-- `<CronJobTable>` — job name, schedule (cron expression + human-readable), next run, agent, status
-- `<OvernightLog>` — reverse-chronological list of completed tasks with timestamps
+- `<StatCard>` — icon, label, value, teal/cyan text (#00E5FF) except Total Cost uses RED (#FF4444)
+- `<LiveIndicator>` — green pulsing dot + "Live" text, top-right alongside "Refresh" button
+- `<ModelFleetGrid>` — 2x3 grid of model cards: icon, model name, description, agent names, status badge, cost, tokens, sessions
+- `<ActiveSessionList>` — list format: green status dot, session title, model tags (colored pills per model family), token count, cost, status message preview, timestamp
+- `<CronJobEntries>` — scrollable list showing repeated runs with token/cost per run
+- `<SessionTranscriptModal>` — click session → slide-in panel showing live transcript with auto-scroll
 
 **States:**
 - **Empty:** "No active sessions. Your agents are idle." with illustration
-- **Loading:** Skeleton cards + shimmer on table rows
+- **Loading:** Skeleton cards + shimmer on list rows
 - **Error:** "Unable to connect to OpenClaw gateway. Check status." with retry button
 
 #### Screen 3: Org Chart
@@ -364,17 +400,21 @@ Muddy OS Desktop
 > **UI Reference (Expanded):** Three-column layout. Each column = one department. Division headers (e.g. "Backend & Security — 2 agents") with description text. Agent cards show: emoji icon, name, role subtitle, status badge (Active/Scaffolded), model tags (colored pills: Codex 5.3, Opus 4.6, Sonnet 4.5, Gemini Pro, Nano Banana Pro). Cards have dark backgrounds with colored left borders matching department.
 
 **Components:**
-- `<OrgNode>` — avatar/icon, name, title, model badge(s), status dot
-- `<OrgTree>` — SVG/Canvas-based tree layout with animated connections
-- `<DepartmentGroup>` — colored background region grouping a department's agents
-- `<AgentDetailPanel>` — slide-in right panel: identity, model, tools, recent sessions, quick-edit links
+- `<OrgStatCards>` — 5 cards: Chiefs, Total Agents, Active (green), Scaffolded (yellow), Deprecated (red)
+- `<CEONode>` — photo avatar, gold/bronze border glow, "Vision · Strategy · Final Decisions"
+- `<COONode>` — teal/green glowing border, green status dot on avatar
+- `<DeptHeadNode>` — agent name, role, model badge as colored pill (e.g., Opus 4.6 red/orange)
+- `<DivisionAccordion>` — collapsible rows with chevron toggles, agent cards within
+- `<ExpandCollapseAll>` — "Expand All / Collapse All" buttons in header
+- `<OrgLegend>` — status indicators (Active green, Scaffolded yellow, Future green dot, Deprecated red X) + model badge color key (Opus red, Codex reddish, Sonnet green, Haiku purple, Gemini Flash teal, Gemini Pro teal, Nano Banana Pro olive)
+- `<DeprecatedAgents>` — red X icon, "Deprecated Agents (7)", collapsible section at bottom
+- `<AgentCard>` — emoji icon, name, role subtitle, status badge, model tags (colored pills), dark background with colored left border
 
 **Interactions:**
-- Click node → show detail panel
-- Double-click node → open full agent workspace window
+- Click chevron → expand/collapse division accordion
+- Click "Expand All" / "Collapse All" → toggle all divisions
+- Click agent card → navigate to workspace tab with agent selected
 - Hover node → tooltip with agent summary
-- Zoom/pan on tree (scroll wheel + drag)
-- Collapse/expand department groups
 
 #### Screen 4: Agent Workspace
 
@@ -383,12 +423,12 @@ Muddy OS Desktop
 > **UI Reference:** Two-panel layout. Left sidebar: "WORKSPACES" section lists agents (Muddy Main, Clay, Elon CTO, Gary CMO, Warren CRO) with emoji icons — Clay is highlighted/selected. "FILES" section below shows: SOUL.md (4.7kb), IDENTITY.md (0.4kb), USER.md (0.5kb), TOOLS.md (0.8kb), AGENTS.md (7.9kb), MEMORY.md (1.4kb, highlighted), HEARTBEAT.md (0.3kb). Main area shows agent header (Clay — "Friendly community bot — a baby lobster made of terracotta clay" + workspace path). Below: MEMORY.md rendered with Preview/Edit toggle. Content shows structured markdown: "Who I Am", "Community Members" with user profiles, "Patterns & Lessons".
 
 **Components:**
-- `<WorkspaceFileTree>` — collapsible file browser for agent workspace directory
-- `<MarkdownEditor>` — CodeMirror/Monaco-based editor with live preview toggle
-- `<ModelAssignment>` — dropdown for primary model + failsafe toggle/dropdown
-- `<GatewayConfig>` — radio: own gateway | shared (select which)
-- `<AssignedAgentsList>` — list of subordinate agents with add/remove
-- `<AgentStatusBar>` — last active, session count, token count
+- `<WorkspaceSidebar>` — two sections: "WORKSPACES" (agent list) and "FILES" (file tree)
+- `<AgentList>` — emoji + name + role entries: Muddy (Main), Clay, Elon (CTO), Gary (CMO), Warren (CRO). Selected agent highlighted with gold/amber accent
+- `<FileTree>` — files: SOUL.md, IDENTITY.md, USER.md, TOOLS.md, AGENTS.md, MEMORY.md, HEARTBEAT.md with file sizes. Selected file highlighted with gold accent
+- `<AgentHeader>` — emoji, name, description, workspace filesystem path
+- `<FileViewer>` — file name indicator, Preview/Edit toggle button, rendered markdown with syntax highlighting (inline code as red/orange background pills)
+- `<EmptyState>` — "Select a file from the sidebar to view/edit"
 
 #### Screen 5: Voice Standups
 
@@ -406,24 +446,28 @@ Muddy OS Desktop
 > **UI Reference (Action Items):** Numbered deliverables list (1-10) on left. "Action Items" section below with checkboxes — green checks with agent emoji for assignee. Completed items show strikethrough text. Items include file links. Each action tied to a specific agent.
 
 **Components:**
-- `<AudioPlayer>` — waveform visualization, play/pause, scrub, speed control, download
-- `<ParticipantRow>` — avatar bubbles with names, voice assignments
-- `<MeetingTranscript>` — speaker-labeled, timestamped conversation log
-- `<ActionItemsList>` — checklist with assignee, status (done/pending), due context
-- `<MeetingHistory>` — date-sorted list, click to load past standup
-- `<StandupTrigger>` — "Start New Standup" button + participant selector
-- `<ScheduleConfig>` — cron-based scheduling for recurring standups
+- `<MeetingArchiveButton>` — green button for Meeting Archive
+- `<NewStandupButton>` — "+ New Standup" button
+- `<BackToArchive>` — "← Back to Archive" breadcrumb navigation
+- `<MeetingCard>` — title, date/time with calendar emoji, participant badges as colored pills with emoji avatars
+- `<SegmentAudioPlayer>` — green "Play" pill button with speaker icon, flanking skip buttons (<<, >>), speaker indicator showing current speaker avatar + name, progress showing segment/total (e.g., "1/23 - 4s/24s")
+- `<ConversationBlock>` — emoji avatar + name (bold) + role badge (COO/CRO/CMO/CTO in muted uppercase), full paragraph text, left colored border per speaker, clear vertical spacing
+- `<DeliverablesList>` — numbered 1-10 checklist alongside conversation
+- `<ActionItemsList>` — checkboxes with agent emoji for assignee, strikethrough when complete, file links included
+- `<CelebrationState>` — "All Tasks Complete 10/10" with 🎉
+- `<ArtifactPreview>` — right panel showing actual artifact (e.g., JSON schema) when deliverable item selected
+- `<PersistentAudioBar>` — bottom bar (Spotify-style) with play/pause, seek, elapsed/total time
 
-#### Screen 6: Chat Interface (Operator → COO)
+#### Screen 6: Documentation
 
 ![Documentation](screenshots/04-docs.png)
 
-> **UI Reference:** Left sidebar: "DOCUMENTATION" header with nav items (Overview highlighted, Task Manager, Organization Chart, Team Workspaces, Sub-Agents & Spawning, Gateway vs Sub-Agents, Voice Standup, Partnership Pipeline, Memory Architecture). Main area: rendered markdown with "What is Muddy OS?" header, description text, ASCII architecture diagram showing three modules (Ops, Brain, Lab) with sub-features. Tech stack section: React + TypeScript, Vite, systemd --user service on port 7100, no backend database — reads from filesystem and config files, dark-mode-first phosphor emerald aesthetics.
+> **UI Reference:** Left sidebar: "DOCUMENTATION" header with 9 nav items (Overview highlighted, Task Manager, Organization Chart, Team Workspaces, Sub-Agents & Spawning, Gateway vs Sub-Agents, Voice Standup, Partnership Pipeline, Memory Architecture). Main area: rendered markdown with "What is Muddy OS?" header, description text, ASCII architecture diagram showing three modules (Ops, Brain, Lab) with sub-features. Tech stack section: React + TypeScript, Vite, systemd --user service on port 7100, no backend database — reads from filesystem and config files, dark-mode-first phosphor emerald aesthetics. Auto-generated and auto-updated by agents.
 
 **Components:**
-- `<ChatWindow>` — standard chat UI, markdown rendering in messages
-- `<MessageInput>` — text area + send button + attachment support
-- `<AgentStatusIndicator>` — online/busy/offline + current task summary
+- `<DocsSidebar>` — "DOCUMENTATION" header with 9 nav items, active item highlighted
+- `<DocsContent>` — rendered markdown documentation with proper heading hierarchy
+- `<DocsNavItem>` — clickable nav item, active state styling
 
 ### 5.3 Responsive Design
 
@@ -431,29 +475,57 @@ Muddy OS Desktop
 
 | Breakpoint | Behavior |
 |-----------|----------|
-| ≥1280px (Desktop) | Full OS experience — multiple windows, drag/resize |
-| 1024-1279px | Simplified — single window focus, taskbar persists |
+| ≥1280px (Desktop) | Full tab-based layout — all panels visible, two-panel layouts (Workspaces, Standups) |
+| 1024-1279px | Simplified — sidebar collapses, single content area focus |
 | <1024px | Not supported for MVP — show "Muddy OS requires a desktop browser" |
+
+**Note:** Since Muddy OS uses tab-based navigation (not windowed), responsive design is simpler than a desktop metaphor. Each tab is essentially a single-page section that can adapt to viewport width.
 
 ### 5.4 Design System
 
+**Design System Name:** "Phosphor Emerald Aesthetics"
+
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--bg-primary` | `#0d1117` | Desktop background, window backgrounds |
-| `--bg-secondary` | `#161b22` | Panels, cards |
-| `--bg-tertiary` | `#21262d` | Hover states, active items |
-| `--border` | `#30363d` | Window borders, dividers |
+| `--bg-primary` | `#000` to `#0A0A0A` | Page background (pure black) |
+| `--bg-card` | `#111` to `#1A1A1A` | Card backgrounds |
+| `--bg-hover` | `#1E1E1E` to `#252525` | Hover states, active items |
+| `--border-page` | `gold / #FFD700` | 2px gold/yellow border around entire viewport |
+| `--border-divider` | `#2A2A2A` to `#333` | Internal dividers |
 | `--text-primary` | `#e6edf3` | Main text |
 | `--text-secondary` | `#8b949e` | Secondary labels |
-| `--accent-blue` | `#58a6ff` | Links, active states, CTO department |
-| `--accent-orange` | `#f0883e` | Warnings, CMO department |
-| `--accent-green` | `#3fb950` | Success, active status, CRO department |
-| `--accent-red` | `#f85149` | Errors, kill actions |
-| `--accent-purple` | `#bc8cff` | COO/Muddy branding |
-| `--font-mono` | `'JetBrains Mono', monospace` | Code, numbers, transcripts |
+| `--accent-teal` | `#00E5FF` to `#00BCD4` | Primary accent — stat numbers, active states, links |
+| `--accent-gold` | `#FFD700` to `#FFC107` | Org Chart tab, selected agent/file highlight, page border |
+| `--accent-orange` | `#FF9800` to `#F0883E` | Standup/Workspaces tab pill |
+| `--accent-green` | `#3fb950` | Success, active status dot, "Live" indicator |
+| `--accent-red` | `#FF4444` | Cost numbers (Total Cost), errors, deprecated agents |
+| `--accent-purple` | `#bc8cff` | Haiku model badge |
+| `--font-mono` | `'JetBrains Mono', monospace` | Code, numbers, token counts, costs |
 | `--font-sans` | `'Inter', sans-serif` | UI text |
-| `--radius` | `8px` | Border radius for cards/windows |
-| `--window-radius` | `12px` | Window corner radius |
+| `--radius` | `8px` | Border radius for cards |
+| `--pill-radius` | `16px` to `20px` | Tab pills, model tag pills, participant badges |
+
+**Model Badge Colors:**
+
+| Model | Badge Color |
+|-------|-------------|
+| Opus | Red / #E53935 |
+| Codex | Reddish / #D32F2F |
+| Sonnet | Green / #43A047 |
+| Haiku | Purple / #7B1FA2 |
+| Gemini Flash | Teal / #00BCD4 |
+| Gemini Pro | Teal / #00ACC1 |
+| Nano Banana Pro | Olive / #827717 |
+
+**Tab Pill Colors (active state):**
+
+| Tab | Pill Color |
+|-----|------------|
+| Task Manager | Teal (#00BCD4) |
+| Org Chart | Yellow/Gold (#FFD700) |
+| Standup | Orange (#FF9800) |
+| Workspaces | Orange (#FF9800) |
+| Docs | Teal (#00BCD4) |
 
 ---
 
@@ -461,13 +533,29 @@ Muddy OS Desktop
 
 ### 6.1 High-Level Architecture
 
+**Three-Module Structure:**
 ```
 ┌─────────────────────────────────────────────────┐
-│                  Muddy OS Frontend               │
-│          (React SPA — Desktop Shell UI)          │
+│              Muddy OS Frontend                   │
+│     (React + TypeScript SPA — Tab-Based UI)      │
+│     Served via Vite dev server on port 7100      │
+│     systemd --user service                       │
 ├─────────────────────────────────────────────────┤
-│              Muddy OS Backend API                │
-│     (Node.js / Express or Fastify server)        │
+│              THREE MODULES                       │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐         │
+│  │   OPS   │  │  BRAIN  │  │   LAB   │         │
+│  │(Current)│  │  (V2)   │  │  (V2)   │         │
+│  ├─────────┤  ├─────────┤  ├─────────┤         │
+│  │Task Mgr │  │Memory   │  │Idea     │         │
+│  │Org Chart│  │Viewer   │  │Gallery  │         │
+│  │Standup  │  │Daily    │  │Prototype│         │
+│  │Workspace│  │Briefs   │  │Fleet    │         │
+│  │Docs     │  │Automate │  │Weekly   │         │
+│  │         │  │Projects │  │Reviews  │         │
+│  └─────────┘  └─────────┘  └─────────┘         │
+├─────────────────────────────────────────────────┤
+│         NO BACKEND SERVER / NO DATABASE          │
+│    Reads directly from filesystem & config       │
 ├──────────┬──────────┬──────────┬────────────────┤
 │ OpenClaw │ OpenClaw │ OpenClaw │  External       │
 │ Gateway  │ Sessions │ Cron     │  Services       │
@@ -485,10 +573,10 @@ Muddy OS Desktop
 
 | Aspect | Choice | Rationale |
 |--------|--------|-----------|
-| Framework | **React 19 + TypeScript** | Component model fits windowed UI; ecosystem |
-| State | **Zustand** | Lightweight, good for cross-window state |
-| Styling | **Tailwind CSS + CSS custom properties** | Rapid iteration, theming via tokens |
-| Window Manager | **Custom** (or `react-rnd` for drag/resize) | Desktop metaphor requires custom window management |
+| Framework | **React 19 + TypeScript** | Component model fits tab-based SPA; ecosystem |
+| State | **Zustand** | Lightweight, good for cross-tab state |
+| Styling | **Tailwind CSS + CSS custom properties** | Rapid iteration, theming via "phosphor emerald" tokens |
+| Routing | **React Router** (or Vite SPA routing) | Tab-based navigation between Ops/Brain/Lab modules |
 | Org Chart | **React Flow** or **D3.js** | Tree visualization with interactivity |
 | Markdown Editor | **CodeMirror 6** | Lightweight, extensible, good for workspace files |
 | Audio Player | **WaveSurfer.js** | Waveform visualization for standup playback |
@@ -497,26 +585,30 @@ Muddy OS Desktop
 
 ### 6.3 Backend
 
+> **IMPORTANT:** Video evidence shows NO backend database and NO dedicated backend server. Muddy OS appears to be a **frontend-only SPA** served by Vite dev server, reading directly from the filesystem and OpenClaw config files. If a lightweight API layer is needed, it would be minimal.
+
 | Aspect | Choice | Rationale |
 |--------|--------|-----------|
-| Runtime | **Node.js 22 + TypeScript** | Matches OpenClaw ecosystem |
-| Framework | **Fastify** | Performance, schema validation |
-| WebSocket | **`ws`** or **Socket.IO** | Real-time session transcript streaming |
+| Serving | **Vite dev server** (systemd --user, port 7100) | Demo-derived: runs as systemd service |
+| Data source | **Direct filesystem reads** | No database — reads OpenClaw workspace files and configs |
 | File ops | **Direct filesystem** | OpenClaw workspaces are file-based |
 | TTS | **Microsoft SpeechT5 / Edge TTS** (open-source) | Demo-derived: explicitly not ElevenLabs |
 | Telegram | **Telegraf** or direct Bot API | Notification delivery |
 | Process | **Child processes** via OpenClaw CLI | Session management, gateway control |
+| API layer | **Minimal** (Vite middleware or small Express server if needed) | Only for operations that require server-side access (file writes, OpenClaw CLI) |
 
-### 6.4 Database
+### 6.4 Data Storage
 
 | Aspect | Choice | Rationale |
 |--------|--------|-----------|
-| Primary | **SQLite** (via `better-sqlite3`) | Single-operator system, no need for Postgres complexity |
-| Schema | See Data Model (§7) | Sessions, costs, standups, cron history |
-| File storage | **Filesystem** | Workspace files, audio files, documentation — stays aligned with OpenClaw's file-based model |
+| Primary | **Filesystem only** — NO database | Demo-derived: "no backend database — reads from filesystem and config files" |
+| Agent data | **OpenClaw workspace directories** | SOUL.md, IDENTITY.md, USER.md, TOOLS.md, AGENTS.md, MEMORY.md, HEARTBEAT.md per agent |
+| Session data | **OpenClaw session/gateway APIs** | Polled or streamed from OpenClaw runtime |
+| Standup data | **JSON/markdown files** in workspace | Audio files + transcript JSON + action items |
+| Configuration | **Config files** (JSON/YAML) | Org chart hierarchy, model fleet, agent assignments |
 | Caching | **In-memory** (Map/LRU) | Session state, org chart, model fleet |
 
-**Confidence:** Build-required assumption / Medium — demo doesn't show database technology, but SQLite fits the single-operator model.
+**Confidence:** Demo-derived / High — docs screenshot explicitly states "no backend database — reads from filesystem and config files".
 
 ### 6.5 AI Layer
 
@@ -564,15 +656,17 @@ Muddy OS Desktop
 | Aspect | Approach |
 |--------|----------|
 | Deployment | Single machine (operator's server or VPS) — monolith |
-| Process manager | PM2 or systemd for backend |
+| Process manager | **systemd --user** service for Vite dev server on port 7100 |
 | OpenClaw | `openclaw gateway start` — managed by Muddy OS |
 | Reverse proxy | Caddy or nginx (optional, for HTTPS) |
-| Backups | Workspace files: git-based; SQLite: daily file copy |
+| Backups | Workspace files: git-based (no database to back up) |
 | Monitoring | Built-in Task Manager; healthcheck endpoint |
 
 ---
 
 ## 7. Data Model
+
+> **Note:** Muddy OS uses NO database. The data model below describes the logical entities and their relationships, but they are stored as **filesystem files** (JSON configs, markdown files, OpenClaw workspace directories) rather than database tables. The SQL-like notation is kept for clarity of structure.
 
 ### Core Entities
 
@@ -820,11 +914,10 @@ Not applicable for MVP (single-operator tool). If productized:
 
 | Layer | Tool | Coverage Target | Priority |
 |-------|------|-----------------|----------|
-| Unit tests (backend) | Vitest | API handlers, model router, cost calculator | MVP |
 | Unit tests (frontend) | Vitest + React Testing Library | Components, state management | MVP |
-| Integration tests | Vitest + Supertest | API endpoints with SQLite test DB | MVP |
-| E2E tests | Playwright | Critical flows: open task manager, view sessions, trigger standup | V1 |
-| Window manager tests | Playwright | Open/close/resize/drag windows | V1 |
+| Unit tests (data layer) | Vitest | Filesystem readers, config parsers, cost calculator | MVP |
+| Integration tests | Vitest | Tab navigation, data loading from filesystem | MVP |
+| E2E tests | Playwright | Critical flows: navigate tabs, view sessions, trigger standup | V1 |
 | WebSocket tests | Custom harness | Transcript streaming, status updates | V1 |
 | Performance | Lighthouse + custom | Dashboard load <2s, 25 agents rendering smoothly | V1 |
 
@@ -838,7 +931,7 @@ Not applicable for MVP (single-operator tool). If productized:
 | Cron job fires overnight | Overnight log populated, session recorded |
 | Gateway crash mid-session | Error states shown, recovery on restart |
 | Workspace file edit via UI | File written correctly, COO context updated |
-| Concurrent window operations | Multiple windows open without z-order bugs |
+| Tab navigation | All tabs render correctly, state preserved when switching |
 
 ### 10.3 QA Agent (Meta)
 
@@ -858,10 +951,10 @@ Per the demo, the org chart includes a QA division under CTO "Elon" with an Audi
 
 | Week | Deliverables |
 |------|-------------|
-| 1 | Project scaffold (React + Vite + Fastify + SQLite). Desktop shell: taskbar, window manager, app icons. Basic theming. |
-| 2 | Task Manager: stat cards (active sessions, idle, tokens, cost), active session list, transcript viewer. Backend: OpenClaw session polling + WebSocket streaming. |
-| 3 | Org Chart: tree visualization, agent nodes, department grouping, agent detail panel. Agent CRUD API. |
-| 4 | Agent Workspace: file browser, SOUL.md/USER.md editor, model/gateway config. Workspace sync (dashboard → files). Integration testing. |
+| 1 | Project scaffold (React + Vite + TypeScript). Tab-based shell: top nav bar with colored pill tabs, left floating sidebar, gold page border. Phosphor emerald theme. Filesystem data layer. |
+| 2 | Task Manager: 5 stat cards (red Total Cost), model fleet 2x3 grid, active session list with colored model pills, "Live" indicator. OpenClaw session polling. |
+| 3 | Org Chart: 5 stat cards, CEO/COO glowing nodes, collapsible division accordions, legend section, deprecated agents. |
+| 4 | Agent Workspaces: two-panel layout (agent list + file tree sidebar, content area with preview/edit), gold accent highlights. Docs tab: sidebar nav + rendered markdown. Integration testing. |
 
 ### V1 (Weeks 5-8)
 
@@ -876,9 +969,9 @@ Per the demo, the org chart includes a QA division under CTO "Elon" with an Audi
 
 | Week | Deliverables |
 |------|-------------|
-| 9 | Agent-to-agent chat rooms. Standup scheduling via cron. Meeting history archive. |
-| 10 | Historical analytics (token/cost charts over time). Desktop customization (wallpaper, themes). |
-| 11 | Drag-and-drop org chart editing. Agent creation wizard. Notification center (system tray). |
+| 9 | **Brain Module:** Memory viewer (browse agent memory files), daily briefs auto-generation, project tracking. |
+| 10 | **Brain Module cont.:** Automations viewer/manager. **Lab Module:** Idea gallery, prototype fleet. |
+| 11 | **Lab Module cont.:** Weekly reviews, ideation logs. Historical analytics (token/cost charts). Agent creation wizard. |
 | 12 | Performance optimization, E2E test suite, deployment documentation, backup system. |
 
 ### Team Composition (Recommended)
@@ -907,7 +1000,7 @@ Per the demo, the org chart includes a QA division under CTO "Elon" with an Audi
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | **Cost runaway** — 25 agents on expensive models (Opus 4.6) running 24/7 | Unexpected bills | Cost alerts, daily budgets, model tier optimization |
-| **Window manager complexity** — Custom desktop metaphor has edge cases (z-order, resize, multi-monitor) | UX bugs, frustrated users | Use proven library (react-rnd); limit to single-window focus for MVP if needed |
+| **Filesystem watching performance** — Reading many workspace directories for real-time data may have latency | Stale data in UI | Use fs.watch/chokidar for change detection; cache with TTL; "Refresh" button as manual fallback |
 | **Transcript streaming performance** — Live streaming of multiple session transcripts via WebSocket | UI lag, dropped messages | Throttle updates; paginate transcripts; virtualized lists |
 
 ### Low Risk
@@ -933,65 +1026,67 @@ Per the demo, the org chart includes a QA division under CTO "Elon" with an Audi
 
 ### Summary
 
-Muddy OS is a **desktop-metaphor web application** that provides a visual operations dashboard for managing 25+ AI agents running on OpenClaw. It wraps OpenClaw's file-based workspace system, session management, and cron infrastructure with a rich UI featuring a window manager, task manager, org chart, agent workspace editor, and voice standup system.
+Muddy OS is a **tab-based single-page web application** that provides a visual operations dashboard for managing 25+ AI agents running on OpenClaw. It wraps OpenClaw's file-based workspace system, session management, and cron infrastructure with a rich UI featuring tab navigation, task manager, org chart, voice standup player, agent workspace editor, and auto-generated documentation. It reads directly from the filesystem with no backend database. The app is structured around three modules: **Ops** (built), **Brain** (V2), and **Lab** (V2).
 
 ### Recommended Stack
 
 ```
 Frontend:  React 19 + TypeScript + Vite + Tailwind CSS + Zustand
-           react-rnd (window management), React Flow (org chart),
+           React Router (tab navigation), React Flow (org chart),
            CodeMirror 6 (editors), WaveSurfer.js (audio)
 
-Backend:   Node.js 22 + Fastify + TypeScript
-           better-sqlite3, ws (WebSocket), edge-tts (Microsoft TTS)
-           Telegraf (Telegram bot)
+Data:      NO DATABASE — reads directly from filesystem and config files
+           OpenClaw workspace directories (agent identity, memory, tools)
+           JSON/YAML config files (org chart, model fleet)
 
-Database:  SQLite (sessions, costs, standups, cron history)
-Filesystem: OpenClaw workspace directories (agent identity, memory, tools)
+Backend:   Minimal — Vite dev server + light API middleware if needed
+           edge-tts (Microsoft TTS), Telegraf (Telegram bot)
 
-Infra:     Single machine, PM2 process manager
+Infra:     Single machine, systemd --user service on port 7100
            OpenClaw gateway as runtime dependency
+           Vite dev server for serving
 ```
 
 ### Core Architecture (One Diagram)
 
 ```
-[Browser] ←→ [React Desktop Shell]
-                    ↕ REST + WS
-            [Fastify Backend API]
+[Browser] ←→ [React Tab-Based SPA]
+                    ↕ filesystem reads + OpenClaw CLI
+            [Vite Dev Server — port 7100]
+            [systemd --user service]
             ↙       ↓         ↘
-    [SQLite DB] [OpenClaw CLI] [TTS Engine]
-                     ↓              ↓
-              [Agent Sessions]  [Audio Files]
-              [Workspace Files] [Telegram Bot]
-              [Cron Jobs]
+  [Workspace  [OpenClaw CLI] [TTS Engine]
+   Files &         ↓              ↓
+   Configs]  [Agent Sessions]  [Audio Files]
+             [Workspace Files] [Telegram Bot]
+             [Cron Jobs]
 ```
 
 ### Fastest MVP Path
 
-1. **Day 1-2:** Scaffold project. Desktop shell with window manager (taskbar, icons, open/close/minimize). Static mock data.
-2. **Day 3-5:** Backend API + SQLite. OpenClaw integration: poll `openclaw gateway status`, parse session data, expose via REST.
-3. **Day 6-8:** Task Manager — wire to real data. Stat cards, session list, basic transcript viewing.
-4. **Day 9-11:** Org Chart — hardcode initial hierarchy from demo data, render with React Flow, agent detail panel.
-5. **Day 12-14:** Agent Workspace — file tree, markdown editor for SOUL.md/USER.md, save to filesystem.
+1. **Day 1-2:** Scaffold project (React + Vite + TypeScript). Tab-based shell with top nav bar (Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs). Gold page border, phosphor emerald theme. Static mock data.
+2. **Day 3-5:** Filesystem integration: read OpenClaw workspace dirs, parse config files, expose data to frontend components.
+3. **Day 6-8:** Task Manager — 5 stat cards (with red Total Cost), model fleet grid, active session list with colored model pills, "Live" indicator.
+4. **Day 9-11:** Org Chart — stat cards, CEO/COO nodes with glowing borders, collapsible division accordions, legend, deprecated agents section.
+5. **Day 12-14:** Agent Workspaces — two-panel layout, agent list + file tree sidebar, markdown preview/edit with gold accent highlights.
 
 **14-day MVP** delivers: working desktop shell + task manager + org chart + workspace editor, all wired to real OpenClaw data.
 
 ### Top Blockers
 
 1. **Understanding OpenClaw's programmatic API** — need to know how to list sessions, read transcripts, manage cron jobs programmatically (not just via CLI)
-2. **Window manager UX** — custom desktop metaphor is the highest-risk UI component; consider starting with tabbed interface as fallback
+2. **Filesystem data reading** — how to efficiently read and watch OpenClaw workspace directories for real-time updates
 3. **TTS pipeline** — multi-voice standup generation requires testing model download, voice assignment, audio concatenation
-4. **Real-time session streaming** — need to tail/stream OpenClaw session transcripts into WebSocket; method unclear
+4. **Real-time session streaming** — need to tail/stream OpenClaw session transcripts; method unclear
 5. **Agent hierarchy enforcement** — how delegation actually routes through OpenClaw (session spawning, context passing)
 
 ### Top 10 Decisions
 
 | # | Decision | Recommendation | Rationale |
 |---|----------|---------------|-----------|
-| 1 | Desktop metaphor vs. standard dashboard | **Desktop metaphor** | Core to Muddy OS identity; demonstrated in video; differentiator |
-| 2 | SQLite vs. PostgreSQL | **SQLite** | Single operator, single machine, simplicity |
-| 3 | Custom window manager vs. library | **react-rnd + custom shell** | Library handles drag/resize; custom shell for taskbar/icons/z-order |
+| 1 | Tab-based SPA (confirmed) | **Tab-based SPA** | Video evidence confirms tab navigation, NOT desktop metaphor |
+| 2 | Database vs. filesystem | **Filesystem only** | Video/docs confirm no database — reads from files and configs |
+| 3 | Tab navigation library | **React Router** | Standard SPA routing for tab-based navigation |
 | 4 | TTS provider | **edge-tts** (Microsoft Edge TTS, open source) | Demo says Microsoft open-source; edge-tts npm package is free, no API key |
 | 5 | Org chart library | **React Flow** | Handles tree layout, zoom/pan, custom nodes; well-maintained |
 | 6 | OpenClaw integration method | **CLI parsing + file system** | Most reliable; OpenClaw may not have REST API; workspace is file-based |
