@@ -410,6 +410,14 @@ export async function getTrelloCardDetails(cardId: string): Promise<FetchResult<
   return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}`)
 }
 
+export async function toggleTrelloCheckItem(cardId: string, checkItemId: string, state: 'complete' | 'incomplete'): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}/checkItem/${encodeURIComponent(checkItemId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state }),
+  })
+}
+
 export async function getTrelloBoardLists(boardId: string): Promise<FetchResult<Array<{ id: string; name: string }>>> {
   return apiFetch<Array<{ id: string; name: string }>>(`/openclaw/trello/boards/${encodeURIComponent(boardId)}/lists`)
 }

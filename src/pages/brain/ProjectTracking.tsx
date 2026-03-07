@@ -5,7 +5,7 @@ import { PageSkeleton } from '../../components/Skeleton'
 import {
   fetchProjects, fetchTrelloBoards, fetchTrelloConfig, connectTrelloBoard, syncTrelloBoard,
   createTrelloCard, updateTrelloCard, moveTrelloCard, archiveTrelloCard, deleteTrelloCard,
-  createTrelloList, addTrelloComment, getTrelloCardDetails, getTrelloBoardLists,
+  createTrelloList, addTrelloComment, getTrelloCardDetails, getTrelloBoardLists, toggleTrelloCheckItem,
   type TrelloBoard, type TrelloList, type TrelloCard, type TrelloBoardInfo, type TrelloConfig,
 } from '../../api/client'
 
@@ -154,6 +154,54 @@ function CardDetailModal({ cardId, boardId, boardLists, onClose, onRefresh }: {
                     {l.name || l.color}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Checklists */}
+            {card.checklists?.length > 0 && (
+              <div className="mb-4">
+                {card.checklists.map((cl: any) => {
+                  const total = cl.checkItems?.length || 0
+                  const done = cl.checkItems?.filter((i: any) => i.state === 'complete').length || 0
+                  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+                  return (
+                    <div key={cl.id} className="mb-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>☑ {cl.name}</span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{done}/{total} ({pct}%)</span>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="h-1.5 rounded-full mb-2" style={{ background: 'var(--bg-1)' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct === 100 ? 'var(--accent-green)' : 'var(--accent-teal)' }} />
+                      </div>
+                      {cl.checkItems?.map((item: any) => (
+                        <label key={item.id} className="flex items-start gap-2 py-1 px-1 rounded cursor-pointer hover:bg-[var(--bg-1)] transition-colors"
+                          style={{ opacity: item.state === 'complete' ? 0.6 : 1 }}>
+                          <input
+                            type="checkbox"
+                            checked={item.state === 'complete'}
+                            onChange={async () => {
+                              const newState = item.state === 'complete' ? 'incomplete' : 'complete'
+                              await toggleTrelloCheckItem(cardId, item.id, newState)
+                              // Refresh card
+                              const res = await getTrelloCardDetails(cardId)
+                              if (res.data) {
+                                setCard(res.data)
+                              }
+                            }}
+                            className="mt-0.5 accent-[var(--accent-teal)]"
+                          />
+                          <span className="text-xs" style={{
+                            color: 'var(--text-primary)',
+                            textDecoration: item.state === 'complete' ? 'line-through' : 'none',
+                          }}>
+                            {item.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -541,7 +589,8 @@ export default function ProjectTracking() {
                             style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}
                             onClick={() => card.id && setSelectedCardId(card.id)}
                           >
-                            <div className="text-sm">{card.title}</div>
+                            <div className="text-sm font-medium">{card.title}</div>
+                            {(card as any).desc && <div className="text-[10px] mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{(card as any).desc}</div>}
                             {card.due && <div className="text-[9px] mt-1" style={{ color: 'var(--text-secondary)' }}>📅 {new Date(card.due).toLocaleDateString()}</div>}
                             {card.labels.length > 0 && (
                               <div className="flex gap-1 mt-1.5 flex-wrap">

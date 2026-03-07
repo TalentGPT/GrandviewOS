@@ -389,7 +389,7 @@ router.post('/trello/sync', async (req, res) => {
 })
 
 async function syncTrelloBoard(boardId: string): Promise<Array<{ list: string; listId: string; count: number; cards: Array<{ id: string; title: string; labels: string[]; due: string | null }> }>> {
-  const url = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&cards=open&card_fields=name,labels,due,dateLastActivity`
+  const url = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&cards=open&card_fields=name,desc,labels,due,dateLastActivity,idChecklists`
   const resp = await fetch(url, { signal: AbortSignal.timeout(30000) })
   if (!resp.ok) throw new Error(`Trello API error: ${resp.status}`)
   const lists = await resp.json() as Array<{ id: string; name: string; cards: Array<{ id: string; name: string; labels: Array<{ name: string }>; due: string | null }> }>
@@ -398,11 +398,13 @@ async function syncTrelloBoard(boardId: string): Promise<Array<{ list: string; l
     list: l.name,
     listId: l.id,
     count: l.cards.length,
-    cards: l.cards.map(c => ({
+    cards: l.cards.map((c: any) => ({
       id: c.id,
       title: c.name,
-      labels: c.labels.map(lb => lb.name).filter(Boolean),
+      desc: c.desc || '',
+      labels: c.labels.map((lb: any) => lb.name).filter(Boolean),
       due: c.due || null,
+      checklistCount: c.idChecklists?.length || 0,
     })),
   }))
 }
@@ -443,7 +445,7 @@ router.post('/trello/cards', async (req, res) => {
 // Get card details
 router.get('/trello/cards/:cardId', async (req, res) => {
   try {
-    const url = `https://api.trello.com/1/cards/${req.params.cardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,desc,due,labels,idList,closed&actions=commentCard&actions_limit=10`
+    const url = `https://api.trello.com/1/cards/${req.params.cardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,desc,due,labels,idList,closed&actions=commentCard&actions_limit=10&checklists=all`
     const resp = await fetch(url, { signal: AbortSignal.timeout(15000) })
     if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
     res.json(await resp.json())
@@ -525,6 +527,16 @@ router.post('/trello/cards/:cardId/comments', async (req, res) => {
     const { text } = req.body
     if (!text) { res.status(400).json({ error: 'text required' }); return }
     const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Toggle checklist item
+router.put('/trello/cards/:cardId/checkItem/:checkItemId', async (req, res) => {
+  try {
+    const { state } = req.body // 'complete' or 'incomplete'
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}/checkItem/${req.params.checkItemId}?state=${state}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}`, { method: 'PUT', signal: AbortSignal.timeout(15000) })
     if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
     res.json(await resp.json())
   } catch (err) { res.status(500).json({ error: String(err) }) }

@@ -243,6 +243,14 @@ router.post('/trello/cards/:cardId/comments', async (req, res) => {
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
+router.put('/trello/cards/:cardId/checkItem/:checkItemId', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.put<any>(`/api/trello/cards/${req.params.cardId}/checkItem/${req.params.checkItemId}`, req.body)
+    res.json(data || { ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
 router.get('/trello/boards/:boardId/lists', async (req, res) => {
   try {
     const connector = await getConnector(req.tenantId!)
