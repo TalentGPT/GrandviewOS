@@ -280,10 +280,10 @@ export default function Standup() {
   const showLive = dataSource === 'live' && liveStandups.length > 0
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div>
-          <h1 className="text-xl font-semibold">Executive Standup</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Executive Standup</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kick off meetings with the chiefs and review past transcripts</p>
         </div>
         <div className="flex gap-2 flex-wrap">

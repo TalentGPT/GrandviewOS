@@ -28,7 +28,6 @@ function apiToDisplaySession(s: ApiSession): Session & { lastMessage?: string } 
     agent: 'Main',
     agentEmoji: '🐕',
     transcript: [],
-    lastMessage: s.lastMessage || (s.isActive ? 'Processing...' : undefined),
   }
 }
 
@@ -440,15 +439,16 @@ export default function TaskManager() {
                     </div>
                     <div className="flex items-center justify-between ml-6">
                       <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
-                    {s.isActive && (
-                      <button
-                        onClick={(e) => killSession(s.id, e)}
-                        className="text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
-                        style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
-                      >
-                        Kill
-                      </button>
-                    )}
+                      {s.isActive && (
+                        <button
+                          onClick={(e) => killSession(s.id, e)}
+                          className="text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
+                          style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
+                        >
+                          Kill
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {/* Mobile: stacked card */}
                   <div className="md:hidden">

@@ -75,10 +75,10 @@ export default function ProjectTracking() {
   if (loading) return <PageSkeleton />
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Project Tracking</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Project Tracking</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Track progress across multi-agent projects</p>
         </div>
         <button onClick={() => setShowAdd(!showAdd)}

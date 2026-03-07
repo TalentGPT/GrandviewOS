@@ -129,6 +129,25 @@ export default function MobileNav({ onChatToggle }: Props) {
           </>
         )}
       </AnimatePresence>
+      {/* Bottom tab bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around py-2 border-t md:hidden"
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+        {[
+          { emoji: '📊', label: 'Tasks', path: '/ops/task-manager' },
+          { emoji: '👥', label: 'Org', path: '/ops/org-chart' },
+          { emoji: '🎙️', label: 'Standup', path: '/ops/standup' },
+          { emoji: '🧠', label: 'Brain', path: '/brain/memory' },
+          { emoji: '🧪', label: 'Lab', path: '/lab/ideas' },
+        ].map(item => {
+          const isActive = location.pathname.startsWith(item.path.split('/').slice(0, 3).join('/'))
+          return (
+            <NavLink key={item.path} to={item.path} className="flex flex-col items-center gap-0.5 no-underline min-w-[44px] min-h-[44px] justify-center">
+              <span className="text-lg">{item.emoji}</span>
+              <span className="text-[10px] font-medium" style={{ color: isActive ? 'var(--accent-teal)' : 'var(--text-secondary)' }}>{item.label}</span>
+            </NavLink>
+          )
+        })}
+      </nav>
     </>
   )
 }

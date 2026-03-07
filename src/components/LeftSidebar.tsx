@@ -1,10 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const icons = [
-  { emoji: '📊', label: 'Dashboard', path: '/ops/task-manager' },
-  { emoji: '💬', label: 'Chat with COO', action: 'chat' },
-  { emoji: '⚙️', label: 'Settings', path: '/ops/settings' },
-  { emoji: '🔔', label: 'Notifications', action: 'notify' },
+  { emoji: '📊', label: 'Dashboard', path: '/ops/task-manager', bg: 'var(--bg-hover)' },
+  { emoji: '💬', label: 'Chat with COO', action: 'chat', bg: 'var(--accent-green)22' },
+  { emoji: '⚙️', label: 'Settings', path: '/ops/settings', bg: 'var(--bg-hover)' },
+  { emoji: '🔔', label: 'Notifications', action: 'notify', bg: 'var(--bg-hover)' },
 ]
 
 interface Props {
@@ -16,10 +16,7 @@ export default function LeftSidebar({ onChatToggle }: Props) {
   const location = useLocation()
 
   return (
-    <div
-      className="fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-3 py-4 px-2 rounded-2xl hidden xl:flex"
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}
-    >
+    <div className="flex flex-col items-center gap-3">
       {icons.map(icon => {
         const isActive = icon.path && location.pathname === icon.path
         return (
@@ -30,10 +27,10 @@ export default function LeftSidebar({ onChatToggle }: Props) {
               if (icon.action === 'chat' && onChatToggle) onChatToggle()
               else if (icon.path) navigate(icon.path)
             }}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-base hover:scale-110 transition-transform cursor-pointer"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-base hover:scale-110 transition-transform cursor-pointer shadow-lg"
             style={{
-              background: isActive ? 'var(--accent-teal)22' : icon.action === 'chat' ? 'var(--accent-green)22' : 'var(--bg-hover)',
-              border: icon.action === 'chat' ? '1px solid var(--accent-green)44' : 'none',
+              background: isActive ? 'var(--accent-teal)22' : icon.bg,
+              border: icon.action === 'chat' ? '1px solid var(--accent-green)44' : '1px solid var(--border-divider)',
             }}
           >
             {icon.emoji}

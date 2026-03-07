@@ -55,10 +55,10 @@ export default function IdeaGallery() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Idea Gallery</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Idea Gallery</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Agent-generated ideas and proposals</p>
         </div>
         <button onClick={() => setShowAdd(!showAdd)}

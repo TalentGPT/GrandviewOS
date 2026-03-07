@@ -85,10 +85,10 @@ export default function WeeklyReviews() {
   if (loading) return <PageSkeleton />
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Weekly Reviews</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Weekly Reviews</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Structured weekly review summaries</p>
         </div>
       </div>

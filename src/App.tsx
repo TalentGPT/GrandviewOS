@@ -1,10 +1,11 @@
 import { useState, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import TopNavBar from './components/TopNavBar'
 import LeftSidebar from './components/LeftSidebar'
 import MobileNav from './components/MobileNav'
-import StatusBar from './components/StatusBar'
+// StatusBar imported via PersistentAudioBar
 import OperatorChat from './components/OperatorChat'
+import PersistentAudioBar from './components/PersistentAudioBar'
 import ErrorBoundary from './components/ErrorBoundary'
 import PageTitle from './components/PageTitle'
 import { ToastProvider } from './components/Toast'
@@ -41,6 +42,33 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Get breadcrumb label from path
+function getBreadcrumb(pathname: string): string {
+  const segments: Record<string, string> = {
+    '/ops/task-manager': 'Task Manager',
+    '/ops/org-chart': 'Org Chart',
+    '/ops/standup': 'Standup',
+    '/ops/workspaces': 'Workspaces',
+    '/ops/docs': 'Docs',
+    '/ops/settings': 'Settings',
+    '/brain/memory': 'Memory Viewer',
+    '/brain/briefs': 'Daily Briefs',
+    '/brain/automations': 'Automations',
+    '/brain/projects': 'Project Tracking',
+    '/lab/ideas': 'Idea Gallery',
+    '/lab/prototypes': 'Prototype Fleet',
+    '/lab/reviews': 'Weekly Reviews',
+    '/lab/ideation': 'Ideation Logs',
+  }
+  return segments[pathname] || 'GrandviewOS'
+}
+
+function AudioBarWithBreadcrumb() {
+  const location = useLocation()
+  const label = getBreadcrumb(location.pathname)
+  return <PersistentAudioBar visible speakerName={label} speakerEmoji="📍" />
+}
+
 function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [authenticated, setAuthenticated] = useState(() => !!getStoredApiKey())
@@ -63,13 +91,11 @@ function App() {
           {/* Mobile nav */}
           <MobileNav onChatToggle={() => setChatOpen(o => !o)} />
 
-          <div className="flex flex-1 overflow-hidden">
-            {/* Desktop sidebar */}
-            <div className="hidden md:block">
-              <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
-            </div>
+          <div className="flex flex-1 overflow-hidden relative">
+            {/* Desktop sidebar — floating, does not push content */}
+            <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
 
-            <main className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8 lg:px-16 lg:py-10" style={{ background: 'var(--bg-primary)' }}>
+            <main className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8 lg:px-16 lg:py-10 pb-20" style={{ background: 'var(--bg-primary)' }}>
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Navigate to="/ops/task-manager" replace />} />
@@ -105,9 +131,12 @@ function App() {
               </ErrorBoundary>
             </main>
           </div>
-          <StatusBar />
-          <OperatorChat isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+
+          {/* Audio bar at bottom */}
+          <AudioBarWithBreadcrumb />
         </div>
+
+        <OperatorChat isOpen={chatOpen} onClose={() => setChatOpen(false)} />
       </ToastProvider>
     </BrowserRouter>
   )

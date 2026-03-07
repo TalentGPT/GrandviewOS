@@ -77,10 +77,10 @@ export default function DailyBriefs() {
   }), { sessions: 0, tokens: 0, cost: 0 })
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Daily Briefs</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Daily Briefs</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Auto-generated daily summaries of agent activity</p>
         </div>
       </div>
