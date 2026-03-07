@@ -25,7 +25,7 @@ export function signToken(payload: JwtPayload): string {
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Skip auth for auth routes
-  if (req.path.startsWith('/api/auth/') && req.path !== '/api/auth/me') {
+  if (req.path.startsWith('/auth/') && req.path !== '/auth/me') {
     next()
     return
   }
