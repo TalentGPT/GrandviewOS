@@ -317,15 +317,9 @@ Muddy OS Desktop
 
 #### Screen 1: Desktop Shell
 
-```
-[SCREENSHOT: Full desktop view showing Windows/Mac hybrid UI. Taskbar at bottom 
-with app launcher button (left), active window indicators (center), system tray 
-with notification bell + clock (right). Desktop surface shows 6 app icons arranged 
-in a grid: Task Manager (gauge icon), Org Chart (hierarchy icon), Documentation 
-(book icon), Voice Standups (microphone icon), Settings (gear icon), Chat (speech 
-bubble icon). Background is dark/muted with subtle branding. Overall aesthetic: 
-clean, modern, dark theme — halfway between Windows 11 and macOS Sonoma.]
-```
+![Task Manager - Desktop Shell](screenshots/01-task-manager.png)
+
+> **UI Reference:** Dark theme with gold/amber accents. Top nav bar: `Muddy-OS | Task Manager | Org Chart | Standup | Workspaces | Docs`. Left sidebar has 3 colored app icons. NOT a traditional desktop with taskbar — it's a **web app with tab navigation**. Background is dark (#0d1117 range) with subtle red/gradient wallpaper visible on edges.
 
 **Components:**
 - `<Taskbar>` — fixed bottom bar, 48px height, blur background
@@ -343,17 +337,9 @@ clean, modern, dark theme — halfway between Windows 11 and macOS Sonoma.]
 
 #### Screen 2: Task Manager
 
-```
-[SCREENSHOT: Task Manager window open on desktop. Top section has 4 stat cards 
-in a row: "Active Sessions: 7" (green), "Idle Agents: 18" (gray), "Tokens Today: 
-2.4M" (blue), "Est. Cost: $12.47" (yellow). Below that, left panel shows "Model 
-Fleet" as a vertical list of 6 models (Opus 4.6, Opus 4.5, Gemini 3 Pro, GPT 5.3 
-Codex, Gemini 3 Flash, Nano Banana Pro) each with a colored dot and agent count. 
-Right panel shows "Active Sessions" as a table with columns: Agent, Model, Status, 
-Duration, Tokens. Below the main area, a tabbed section with "Cron Jobs" and 
-"Overnight Log" tabs. Cron Jobs shows a table of scheduled tasks with next-run 
-times. Dark theme, monospace numbers.]
-```
+![Task Manager](screenshots/01-task-manager.png)
+
+> **UI Reference:** 5 stat cards in a row: Active (1, green), Idle (3, gray), Total Sessions (50, white), Tokens Used (7.6M, blue), Total Cost ($62.96, gold). "Model Fleet" section below with 6 cards in 2x3 grid — each card shows model name, description, agent names, status badge (Active/Standby), cost, tokens, sessions. "Active Sessions" section at bottom as a list with green status dots, model tags, token count, cost per session. Top-right has "Live" indicator + "Refresh" button.
 
 **Components:**
 - `<StatCard>` — icon, label, value, color-coded background
@@ -370,18 +356,12 @@ times. Dark theme, monospace numbers.]
 
 #### Screen 3: Org Chart
 
-```
-[SCREENSHOT: Org Chart window showing a top-down tree hierarchy. Top node: "Marcelo 
-(CEO)" with a crown icon. Below it, connected by a line: "Muddy (COO)" — larger 
-node with a brain icon and subtitle "Research · Delegation · Orchestration · Always 
-Available". Three branches below Muddy connect to department heads in colored 
-sections: Left (blue): "Elon (CTO)" with sub-branches for Backend & Security, 
-Frontend & DevOps, QA divisions — each showing specialist agents. Center (orange): 
-"Gary (CMO)" with Content division showing Rex, Sage, Newsletter, Hype, Creative, 
-Video agents. Right (green): "Warren (CRO)" with Products and Growth/Community 
-divisions. Each agent node shows: name, model badge, and a status dot (green/gray/red). 
-Clicking an agent highlights it and shows a detail panel on the right.]
-```
+![Org Chart - Hierarchy](screenshots/03-org-chart-hierarchy.png)
+![Org Chart - Expanded Divisions](screenshots/02-org-chart-expanded.png)
+
+> **UI Reference (Hierarchy):** Top stat row: 3 Chiefs, 25 Total Agents, 21 Active (green), 1 Scaffolded (orange), 7 Deprecated (red). CEO node (Marcelo Oliveira, photo avatar) → COO node (Muddy, "Research · Delegation · Execution · Orchestration") → 3 department head nodes (Elon CTO, Gary CMO, Warren CRO) each with Opus 4.6 badge. Below each head: collapsible division rows with agent counts. "Expand All / Collapse All" buttons top-right. Deprecated Agents section at bottom.
+>
+> **UI Reference (Expanded):** Three-column layout. Each column = one department. Division headers (e.g. "Backend & Security — 2 agents") with description text. Agent cards show: emoji icon, name, role subtitle, status badge (Active/Scaffolded), model tags (colored pills: Codex 5.3, Opus 4.6, Sonnet 4.5, Gemini Pro, Nano Banana Pro). Cards have dark backgrounds with colored left borders matching department.
 
 **Components:**
 - `<OrgNode>` — avatar/icon, name, title, model badge(s), status dot
@@ -398,18 +378,9 @@ Clicking an agent highlights it and shows a detail panel on the right.]
 
 #### Screen 4: Agent Workspace
 
-```
-[SCREENSHOT: Agent Workspace window for "Elon (CTO)". Left sidebar shows file 
-tree: SOUL.md, USER.md, TOOLS.md, AGENTS.md, MEMORY.md, memory/ folder. Main 
-area shows SOUL.md open in a markdown editor with syntax highlighting. Content 
-visible: "# Elon — CTO\n\nYou are the Chief Technology Officer. Your personality 
-is inspired by Elon Musk: bold, first-principles thinking, move fast...". Right 
-sidebar shows configuration panels: Model Assignment (dropdown: "Codex 5.3" with 
-"Opus 4.6 failsafe" toggle), Gateway (radio: "Shared — Muddy's Gateway"), 
-Assigned Agents list (Backend team, Frontend team, QA team with their names), 
-Heartbeat toggle (ON). Bottom bar shows: "Last active: 3 min ago | Sessions today: 
-12 | Tokens: 340K".]
-```
+![Workspaces](screenshots/10-workspaces.png)
+
+> **UI Reference:** Two-panel layout. Left sidebar: "WORKSPACES" section lists agents (Muddy Main, Clay, Elon CTO, Gary CMO, Warren CRO) with emoji icons — Clay is highlighted/selected. "FILES" section below shows: SOUL.md (4.7kb), IDENTITY.md (0.4kb), USER.md (0.5kb), TOOLS.md (0.8kb), AGENTS.md (7.9kb), MEMORY.md (1.4kb, highlighted), HEARTBEAT.md (0.3kb). Main area shows agent header (Clay — "Friendly community bot — a baby lobster made of terracotta clay" + workspace path). Below: MEMORY.md rendered with Preview/Edit toggle. Content shows structured markdown: "Who I Am", "Community Members" with user profiles, "Patterns & Lessons".
 
 **Components:**
 - `<WorkspaceFileTree>` — collapsible file browser for agent workspace directory
@@ -421,19 +392,18 @@ Heartbeat toggle (ON). Bottom bar shows: "Last active: 3 min ago | Sessions toda
 
 #### Screen 5: Voice Standups
 
-```
-[SCREENSHOT: Voice Standups window. Top section shows "Latest Standup — March 7, 
-2026, 02:00 UTC" with a large audio player (waveform visualization, play/pause, 
-scrubber, speed control 1x/1.5x/2x). Below the player, a "Participants" row shows 
-avatar bubbles for Muddy, Elon, Gary, Warren with their names. Below that, 
-"Transcript" section shows the meeting conversation with speaker labels and 
-timestamps: "[Muddy 00:00] Good morning team. Let's review overnight progress..." 
-"[Elon 00:23] Backend migration completed successfully. QA found two edge cases..." 
-At the bottom, "Action Items" section shows a checklist: ☑ Backend: Deploy hotfix 
-for edge case #1 (Elon) ☐ Content: Publish newsletter draft (Gary) ☐ Growth: 
-Review community feedback report (Warren). Right sidebar shows "Meeting History" 
-as a scrollable list of past standups with dates.]
-```
+![Standup - Meeting View](screenshots/06-standup-meeting.png)
+![Standup - Audio Player](screenshots/08-standup-audio-player.png)
+![Standup - Conversation Detail](screenshots/05-standup-conversation.png)
+![Standup - Action Items](screenshots/07-standup-action-items.png)
+
+> **UI Reference (Meeting):** Header: "Executive Standup" with subtitle "Kick off meetings with the chiefs and review past transcripts". Two buttons: "Meeting Archive" (green) + "+ New Standup". Meeting card shows title ("Partnership & Sponsorship Strategy"), date/time, participant badges (Muddy, Gary, Elon, Warren with emoji + colored pills). "← Back to Archive" link.
+>
+> **UI Reference (Audio):** Play/Pause button (green "Play" pill), speaker indicator showing current speaker avatar + name ("Muddy"), progress bar with timestamp (1/23 - 4s/24s). Skip forward/back buttons (<<, >>).
+>
+> **UI Reference (Conversation):** Speaker-labeled message blocks. Each block: agent emoji + name + role badge (COO/CRO/CMO/CTO). Left colored border per speaker. Messages are full paragraphs of substantive discussion. Agents reference each other and build on previous points.
+>
+> **UI Reference (Action Items):** Numbered deliverables list (1-10) on left. "Action Items" section below with checkboxes — green checks with agent emoji for assignee. Completed items show strikethrough text. Items include file links. Each action tied to a specific agent.
 
 **Components:**
 - `<AudioPlayer>` — waveform visualization, play/pause, scrub, speed control, download
@@ -446,15 +416,9 @@ as a scrollable list of past standups with dates.]
 
 #### Screen 6: Chat Interface (Operator → COO)
 
-```
-[SCREENSHOT: Chat window with "Muddy (COO)" as the recipient. Standard chat 
-UI: message list showing conversation. User message: "Muddy, I need a new 
-landing page for the product launch next week." Muddy's reply: "On it. I'll 
-assign this to Elon's Frontend team. Pixel will handle the design, Sentry 
-will set up deployment. I'll have Gary's team prepare the copy. ETA: 48 hours. 
-I'll keep you posted via Telegram." Below, a message input with send button. 
-Status indicator shows "Muddy: Online — Processing 3 tasks".]
-```
+![Documentation](screenshots/04-docs.png)
+
+> **UI Reference:** Left sidebar: "DOCUMENTATION" header with nav items (Overview highlighted, Task Manager, Organization Chart, Team Workspaces, Sub-Agents & Spawning, Gateway vs Sub-Agents, Voice Standup, Partnership Pipeline, Memory Architecture). Main area: rendered markdown with "What is Muddy OS?" header, description text, ASCII architecture diagram showing three modules (Ops, Brain, Lab) with sub-features. Tech stack section: React + TypeScript, Vite, systemd --user service on port 7100, no backend database — reads from filesystem and config files, dark-mode-first phosphor emerald aesthetics.
 
 **Components:**
 - `<ChatWindow>` — standard chat UI, markdown rendering in messages
