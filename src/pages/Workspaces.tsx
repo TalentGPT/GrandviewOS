@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { useToast } from '../components/Toast'
 import { saveWorkspaceFile } from '../api/client'
+import { fetchAgentPermissions, fetchIntegrations, syncAgentTools, fetchSyncState } from '../api/integrations-client'
+import type { AgentPermissions, IntegrationEntry } from '../types/integrations'
 import { workspaceAgents, workspaceFiles, workspaceContents } from '../data/mockWorkspaces'
 
 export default function Workspaces() {
@@ -17,6 +19,22 @@ export default function Workspaces() {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [agentPerms, setAgentPerms] = useState<AgentPermissions[]>([])
+  const [allIntegrations, setAllIntegrations] = useState<IntegrationEntry[]>([])
+  const [agentSyncState, setAgentSyncState] = useState<Record<string, { lastSync: string; status: string }>>({})
+  const [syncingAgent, setSyncingAgent] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      fetchAgentPermissions().catch(() => [] as AgentPermissions[]),
+      fetchIntegrations().catch(() => [] as IntegrationEntry[]),
+      fetchSyncState().catch(() => ({ agents: {} as Record<string, { lastSync: string; status: string }> })),
+    ]).then(([perms, ints, state]) => {
+      setAgentPerms(perms)
+      setAllIntegrations(ints)
+      setAgentSyncState(state.agents)
+    })
+  }, [])
 
   useEffect(() => {
     const agentParam = searchParams.get('agent')
@@ -148,6 +166,58 @@ export default function Workspaces() {
                   {saving ? 'Saving...' : isEdit ? 'Save' : 'Edit'}
                 </button>
               </div>
+
+              {/* Agent Integrations Section */}
+              {(() => {
+                const perm = agentPerms.find(p => p.agent_id === selectedAgent)
+                if (!perm) return null
+                const agentInts = allIntegrations.filter(i =>
+                  perm.allowed_integrations.includes('*') ||
+                  perm.allowed_integrations.includes(i.id) ||
+                  perm.allowed_integrations.includes(i.type)
+                )
+                if (agentInts.length === 0) return null
+                const sync = agentSyncState[selectedAgent]
+                return (
+                  <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium" style={{ color: 'var(--accent-teal)' }}>Integrations</span>
+                      <div className="flex items-center gap-2">
+                        {sync && (
+                          <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                            Last sync: {new Date(sync.lastSync).toLocaleString()}
+                          </span>
+                        )}
+                        <button onClick={async () => {
+                          setSyncingAgent(true)
+                          try {
+                            await syncAgentTools(selectedAgent)
+                            addToast('Tools synced ✓')
+                            const state = await fetchSyncState().catch(() => ({ agents: {} as Record<string, { lastSync: string; status: string }> }))
+                            setAgentSyncState(state.agents)
+                          } catch { addToast('Sync failed', 'error') }
+                          setSyncingAgent(false)
+                        }} disabled={syncingAgent}
+                          className="text-[10px] px-2 py-1 rounded cursor-pointer disabled:opacity-50"
+                          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
+                          {syncingAgent ? '...' : '⟳ Sync Tools'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {agentInts.map(i => (
+                        <span key={i.id} className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1" style={{
+                          background: i.status === 'connected' ? 'var(--accent-green)15' : 'var(--bg-3)',
+                          color: i.status === 'connected' ? 'var(--accent-green)' : 'var(--text-secondary)',
+                          border: `1px solid ${i.status === 'connected' ? 'var(--accent-green)33' : 'var(--border-divider)'}`,
+                        }}>
+                          {i.icon} {i.name} {i.status === 'connected' ? '✓' : '✗'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {isEdit ? (
                 <textarea

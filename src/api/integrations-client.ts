@@ -61,6 +61,14 @@ export const fetchAgentPermissions = () => apiFetch<AgentPermissions[]>('/agent-
 export const updateAgentPermissions = (agentId: string, data: Partial<AgentPermissions>) =>
   apiFetch<AgentPermissions>(`/agent-permissions/${agentId}`, { method: 'PATCH', ...jsonBody(data) })
 
+// Agent Sync (Bridge)
+export const syncAgentTools = (agentId: string) =>
+  apiFetch<{ ok: boolean; agentId: string; message?: string; error?: string }>(`/agents/${agentId}/sync-tools`, { method: 'POST' })
+export const syncAllAgents = () =>
+  apiFetch<{ synced: number; errors: number; total: number }>('/agents/sync-all', { method: 'POST' })
+export const fetchSyncState = () =>
+  apiFetch<{ agents: Record<string, { lastSync: string; status: string }> }>('/sync-state')
+
 // Re-export agents fetch for convenience
 import type { ApiAgent } from '../types/api'
 export const fetchAgents = () => apiFetch<ApiAgent[]>('/agents')

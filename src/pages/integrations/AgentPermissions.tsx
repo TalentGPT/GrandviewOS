@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/PageHeader'
-import { fetchAgentPermissions, updateAgentPermissions, fetchIntegrations } from '../../api/integrations-client'
+import { useToast } from '../../components/Toast'
+import { fetchAgentPermissions, updateAgentPermissions, fetchIntegrations, syncAgentTools, syncAllAgents, fetchSyncState } from '../../api/integrations-client'
 import type { AgentPermissions as AgentPermsType, IntegrationEntry } from '../../types/integrations'
 import type { ApiAgent } from '../../types/api'
 
@@ -12,16 +13,22 @@ export default function AgentPermissions() {
   const [loading, setLoading] = useState(true)
   const [editAgent, setEditAgent] = useState<AgentPermsType | null>(null)
   const [editForm, setEditForm] = useState({ integrations: '', tools: '', models: '' })
+  const [syncState, setSyncState] = useState<Record<string, { lastSync: string; status: string }>>({})
+  const [syncing, setSyncing] = useState<Record<string, boolean>>({})
+  const [syncingAll, setSyncingAll] = useState(false)
+  const { addToast } = useToast()
 
   const load = async () => {
     try {
-      const [perms, ints, agts] = await Promise.all([
+      const [perms, ints, agts, state] = await Promise.all([
         fetchAgentPermissions(), fetchIntegrations(),
         (await import('../../api/client')).fetchAgents().then(r => r.data ?? []),
+        fetchSyncState().catch(() => ({ agents: {} })),
       ])
       setPermissions(perms)
       setIntegrations(ints)
       setAgents(agts)
+      setSyncState(state.agents)
     } catch { /* empty */ }
     setLoading(false)
   }
@@ -44,6 +51,7 @@ export default function AgentPermissions() {
       allowed_tools: editForm.tools.split(',').map(s => s.trim()).filter(Boolean),
       allowed_models: editForm.models.split(',').map(s => s.trim()).filter(Boolean),
     })
+    addToast('Agent tools synced')
     setEditAgent(null)
     load()
   }
@@ -55,10 +63,40 @@ export default function AgentPermissions() {
       allowed_tools: ['*'],
       allowed_models: ['*'],
     })
+    addToast('Agent tools synced')
     load()
   }
 
-  // Merge agents with permissions for matrix view
+  const handleSync = async (agentId: string) => {
+    setSyncing(s => ({ ...s, [agentId]: true }))
+    try {
+      const result = await syncAgentTools(agentId)
+      if (result.ok) {
+        addToast(`${agentId} synced ✓`)
+      } else {
+        addToast(`Sync failed: ${result.error}`, 'error')
+      }
+      const state = await fetchSyncState().catch(() => ({ agents: {} }))
+      setSyncState(state.agents)
+    } catch {
+      addToast('Sync failed', 'error')
+    }
+    setSyncing(s => ({ ...s, [agentId]: false }))
+  }
+
+  const handleSyncAll = async () => {
+    setSyncingAll(true)
+    try {
+      const result = await syncAllAgents()
+      addToast(`Synced ${result.synced} agents${result.errors ? `, ${result.errors} errors` : ''}`)
+      const state = await fetchSyncState().catch(() => ({ agents: {} }))
+      setSyncState(state.agents)
+    } catch {
+      addToast('Sync all failed', 'error')
+    }
+    setSyncingAll(false)
+  }
+
   const intIds = integrations.map(i => i.id)
 
   const hasPermission = (agentId: string, intId: string): boolean => {
@@ -68,9 +106,32 @@ export default function AgentPermissions() {
       perm.allowed_integrations.includes(integrations.find(i => i.id === intId)?.type ?? '')
   }
 
+  const formatSyncTime = (iso: string): string => {
+    try {
+      const d = new Date(iso)
+      const now = Date.now()
+      const diff = now - d.getTime()
+      if (diff < 60000) return 'just now'
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+      return d.toLocaleDateString()
+    } catch { return 'unknown' }
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="page-container">
       <PageHeader title="Agent Permissions" subtitle="Control which agents can access integrations, tools, and models" />
+
+      {/* Sync All button */}
+      {permissions.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <button onClick={handleSyncAll} disabled={syncingAll}
+            className="px-4 py-2 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-50"
+            style={{ background: 'var(--accent-teal)', color: 'var(--bg-primary)', border: 'none' }}>
+            {syncingAll ? 'Syncing...' : '⟳ Sync All Agents'}
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading...</div>
@@ -128,27 +189,46 @@ export default function AgentPermissions() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {permissions.map(perm => (
-                <div key={perm.agent_id} className="flex items-center justify-between p-4 rounded-lg"
-                  style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{perm.agent_name || perm.agent_id}</div>
-                    <div className="flex gap-2 mt-1 flex-wrap">
-                      {perm.allowed_integrations.slice(0, 5).map(i => (
-                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)' }}>{i}</span>
-                      ))}
-                      {perm.allowed_tools.includes('*') && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>All tools</span>
-                      )}
+              {permissions.map(perm => {
+                const agentSync = syncState[perm.agent_id]
+                return (
+                  <div key={perm.agent_id} className="flex items-center justify-between p-4 rounded-lg"
+                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{perm.agent_name || perm.agent_id}</span>
+                        {agentSync && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{
+                            background: agentSync.status === 'ok' ? 'var(--accent-green)22' : 'var(--accent-red)22',
+                            color: agentSync.status === 'ok' ? 'var(--accent-green)' : 'var(--accent-red)',
+                          }}>
+                            {agentSync.status === 'ok' ? '✓' : '✗'} synced {formatSyncTime(agentSync.lastSync)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {perm.allowed_integrations.slice(0, 5).map(i => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)' }}>{i}</span>
+                        ))}
+                        {perm.allowed_tools.includes('*') && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>All tools</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleSync(perm.agent_id)} disabled={syncing[perm.agent_id]}
+                        className="text-xs px-3 py-1.5 rounded cursor-pointer disabled:opacity-50"
+                        style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
+                        {syncing[perm.agent_id] ? '...' : '⟳ Sync'}
+                      </button>
+                      <button onClick={() => openEdit(perm)} className="text-xs px-3 py-1.5 rounded cursor-pointer"
+                        style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
+                        Edit
+                      </button>
                     </div>
                   </div>
-                  <button onClick={() => openEdit(perm)} className="text-xs px-3 py-1.5 rounded cursor-pointer"
-                    style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
-                    Edit
-                  </button>
-                </div>
-              ))}
-              {/* Add uninitialized agents */}
+                )
+              })}
               {agents.filter(a => !permissions.find(p => p.agent_id === a.id)).map(agent => (
                 <button key={agent.id} onClick={() => handleInitAgent(agent)}
                   className="flex items-center justify-center p-3 rounded-lg text-xs cursor-pointer"

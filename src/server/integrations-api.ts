@@ -7,7 +7,7 @@
 import { readFile, writeFile, mkdir, access } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
-import { randomBytes, createCipheriv } from 'crypto'
+import { randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 const GRANDVIEW_DIR = join(homedir(), '.grandviewos')
@@ -18,6 +18,8 @@ const INTEGRATIONS_FILE = join(GRANDVIEW_DIR, 'integrations.json')
 const MCP_SERVERS_FILE = join(GRANDVIEW_DIR, 'mcp-servers.json')
 const LLM_PROVIDERS_FILE = join(GRANDVIEW_DIR, 'llm-providers.json')
 const AGENT_PERMISSIONS_FILE = join(GRANDVIEW_DIR, 'agent-permissions.json')
+const SYNC_STATE_FILE = join(GRANDVIEW_DIR, 'sync-state.json')
+const OPENCLAW_AGENTS_DIR = join(homedir(), '.openclaw', 'agents')
 
 // ---- Helpers ----
 
@@ -74,12 +76,272 @@ function encrypt(plaintext: string, key: Buffer): { encrypted: string; iv: strin
   }
 }
 
-/* decrypt — reserved for future secret retrieval
 function decrypt(encrypted: string, iv: string, tag: string, key: Buffer): string {
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64'))
   decipher.setAuthTag(Buffer.from(tag, 'base64'))
   return decipher.update(Buffer.from(encrypted, 'base64'), undefined, 'utf-8') + decipher.final('utf-8')
-} */
+}
+
+// ---- Integration tools catalog ----
+
+const INTEGRATION_TOOLS: Record<string, Array<{ name: string; description: string }>> = {
+  github: [
+    { name: 'github.create_issue', description: 'Create issues in repositories' },
+    { name: 'github.read_repo', description: 'Read repository contents' },
+    { name: 'github.create_pr', description: 'Create pull requests' },
+    { name: 'github.list_repos', description: 'List repositories' },
+  ],
+  slack: [
+    { name: 'slack.send_message', description: 'Send messages to channels' },
+    { name: 'slack.list_channels', description: 'List available channels' },
+  ],
+  telegram: [
+    { name: 'telegram.send_message', description: 'Send messages' },
+    { name: 'telegram.receive', description: 'Receive incoming messages' },
+  ],
+  aws: [
+    { name: 'aws.s3', description: 'S3 object storage operations' },
+    { name: 'aws.lambda', description: 'Lambda function invocation' },
+    { name: 'aws.ec2', description: 'EC2 instance management' },
+  ],
+  postgres: [
+    { name: 'postgres.query', description: 'Execute SQL queries' },
+    { name: 'postgres.schema', description: 'Inspect database schema' },
+  ],
+  stripe: [
+    { name: 'stripe.charges', description: 'Manage charges' },
+    { name: 'stripe.subscriptions', description: 'Manage subscriptions' },
+  ],
+  openai: [
+    { name: 'openai.chat', description: 'Chat completions' },
+    { name: 'openai.embeddings', description: 'Generate embeddings' },
+  ],
+  anthropic: [
+    { name: 'anthropic.messages', description: 'Claude message completions' },
+  ],
+  google: [
+    { name: 'google.gemini', description: 'Gemini model completions' },
+  ],
+}
+
+// ---- Env var name mapping per integration ----
+
+const INTEGRATION_ENV_KEYS: Record<string, Record<string, string>> = {
+  github: { github_token: 'GITHUB_TOKEN' },
+  slack: { slack_bot_token: 'SLACK_BOT_TOKEN' },
+  telegram: { telegram_bot_token: 'TELEGRAM_BOT_TOKEN' },
+  aws: { aws_access_key: 'AWS_ACCESS_KEY_ID', aws_secret_key: 'AWS_SECRET_ACCESS_KEY' },
+  postgres: { postgres_url: 'DATABASE_URL' },
+  stripe: { stripe_api_key: 'STRIPE_API_KEY' },
+  openai: { openai_api_key: 'OPENAI_API_KEY' },
+  anthropic: { anthropic_api_key: 'ANTHROPIC_API_KEY' },
+  google: { google_api_key: 'GOOGLE_API_KEY' },
+}
+
+// ---- Sync state ----
+
+interface SyncState {
+  agents: Record<string, { lastSync: string; status: string }>
+}
+
+async function readSyncState(): Promise<SyncState> {
+  return readJson<SyncState>(SYNC_STATE_FILE, { agents: {} })
+}
+
+async function writeSyncState(state: SyncState): Promise<void> {
+  await writeJson(SYNC_STATE_FILE, state)
+}
+
+// ---- Rate limiting for env endpoint ----
+
+const envRateLimitStore = new Map<string, number[]>()
+
+function checkEnvRateLimit(agentId: string): boolean {
+  const now = Date.now()
+  const timestamps = envRateLimitStore.get(agentId) ?? []
+  const valid = timestamps.filter(t => now - t < 60000)
+  if (valid.length >= 10) {
+    envRateLimitStore.set(agentId, valid)
+    return false
+  }
+  valid.push(now)
+  envRateLimitStore.set(agentId, valid)
+  return true
+}
+
+// ---- Bridge: TOOLS.md generation ----
+
+async function generateToolsMd(agentId: string): Promise<string> {
+  const permissions = await readJson<StoredAgentPermissions[]>(AGENT_PERMISSIONS_FILE, [])
+  const integrations = await readJson<StoredIntegration[]>(INTEGRATIONS_FILE, [])
+  const llmProviders = await readJson<StoredLlmProvider[]>(LLM_PROVIDERS_FILE, [])
+
+  const agentPerms = permissions.find(p => p.agent_id === agentId)
+  if (!agentPerms) return `# Tools Configuration\n> No permissions configured for agent "${agentId}".\n> Ask the operator to configure permissions in GrandviewOS.\n`
+
+  const now = new Date().toISOString()
+  const lines: string[] = [
+    '# Tools Configuration',
+    `> Auto-generated by GrandviewOS. Do not edit manually.`,
+    `> Last synced: ${now}`,
+    '',
+    '## Available Integrations',
+    '',
+  ]
+
+  for (const int of integrations) {
+    const hasAccess = agentPerms.allowed_integrations.includes('*') ||
+      agentPerms.allowed_integrations.includes(int.id) ||
+      agentPerms.allowed_integrations.includes(int.type)
+
+    if (!hasAccess) continue
+
+    const isConnected = int.status === 'connected'
+    const statusLabel = isConnected ? 'Connected ✓' : 'Not Configured ✗'
+    lines.push(`### ${int.icon} ${int.name} (${statusLabel})`)
+
+    if (isConnected) {
+      const tools = INTEGRATION_TOOLS[int.type] ?? []
+      for (const tool of tools) {
+        // Check tool-level permissions
+        const toolAllowed = agentPerms.allowed_tools.includes('*') ||
+          agentPerms.allowed_tools.includes(`${int.type}.*`) ||
+          agentPerms.allowed_tools.includes(tool.name)
+        const toolDenied = agentPerms.deny_tools.includes(tool.name) ||
+          agentPerms.deny_tools.includes(`${int.type}.*`)
+        if (toolAllowed && !toolDenied) {
+          lines.push(`- \`${tool.name}\` — ${tool.description}`)
+        }
+      }
+      // Indicate secrets are configured
+      const envKeys = INTEGRATION_ENV_KEYS[int.type]
+      if (envKeys) {
+        const configuredKeys = Object.values(envKeys)
+        lines.push(`- Credentials: configured (${configuredKeys.join(', ')} via environment)`)
+      }
+    } else {
+      lines.push(`- Requires: ${int.required_secrets.join(', ')}`)
+      lines.push(`- Contact operator to configure.`)
+    }
+    lines.push('')
+  }
+
+  // LLM Models section
+  const activeProviders = llmProviders.filter(p => p.status === 'active')
+  if (activeProviders.length > 0) {
+    lines.push('## LLM Models')
+    for (const provider of activeProviders) {
+      const defaultModel = provider.models.find(m => m.is_default && m.enabled)
+      const otherModels = provider.models.filter(m => m.enabled && !m.is_default)
+      if (defaultModel) {
+        lines.push(`- Primary (${provider.name}): ${defaultModel.name}`)
+      }
+      for (const m of otherModels) {
+        lines.push(`- ${provider.name}: ${m.name}`)
+      }
+    }
+    lines.push(`- Provider keys: configured via GrandviewOS`)
+    lines.push('')
+  }
+
+  lines.push('## Notes')
+  lines.push('- Secrets are injected via environment variables at runtime')
+  lines.push('- Do not hardcode any credentials')
+  lines.push('- If a tool fails with auth errors, ask the operator to check GrandviewOS Integrations')
+  lines.push('')
+
+  return lines.join('\n')
+}
+
+// ---- Bridge: Env vars for agent ----
+
+async function getAgentEnvVars(agentId: string): Promise<Record<string, string>> {
+  const permissions = await readJson<StoredAgentPermissions[]>(AGENT_PERMISSIONS_FILE, [])
+  const integrations = await readJson<StoredIntegration[]>(INTEGRATIONS_FILE, [])
+  const secrets = await readJson<StoredSecret[]>(SECRETS_FILE, [])
+  const llmProviders = await readJson<StoredLlmProvider[]>(LLM_PROVIDERS_FILE, [])
+  const key = await getMasterKey()
+
+  const agentPerms = permissions.find(p => p.agent_id === agentId)
+  if (!agentPerms) return {}
+
+  const env: Record<string, string> = {}
+
+  for (const int of integrations) {
+    const hasAccess = agentPerms.allowed_integrations.includes('*') ||
+      agentPerms.allowed_integrations.includes(int.id) ||
+      agentPerms.allowed_integrations.includes(int.type)
+    if (!hasAccess || int.status !== 'connected') continue
+
+    const envKeys = INTEGRATION_ENV_KEYS[int.type]
+    if (!envKeys) continue
+
+    for (const [secretField, envKey] of Object.entries(envKeys)) {
+      const secretId = int.configured_secrets[secretField]
+      if (!secretId) continue
+      const secret = secrets.find(s => s.id === secretId)
+      if (!secret) continue
+      try {
+        env[envKey] = decrypt(secret.encrypted_value, secret.iv, secret.tag, key)
+      } catch {
+        // skip if decrypt fails
+      }
+    }
+  }
+
+  // LLM provider keys
+  for (const provider of llmProviders) {
+    if (provider.status !== 'active' || !provider.api_key_secret_id) continue
+    const secret = secrets.find(s => s.id === provider.api_key_secret_id)
+    if (!secret) continue
+    const providerEnvMap: Record<string, string> = {
+      anthropic: 'ANTHROPIC_API_KEY',
+      openai: 'OPENAI_API_KEY',
+      google: 'GOOGLE_API_KEY',
+    }
+    const envKey = providerEnvMap[provider.provider]
+    if (envKey && !env[envKey]) {
+      try {
+        env[envKey] = decrypt(secret.encrypted_value, secret.iv, secret.tag, key)
+      } catch {
+        // skip
+      }
+    }
+  }
+
+  return env
+}
+
+// ---- Bridge: sync single agent ----
+
+async function syncAgent(agentId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    // Generate and write TOOLS.md
+    const toolsMd = await generateToolsMd(agentId)
+    const agentDir = join(OPENCLAW_AGENTS_DIR, agentId, 'agent')
+    await ensureDir(agentDir)
+    await writeFile(join(agentDir, 'TOOLS.md'), toolsMd)
+
+    // Generate and write .env
+    const envVars = await getAgentEnvVars(agentId)
+    const envContent = Object.entries(envVars).map(([k, v]) => `${k}=${v}`).join('\n')
+    if (envContent) {
+      await writeFile(join(agentDir, '.env'), envContent + '\n', { mode: 0o600 })
+    }
+
+    // Update sync state
+    const state = await readSyncState()
+    state.agents[agentId] = { lastSync: new Date().toISOString(), status: 'ok' }
+    await writeSyncState(state)
+
+    return { ok: true }
+  } catch (err) {
+    const state = await readSyncState()
+    state.agents[agentId] = { lastSync: new Date().toISOString(), status: 'error' }
+    await writeSyncState(state)
+    return { ok: false, error: String(err) }
+  }
+}
 
 // ---- Stored types (internal, with encrypted fields) ----
 
@@ -435,7 +697,6 @@ export async function handleIntegrationsApi(
     const perms = await readJson<StoredAgentPermissions[]>(AGENT_PERMISSIONS_FILE, [])
     const idx = perms.findIndex(p => p.agent_id === agentId)
     if (idx === -1) {
-      // Create new entry
       const entry: StoredAgentPermissions = {
         agent_id: agentId, agent_name: body.agent_name ?? agentId,
         allowed_integrations: body.allowed_integrations ?? ['*'],
@@ -445,12 +706,88 @@ export async function handleIntegrationsApi(
       }
       perms.push(entry)
       await writeJson(AGENT_PERMISSIONS_FILE, perms)
+      // Auto-sync after permission change
+      await syncAgent(agentId).catch(() => {})
       res.end(JSON.stringify(entry))
     } else {
       Object.assign(perms[idx], body, { agent_id: agentId })
       await writeJson(AGENT_PERMISSIONS_FILE, perms)
+      // Auto-sync after permission change
+      await syncAgent(agentId).catch(() => {})
       res.end(JSON.stringify(perms[idx]))
     }
+    return true
+  }
+
+  // ---- AGENT SYNC: TOOLS.md generation ----
+  const syncToolsMatch = pathname.match(/^\/api\/agents\/([^/]+)\/sync-tools$/)
+  if (syncToolsMatch && method === 'POST') {
+    const agentId = syncToolsMatch[1]
+    const result = await syncAgent(agentId)
+    if (result.ok) {
+      res.end(JSON.stringify({ ok: true, agentId, message: 'Tools synced and env injected' }))
+    } else {
+      res.statusCode = 500
+      res.end(JSON.stringify({ ok: false, agentId, error: result.error }))
+    }
+    return true
+  }
+
+  // ---- AGENT ENV: secrets as env vars (localhost only) ----
+  const agentEnvMatch = pathname.match(/^\/api\/agents\/([^/]+)\/env$/)
+  if (agentEnvMatch && method === 'GET') {
+    const agentId = agentEnvMatch[1]
+    // Localhost-only check
+    const remoteAddr = req.socket.remoteAddress ?? ''
+    const isLocal = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1'
+    if (!isLocal) {
+      res.statusCode = 403
+      res.end(JSON.stringify({ error: 'Env endpoint is only accessible from localhost' }))
+      return true
+    }
+    if (!checkEnvRateLimit(agentId)) {
+      res.statusCode = 429
+      res.end(JSON.stringify({ error: 'Rate limit exceeded (max 10/min)' }))
+      return true
+    }
+    const envVars = await getAgentEnvVars(agentId)
+    res.end(JSON.stringify(envVars))
+    return true
+  }
+
+  // ---- AGENT ENV INJECT ----
+  const injectEnvMatch = pathname.match(/^\/api\/agents\/([^/]+)\/inject-env$/)
+  if (injectEnvMatch && method === 'POST') {
+    const agentId = injectEnvMatch[1]
+    const envVars = await getAgentEnvVars(agentId)
+    const agentDir = join(OPENCLAW_AGENTS_DIR, agentId, 'agent')
+    await ensureDir(agentDir)
+    const envContent = Object.entries(envVars).map(([k, v]) => `${k}=${v}`).join('\n')
+    if (envContent) {
+      await writeFile(join(agentDir, '.env'), envContent + '\n', { mode: 0o600 })
+    }
+    res.end(JSON.stringify({ ok: true, agentId, keysWritten: Object.keys(envVars).length }))
+    return true
+  }
+
+  // ---- SYNC ALL AGENTS ----
+  if (pathname === '/api/agents/sync-all' && method === 'POST') {
+    const perms = await readJson<StoredAgentPermissions[]>(AGENT_PERMISSIONS_FILE, [])
+    let synced = 0
+    let errors = 0
+    for (const perm of perms) {
+      const result = await syncAgent(perm.agent_id)
+      if (result.ok) synced++
+      else errors++
+    }
+    res.end(JSON.stringify({ synced, errors, total: perms.length }))
+    return true
+  }
+
+  // ---- SYNC STATE ----
+  if (pathname === '/api/sync-state' && method === 'GET') {
+    const state = await readSyncState()
+    res.end(JSON.stringify(state))
     return true
   }
 
