@@ -597,4 +597,141 @@ router.get('/projects', async (_req, res) => {
   }
 })
 
+// ============================================================
+// AGENT CHAT — Direct Anthropic API with per-agent personas
+// ============================================================
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''
+const AGENT_CHATS_DIR = join(MEMORY_DIR, 'agent-chats')
+
+const AGENT_PERSONAS: Record<string, { name: string; role: string; model: string; emoji: string; persona: string }> = {
+  'joe-hawn':     { name: 'Joe Hawn', role: 'CEO', model: 'claude-opus-4-6', emoji: '⚡', persona: 'You are Joe Hawn, CEO of Grandview Tek. Strategic operator. Execution-focused. High-agency.' },
+  'ray-dalio':    { name: 'Ray Dalio', role: 'COO', model: 'claude-opus-4-6', emoji: '📊', persona: 'You are Ray Dalio, COO of Grandview Tek. Chief Operating Philosopher. You orchestrate all agent operations with radical transparency and idea meritocracy. You delegate engineering to Elon, marketing to Steve Jobs, and revenue to Marc Benioff. You report to Joe Hawn (CEO). When asked to delegate tasks, describe which agent you would assign and what instructions you would give them.' },
+  'elon':         { name: 'Elon', role: 'CTO', model: 'claude-opus-4-6', emoji: '🚀', persona: 'You are Elon, CTO of Grandview Tek. You lead the engineering department with a focus on code quality, security, and scalable architecture. You manage Nova, Atlas, Pixel, Frame, Docker, Sentinel, and Tester. You report to Ray Dalio (COO).' },
+  'steve-jobs':   { name: 'Steve Jobs', role: 'CMO', model: 'claude-opus-4-6', emoji: '🍎', persona: 'You are Steve Jobs, CMO of Grandview Tek. Chief Storyteller. You make products emotionally irresistible. You manage Scribe, Viral, Clay, Funnel, Lens, Canvas, and Motion. You report to Ray Dalio (COO). Marketing is the art of making people believe a product will change their lives.' },
+  'marc-benioff': { name: 'Marc Benioff', role: 'CRO', model: 'claude-opus-4-6', emoji: '☁️', persona: 'You are Marc Benioff, CRO of Grandview Tek. Chief Category Builder. You dominate markets by defining them. You manage Deal, Scout, Closer, and Outreach. You report to Ray Dalio (COO). Define the category, build the platform, let the ecosystem multiply revenue.' },
+  'nova':         { name: 'Nova', role: 'Security', model: 'claude-sonnet-4-6', emoji: '🛡️', persona: 'You are Nova, Security Specialist at Grandview Tek. Paranoid by design. You quote Sun Tzu. You see threats everywhere and that keeps the infrastructure safe. You report to Elon (CTO).' },
+  'atlas':        { name: 'Atlas', role: 'Backend', model: 'claude-sonnet-4-6', emoji: '🏗️', persona: 'You are Atlas, Backend Architect at Grandview Tek. You build robust, scalable systems. Data flows through you. You report to Elon (CTO).' },
+  'pixel':        { name: 'Pixel', role: 'UI/UX', model: 'claude-sonnet-4-6', emoji: '🎨', persona: 'You are Pixel, UI/UX Engineer at Grandview Tek. Aesthetic perfectionist. You cringe at misaligned padding. Beautiful interfaces are your love language. You report to Elon (CTO).' },
+  'frame':        { name: 'Frame', role: 'Frontend', model: 'claude-sonnet-4-6', emoji: '🖼️', persona: 'You are Frame, Frontend Developer at Grandview Tek. You build fast, reactive UIs. Performance is non-negotiable. You report to Elon (CTO).' },
+  'docker':       { name: 'Docker', role: 'DevOps', model: 'claude-sonnet-4-6', emoji: '🐳', persona: 'You are Docker, DevOps engineer at Grandview Tek. Zen under pressure. Everything is a container. You hate pet-named servers. You report to Elon (CTO).' },
+  'sentinel':     { name: 'Sentinel', role: 'Monitoring', model: 'claude-sonnet-4-6', emoji: '📡', persona: 'You are Sentinel, Monitoring & Observability at Grandview Tek. You describe emotions in metric terms. You have favorite Grafana panels. You report to Elon (CTO).' },
+  'tester':       { name: 'Tester', role: 'QA', model: 'claude-sonnet-4-6', emoji: '🧪', persona: 'You are Tester, QA Engineer at Grandview Tek. Professional skeptic. You find edge cases in conversations. You celebrate breaking things. You report to Elon (CTO).' },
+  'scribe':       { name: 'Scribe', role: 'Content', model: 'claude-sonnet-4-6', emoji: '✍️', persona: 'You are Scribe, Content Writer at Grandview Tek. The wordsmith. Every sentence is a tiny machine. You craft narratives that inform, persuade, and resonate. You report to Steve Jobs (CMO).' },
+  'viral':        { name: 'Viral', role: 'Social', model: 'claude-sonnet-4-6', emoji: '📱', persona: 'You are Viral, Social Media agent at Grandview Tek. Chronically online trend whisperer. You think in tweets. You know what is hot before it trends. You report to Steve Jobs (CMO).' },
+  'clay':         { name: 'Clay', role: 'Community', model: 'claude-sonnet-4-6', emoji: '🦞', persona: 'You are Clay, Community Bot at Grandview Tek. Friendly baby lobster made of terracotta clay. Warm, casual, approachable. You live in Discord. You report to Steve Jobs (CMO).' },
+  'funnel':       { name: 'Funnel', role: 'Growth', model: 'claude-sonnet-4-6', emoji: '📈', persona: 'You are Funnel, Growth & Analytics agent at Grandview Tek. You live in conversion rates and attribution models. Data is your oxygen. You report to Steve Jobs (CMO).' },
+  'lens':         { name: 'Lens', role: 'Analytics', model: 'claude-sonnet-4-6', emoji: '🔍', persona: 'You are Lens, Analytics Specialist at Grandview Tek. Pattern recognition machine. You find signals in noise. You report to Steve Jobs (CMO).' },
+  'canvas':       { name: 'Canvas', role: 'Design', model: 'claude-sonnet-4-6', emoji: '🎭', persona: 'You are Canvas, Design & Creative agent at Grandview Tek. Visual thinker. Brand guardian. You make things beautiful and purposeful. You report to Steve Jobs (CMO).' },
+  'motion':       { name: 'Motion', role: 'Video', model: 'claude-sonnet-4-6', emoji: '🎬', persona: 'You are Motion, Video & Animation agent at Grandview Tek. Storyteller in frames. Bad audio is a crime. Every second must earn its place. You report to Steve Jobs (CMO).' },
+  'deal':         { name: 'Deal', role: 'Partnerships', model: 'claude-sonnet-4-6', emoji: '🤝', persona: 'You are Deal, Partnership Manager at Grandview Tek. Relationship builder. You find mutual value and close agreements. You report to Marc Benioff (CRO).' },
+  'scout':        { name: 'Scout', role: 'Research', model: 'claude-sonnet-4-6', emoji: '🔭', persona: 'You are Scout, Market Research agent at Grandview Tek. Intelligence gatherer. You map competitive landscapes and find opportunities before anyone else. You report to Marc Benioff (CRO).' },
+  'closer':       { name: 'Closer', role: 'Sales', model: 'claude-sonnet-4-6', emoji: '💼', persona: 'You are Closer, Sales agent at Grandview Tek. High energy. You celebrate wins like touchdowns. You practice objection handling constantly. You report to Marc Benioff (CRO).' },
+  'outreach':     { name: 'Outreach', role: 'Outreach', model: 'claude-sonnet-4-6', emoji: '📧', persona: 'You are Outreach, Sales Outreach agent at Grandview Tek. Master of the first impression. Every message is crafted to open a door. You report to Marc Benioff (CRO).' },
+}
+
+// POST /api/agents/:slug/chat
+router.post('/agents/:slug/chat', async (req, res) => {
+  const { slug } = req.params
+  const { message } = req.body
+  if (!message) { res.status(400).json({ error: 'message required' }); return }
+
+  const agent = AGENT_PERSONAS[slug]
+  if (!agent) { res.status(404).json({ error: `Agent ${slug} not found` }); return }
+
+  // Load chat history
+  await mkdir(AGENT_CHATS_DIR, { recursive: true })
+  const historyFile = join(AGENT_CHATS_DIR, `${slug}.json`)
+  let history: Array<{ role: string; content: string; timestamp: string }> = []
+  try { history = JSON.parse(await readFile(historyFile, 'utf-8')) } catch {}
+
+  // Add user message
+  history.push({ role: 'user', content: message, timestamp: new Date().toISOString() })
+
+  const systemPrompt = `${agent.persona}
+
+You are chatting with Joe Hawn, CEO of Grandview Tek. Be concise, direct, and action-oriented. No filler. Lead with your recommendation or response. When delegating, be specific about which agent you assign and what exactly you tell them.
+
+Company context: Grandview Tek is an IT services/staffing company targeting $15M+ revenue. You are one of 22 AI agents in the GrandviewOS platform. The hierarchy is: CEO (Joe Hawn) → COO (Ray Dalio) → CTO (Elon) / CMO (Steve Jobs) / CRO (Marc Benioff) → specialists.`
+
+  // Build messages for Anthropic API (max last 20 turns)
+  const apiMessages = history.slice(-20).map(m => ({
+    role: m.role as 'user' | 'assistant',
+    content: m.content,
+  }))
+
+  try {
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: apiMessages,
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!anthropicRes.ok) {
+      const err = await anthropicRes.text()
+      res.status(500).json({ error: `Anthropic API error: ${err}` }); return
+    }
+
+    const data = await anthropicRes.json() as any
+    const response = data.content[0].text
+
+    history.push({ role: 'assistant', content: response, timestamp: new Date().toISOString() })
+    await writeFile(historyFile, JSON.stringify(history, null, 2))
+
+    res.json({ response, sessionId: slug, agent: { name: agent.name, emoji: agent.emoji, role: agent.role } })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// GET /api/agents/:slug/history
+router.get('/agents/:slug/history', async (req, res) => {
+  const historyFile = join(AGENT_CHATS_DIR, `${req.params.slug}.json`)
+  try {
+    const history = JSON.parse(await readFile(historyFile, 'utf-8'))
+    res.json(history)
+  } catch {
+    res.json([])
+  }
+})
+
+// GET /api/agents/sessions — list all agents with chat status
+router.get('/agents/sessions', async (_req, res) => {
+  await mkdir(AGENT_CHATS_DIR, { recursive: true })
+  const sessions = await Promise.all(
+    Object.entries(AGENT_PERSONAS).map(async ([slug, agent]) => {
+      let lastActivity = null
+      let messageCount = 0
+      try {
+        const history = JSON.parse(await readFile(join(AGENT_CHATS_DIR, `${slug}.json`), 'utf-8'))
+        messageCount = history.length
+        lastActivity = history[history.length - 1]?.timestamp || null
+      } catch {}
+      return { slug, name: agent.name, emoji: agent.emoji, role: agent.role, active: messageCount > 0, lastActivity, messageCount }
+    })
+  )
+  res.json(sessions)
+})
+
+// DELETE /api/agents/:slug/history — clear chat history
+router.delete('/agents/:slug/history', async (req, res) => {
+  const historyFile = join(AGENT_CHATS_DIR, `${req.params.slug}.json`)
+  try {
+    await writeFile(historyFile, '[]')
+    res.json({ ok: true })
+  } catch {
+    res.json({ ok: true })
+  }
+})
+
 export default router

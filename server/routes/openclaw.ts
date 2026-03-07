@@ -270,4 +270,37 @@ router.get('/projects', async (req, res) => {
   }
 })
 
+// Agent Chat
+router.post('/agents/:slug/chat', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>(`/api/agents/${req.params.slug}/chat`, req.body)
+    res.json(data || { error: 'No response' })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+router.get('/agents/:slug/history', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>(`/api/agents/${req.params.slug}/history`)
+    res.json(data || [])
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+router.get('/agents/sessions', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>('/api/agents/sessions')
+    res.json(data || [])
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+router.delete('/agents/:slug/history', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.del<any>(`/api/agents/${req.params.slug}/history`)
+    res.json(data || { ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
 export default router
