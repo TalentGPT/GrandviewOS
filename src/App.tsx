@@ -14,6 +14,16 @@ import Workspaces from './pages/Workspaces'
 import Docs from './pages/Docs'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
+// Brain module
+import MemoryViewer from './pages/brain/MemoryViewer'
+import DailyBriefs from './pages/brain/DailyBriefs'
+import Automations from './pages/brain/Automations'
+import ProjectTracking from './pages/brain/ProjectTracking'
+// Lab module
+import IdeaGallery from './pages/lab/IdeaGallery'
+import PrototypeFleet from './pages/lab/PrototypeFleet'
+import WeeklyReviews from './pages/lab/WeeklyReviews'
+import IdeationLogs from './pages/lab/IdeationLogs'
 
 function App() {
   const [chatOpen, setChatOpen] = useState(false)
@@ -40,13 +50,34 @@ function App() {
             <main className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
               <ErrorBoundary>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/task-manager" replace />} />
-                  <Route path="/task-manager" element={<TaskManager />} />
-                  <Route path="/org-chart" element={<OrgChart />} />
-                  <Route path="/standup" element={<Standup />} />
-                  <Route path="/workspaces" element={<Workspaces />} />
-                  <Route path="/docs" element={<Docs />} />
-                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/" element={<Navigate to="/ops/task-manager" replace />} />
+                  {/* Legacy routes redirect */}
+                  <Route path="/task-manager" element={<Navigate to="/ops/task-manager" replace />} />
+                  <Route path="/org-chart" element={<Navigate to="/ops/org-chart" replace />} />
+                  <Route path="/standup" element={<Navigate to="/ops/standup" replace />} />
+                  <Route path="/workspaces" element={<Navigate to="/ops/workspaces" replace />} />
+                  <Route path="/docs" element={<Navigate to="/ops/docs" replace />} />
+                  <Route path="/settings" element={<Navigate to="/ops/settings" replace />} />
+                  {/* Ops module */}
+                  <Route path="/ops" element={<Navigate to="/ops/task-manager" replace />} />
+                  <Route path="/ops/task-manager" element={<TaskManager />} />
+                  <Route path="/ops/org-chart" element={<OrgChart />} />
+                  <Route path="/ops/standup" element={<Standup />} />
+                  <Route path="/ops/workspaces" element={<Workspaces />} />
+                  <Route path="/ops/docs" element={<Docs />} />
+                  <Route path="/ops/settings" element={<Settings />} />
+                  {/* Brain module */}
+                  <Route path="/brain" element={<Navigate to="/brain/memory" replace />} />
+                  <Route path="/brain/memory" element={<ErrorBoundary><MemoryViewer /></ErrorBoundary>} />
+                  <Route path="/brain/briefs" element={<ErrorBoundary><DailyBriefs /></ErrorBoundary>} />
+                  <Route path="/brain/automations" element={<ErrorBoundary><Automations /></ErrorBoundary>} />
+                  <Route path="/brain/projects" element={<ErrorBoundary><ProjectTracking /></ErrorBoundary>} />
+                  {/* Lab module */}
+                  <Route path="/lab" element={<Navigate to="/lab/ideas" replace />} />
+                  <Route path="/lab/ideas" element={<ErrorBoundary><IdeaGallery /></ErrorBoundary>} />
+                  <Route path="/lab/prototypes" element={<ErrorBoundary><PrototypeFleet /></ErrorBoundary>} />
+                  <Route path="/lab/reviews" element={<ErrorBoundary><WeeklyReviews /></ErrorBoundary>} />
+                  <Route path="/lab/ideation" element={<ErrorBoundary><IdeationLogs /></ErrorBoundary>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ErrorBoundary>

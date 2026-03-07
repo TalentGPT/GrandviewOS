@@ -2,12 +2,20 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const TITLES: Record<string, string> = {
-  '/task-manager': 'Task Manager',
-  '/org-chart': 'Org Chart',
-  '/standup': 'Standup',
-  '/workspaces': 'Workspaces',
-  '/docs': 'Documentation',
-  '/settings': 'Settings',
+  '/ops/task-manager': 'Task Manager',
+  '/ops/org-chart': 'Org Chart',
+  '/ops/standup': 'Standup',
+  '/ops/workspaces': 'Workspaces',
+  '/ops/docs': 'Documentation',
+  '/ops/settings': 'Settings',
+  '/brain/memory': 'Memory Viewer',
+  '/brain/briefs': 'Daily Briefs',
+  '/brain/automations': 'Automations',
+  '/brain/projects': 'Project Tracking',
+  '/lab/ideas': 'Idea Gallery',
+  '/lab/prototypes': 'Prototype Fleet',
+  '/lab/reviews': 'Weekly Reviews',
+  '/lab/ideation': 'Ideation Logs',
 }
 
 export default function PageTitle() {

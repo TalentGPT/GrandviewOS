@@ -1,9 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const icons = [
-  { emoji: '📊', label: 'Dashboard', path: '/task-manager' },
+  { emoji: '📊', label: 'Dashboard', path: '/ops/task-manager' },
   { emoji: '💬', label: 'Chat with COO', action: 'chat' },
-  { emoji: '⚙️', label: 'Settings', path: '/settings' },
+  { emoji: '⚙️', label: 'Settings', path: '/ops/settings' },
   { emoji: '🔔', label: 'Notifications', action: 'notify' },
 ]
 

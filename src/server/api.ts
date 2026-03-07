@@ -1123,6 +1123,110 @@ export function openclawApiPlugin(): Plugin {
             return
           }
 
+          // ---- BRIEFS ----
+          if (url.pathname === '/api/briefs') {
+            // Generate brief from session data for the given date
+            const dateParam = url.searchParams.get('date') ?? new Date().toISOString().split('T')[0]
+            const allSessions = await getSessions()
+            const daySessions = allSessions.filter(s => s.timestamp.startsWith(dateParam))
+            const brief = {
+              date: dateParam,
+              agentsActive: new Set(daySessions.map(() => 'main')).size || 1,
+              sessionsRun: daySessions.length,
+              tokensUsed: daySessions.reduce((s, sess) => s + sess.totalTokens, 0),
+              cost: daySessions.reduce((s, sess) => s + sess.totalCost, 0),
+              events: daySessions.slice(0, 5).map(s => s.title || `Session ${s.id.slice(0, 8)}`),
+            }
+            res.end(JSON.stringify([brief]))
+            return
+          }
+
+          // ---- PROJECTS ----
+          const PROJECTS_FILE = join(WORKSPACE_DIR, 'grandview-os', 'data', 'projects.json')
+
+          if (url.pathname === '/api/projects' && req.method === 'GET') {
+            if (await fileExists(PROJECTS_FILE)) {
+              const raw = await readFile(PROJECTS_FILE, 'utf-8')
+              res.end(raw)
+            } else {
+              res.end(JSON.stringify([]))
+            }
+            return
+          }
+
+          if (url.pathname === '/api/projects' && req.method === 'POST') {
+            const body = await parseBody(req)
+            const project = JSON.parse(body) as Record<string, unknown>
+            let projects: Record<string, unknown>[] = []
+            if (await fileExists(PROJECTS_FILE)) {
+              projects = JSON.parse(await readFile(PROJECTS_FILE, 'utf-8')) as Record<string, unknown>[]
+            }
+            projects.push(project)
+            await ensureDir(join(WORKSPACE_DIR, 'grandview-os', 'data'))
+            await writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2))
+            res.end(JSON.stringify(project))
+            return
+          }
+
+          const projectPatchMatch = url.pathname.match(/^\/api\/projects\/([^/]+)$/)
+          if (projectPatchMatch && req.method === 'PATCH') {
+            const body = await parseBody(req)
+            const updates = JSON.parse(body) as Record<string, unknown>
+            let projects: Array<Record<string, unknown>> = []
+            if (await fileExists(PROJECTS_FILE)) {
+              projects = JSON.parse(await readFile(PROJECTS_FILE, 'utf-8')) as Array<Record<string, unknown>>
+            }
+            projects = projects.map(p => (p as { id?: string }).id === projectPatchMatch[1] ? { ...p, ...updates } : p)
+            await writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2))
+            res.end(JSON.stringify({ ok: true }))
+            return
+          }
+
+          // ---- REVIEWS ----
+          if (url.pathname === '/api/reviews') {
+            const allSessions = await getSessions()
+            const totalTokens = allSessions.reduce((s, sess) => s + sess.totalTokens, 0)
+            const totalCost = allSessions.reduce((s, sess) => s + sess.totalCost, 0)
+            const review = {
+              id: 'current',
+              week: url.searchParams.get('week') ?? '2026-W10',
+              startDate: new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0],
+              endDate: new Date().toISOString().split('T')[0],
+              highlights: ['System operational', `${allSessions.length} sessions processed`],
+              lowlights: [],
+              metrics: { cost: totalCost, tokens: totalTokens, sessions: allSessions.length },
+              agentPerformance: [{ name: 'Main', emoji: '🐕', sessions: allSessions.length, cost: totalCost, rating: 'good' }],
+            }
+            res.end(JSON.stringify([review]))
+            return
+          }
+
+          // ---- IDEAS ----
+          const IDEAS_FILE = join(WORKSPACE_DIR, 'grandview-os', 'data', 'ideas.json')
+
+          if (url.pathname === '/api/ideas' && req.method === 'GET') {
+            if (await fileExists(IDEAS_FILE)) {
+              res.end(await readFile(IDEAS_FILE, 'utf-8'))
+            } else {
+              res.end(JSON.stringify([]))
+            }
+            return
+          }
+
+          if (url.pathname === '/api/ideas' && req.method === 'POST') {
+            const body = await parseBody(req)
+            const idea = JSON.parse(body) as Record<string, unknown>
+            let ideas: Record<string, unknown>[] = []
+            if (await fileExists(IDEAS_FILE)) {
+              ideas = JSON.parse(await readFile(IDEAS_FILE, 'utf-8')) as Record<string, unknown>[]
+            }
+            ideas.push(idea)
+            await ensureDir(join(WORKSPACE_DIR, 'grandview-os', 'data'))
+            await writeFile(IDEAS_FILE, JSON.stringify(ideas, null, 2))
+            res.end(JSON.stringify(idea))
+            return
+          }
+
           // ---- NOTIFICATIONS ----
           if (url.pathname === '/api/notifications/test' && req.method === 'POST') {
             // Placeholder — would integrate with Telegram via OpenClaw message tool

@@ -41,7 +41,7 @@ export default function OrgChart() {
   }
   const collapseAll = () => setExpanded({})
 
-  const goToWorkspace = (agentId: string) => navigate(`/workspaces?agent=${agentId}`)
+  const goToWorkspace = (agentId: string) => navigate(`/ops/workspaces?agent=${agentId}`)
 
   const deptConfig = [
     { head: departmentHeads[0], dept: 'engineering', label: 'Engineering' },

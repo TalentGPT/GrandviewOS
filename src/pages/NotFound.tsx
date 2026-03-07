@@ -10,7 +10,7 @@ export default function NotFound() {
         <p className="text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Page not found</p>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Muddy sniffed around but couldn&apos;t find this page.</p>
         <Link
-          to="/task-manager"
+          to="/ops/task-manager"
           className="inline-block px-4 py-2 rounded-md text-sm font-medium no-underline"
           style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}
         >
