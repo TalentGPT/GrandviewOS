@@ -24,6 +24,12 @@ async function main() {
   })
   console.log(`✅ User: ${user.email}`)
 
+  // Clean up stale agents from previous renames
+  const staleSlugs = ['gary', 'warren', 'ray-lane', 'marcelo', 'marcelo-oliveira', 'muddy']
+  for (const slug of staleSlugs) {
+    await prisma.agent.deleteMany({ where: { tenantId: tenant.id, slug } })
+  }
+
   // Agent definitions
   const agents = [
     { slug: 'joe-hawn', name: 'Joe Hawn', emoji: '⚡', role: 'ceo', persona: 'CEO', department: 'executive', primaryModel: 'claude-opus-4-6', description: 'CEO of Grandview Tek. Strategic operator. Execution-focused.' },
