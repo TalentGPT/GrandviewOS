@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/PageHeader'
 import { PageSkeleton } from '../../components/Skeleton'
-import { fetchProjects, type TrelloBoard, type TrelloList } from '../../api/client'
+import {
+  fetchProjects, fetchTrelloBoards, fetchTrelloConfig, connectTrelloBoard, syncTrelloBoard,
+  type TrelloBoard, type TrelloList, type TrelloBoardInfo, type TrelloConfig,
+} from '../../api/client'
 
 // Map Trello list names to kanban-style colors
 function getListColor(name: string): string {
@@ -18,28 +21,102 @@ function getListColor(name: string): string {
   return 'var(--text-secondary)'
 }
 
+function formatSyncTime(iso: string | null): string {
+  if (!iso) return 'Never'
+  try {
+    const d = new Date(iso)
+    return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC')
+  } catch { return iso }
+}
+
 export default function ProjectTracking() {
   const [board, setBoard] = useState<TrelloBoard | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
 
+  // Trello board selector state
+  const [availableBoards, setAvailableBoards] = useState<TrelloBoardInfo[]>([])
+  const [trelloConfig, setTrelloConfig] = useState<TrelloConfig | null>(null)
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('')
+  const [syncing, setSyncing] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [loadingBoards, setLoadingBoards] = useState(false)
+
+  const autoExpandLists = useCallback((data: TrelloBoard) => {
+    const expanded = new Set<string>()
+    for (const l of data.lists) {
+      if (l.cards.length <= 15) expanded.add(l.list)
+    }
+    setExpandedLists(expanded)
+  }, [])
+
   useEffect(() => {
     const load = async () => {
-      const { data } = await fetchProjects()
-      if (data && data.lists?.length > 0) {
-        setBoard(data)
-        // Auto-expand lists with fewer than 20 cards
-        const expanded = new Set<string>()
-        for (const l of data.lists) {
-          if (l.cards.length <= 15) expanded.add(l.list)
-        }
-        setExpandedLists(expanded)
+      // Load config and boards in parallel
+      const [configRes, boardsRes, projectsRes] = await Promise.all([
+        fetchTrelloConfig(),
+        fetchTrelloBoards(),
+        fetchProjects(),
+      ])
+
+      if (configRes.data) {
+        setTrelloConfig(configRes.data)
+        if (configRes.data.boardId) setSelectedBoardId(configRes.data.boardId)
       }
+
+      if (boardsRes.data?.boards) {
+        setAvailableBoards(boardsRes.data.boards)
+      }
+
+      if (projectsRes.data && projectsRes.data.lists?.length > 0) {
+        setBoard(projectsRes.data)
+        autoExpandLists(projectsRes.data)
+      }
+
       setLoading(false)
     }
     load()
-  }, [])
+  }, [autoExpandLists])
+
+  const handleConnect = async () => {
+    if (!selectedBoardId) return
+    setConnecting(true)
+    try {
+      const res = await connectTrelloBoard(undefined, selectedBoardId)
+      if (res.data?.ok && res.data.board) {
+        setBoard(res.data.board)
+        setTrelloConfig(res.data.config)
+        autoExpandLists(res.data.board)
+      }
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleSync = async () => {
+    setSyncing(true)
+    try {
+      const res = await syncTrelloBoard()
+      if (res.data?.ok && res.data.board) {
+        setBoard(res.data.board)
+        setTrelloConfig(prev => prev ? { ...prev, lastSynced: res.data!.board.lastSynced } : prev)
+        autoExpandLists(res.data.board)
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleRefreshBoards = async () => {
+    setLoadingBoards(true)
+    try {
+      const res = await fetchTrelloBoards()
+      if (res.data?.boards) setAvailableBoards(res.data.boards)
+    } finally {
+      setLoadingBoards(false)
+    }
+  }
 
   const toggleList = (name: string) => {
     setExpandedLists(prev => {
@@ -52,26 +129,14 @@ export default function ProjectTracking() {
 
   if (loading) return <PageSkeleton />
 
-  if (!board) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-        <PageHeader title="Project Tracking" subtitle="Synced from Trello board" />
-        <div className="text-center py-12">
-          <div className="text-4xl mb-3 opacity-20">📋</div>
-          <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No project data found. Ensure trello-state.md exists.</div>
-        </div>
-      </motion.div>
-    )
-  }
-
-  // Filter out very large lists (like COMPLETE with 400+ items) from board view
-  const activeLists = board.lists.filter(l => !l.list.toLowerCase().includes('complete') && !l.list.toLowerCase().includes('10x360'))
-  const archiveLists = board.lists.filter(l => l.list.toLowerCase().includes('complete') || l.list.toLowerCase().includes('10x360'))
-  const totalCards = board.lists.reduce((s, l) => s + l.cards.length, 0)
+  // Filter lists
+  const activeLists = board ? board.lists.filter(l => !l.list.toLowerCase().includes('complete') && !l.list.toLowerCase().includes('10x360')) : []
+  const archiveLists = board ? board.lists.filter(l => l.list.toLowerCase().includes('complete') || l.list.toLowerCase().includes('10x360')) : []
+  const totalCards = board ? board.lists.reduce((s, l) => s + l.cards.length, 0) : 0
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <PageHeader title={board.boardName} subtitle={board.lastSynced ? `Last synced: ${board.lastSynced}` : 'Synced from Trello'}>
+      <PageHeader title={board?.boardName || 'Project Tracking'} subtitle={board?.lastSynced ? `Last synced: ${board.lastSynced}` : 'Synced from Trello'}>
         <button
           onClick={() => setViewMode(viewMode === 'board' ? 'list' : 'board')}
           className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
@@ -81,139 +146,221 @@ export default function ProjectTracking() {
         </button>
       </PageHeader>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-          <div className="text-2xl font-bold" style={{ fontFamily: 'var(--font-mono)' }}>{board.lists.length}</div>
-          <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Lists</div>
+      {/* Board Selector Bar */}
+      <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={selectedBoardId}
+            onChange={e => setSelectedBoardId(e.target.value)}
+            className="flex-1 min-w-[200px] px-3 py-2 rounded-md text-sm"
+            style={{
+              background: 'var(--bg-1)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-divider)',
+              outline: 'none',
+            }}
+          >
+            <option value="">Select a Trello board...</option>
+            {availableBoards.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={handleRefreshBoards}
+            disabled={loadingBoards}
+            className="px-2 py-2 rounded-md text-xs cursor-pointer"
+            style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}
+            title="Refresh board list"
+          >
+            {loadingBoards ? '⏳' : '🔄'}
+          </button>
+
+          <button
+            onClick={handleConnect}
+            disabled={!selectedBoardId || connecting}
+            className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-opacity"
+            style={{
+              background: 'var(--accent-teal)',
+              color: 'var(--bg-1)',
+              border: 'none',
+              opacity: !selectedBoardId || connecting ? 0.5 : 1,
+            }}
+          >
+            {connecting ? 'Connecting...' : 'Connect'}
+          </button>
+
+          {trelloConfig?.boardId && (
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-opacity"
+              style={{
+                background: 'var(--bg-3)',
+                color: 'var(--accent-teal)',
+                border: '1px solid var(--accent-teal)',
+                opacity: syncing ? 0.5 : 1,
+              }}
+            >
+              {syncing ? 'Syncing...' : '⟳ Sync Now'}
+            </button>
+          )}
         </div>
-        <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-          <div className="text-2xl font-bold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{totalCards}</div>
-          <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Total Cards</div>
-        </div>
-        <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-          <div className="text-2xl font-bold" style={{ color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>
-            {board.lists.find(l => l.list.toLowerCase().includes('complete'))?.cards.length ?? 0}
+
+        {trelloConfig?.boardName && (
+          <div className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Connected: <span style={{ color: 'var(--accent-teal)' }}>{trelloConfig.boardName}</span>
+            {trelloConfig.lastSynced && (
+              <span> · Last synced: {formatSyncTime(trelloConfig.lastSynced)}</span>
+            )}
           </div>
-          <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Completed</div>
-        </div>
-        <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-          <div className="text-2xl font-bold" style={{ color: 'var(--accent-orange)', fontFamily: 'var(--font-mono)' }}>
-            {activeLists.reduce((s, l) => s + l.cards.length, 0)}
-          </div>
-          <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Active</div>
-        </div>
+        )}
       </div>
 
-      {viewMode === 'board' ? (
-        /* Kanban-style board view */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {activeLists.map(col => {
-            const color = getListColor(col.list)
-            return (
-              <div key={col.list}>
-                <button
-                  onClick={() => toggleList(col.list)}
-                  className="flex items-center gap-2 mb-3 cursor-pointer w-full text-left"
-                  style={{ background: 'none', border: 'none', padding: 0 }}
-                >
-                  <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
-                  <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{expandedLists.has(col.list) ? '▼' : '▶'}</span>
-                </button>
-                {expandedLists.has(col.list) && (
-                  <div className="flex flex-col gap-2 min-h-[60px] rounded-lg p-2" style={{ background: 'var(--bg-1)', border: `1px solid ${color}22` }}>
-                    {col.cards.map((card, i) => (
-                      <div key={i} className="rounded-lg p-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-                        <div className="text-sm">{card.title}</div>
+      {!board ? (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3 opacity-20">📋</div>
+          <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Select a Trello board above and click Connect to get started.
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+              <div className="text-2xl font-bold" style={{ fontFamily: 'var(--font-mono)' }}>{board.lists.length}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Lists</div>
+            </div>
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+              <div className="text-2xl font-bold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{totalCards}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Total Cards</div>
+            </div>
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+              <div className="text-2xl font-bold" style={{ color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>
+                {board.lists.find(l => l.list.toLowerCase().includes('complete'))?.cards.length ?? 0}
+              </div>
+              <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Completed</div>
+            </div>
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+              <div className="text-2xl font-bold" style={{ color: 'var(--accent-orange)', fontFamily: 'var(--font-mono)' }}>
+                {activeLists.reduce((s, l) => s + l.cards.length, 0)}
+              </div>
+              <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Active</div>
+            </div>
+          </div>
+
+          {viewMode === 'board' ? (
+            /* Kanban-style board view */
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {activeLists.map(col => {
+                const color = getListColor(col.list)
+                return (
+                  <div key={col.list}>
+                    <button
+                      onClick={() => toggleList(col.list)}
+                      className="flex items-center gap-2 mb-3 cursor-pointer w-full text-left"
+                      style={{ background: 'none', border: 'none', padding: 0 }}
+                    >
+                      <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{expandedLists.has(col.list) ? '▼' : '▶'}</span>
+                    </button>
+                    {expandedLists.has(col.list) && (
+                      <div className="flex flex-col gap-2 min-h-[60px] rounded-lg p-2" style={{ background: 'var(--bg-1)', border: `1px solid ${color}22` }}>
+                        {col.cards.map((card, i) => (
+                          <div key={i} className="rounded-lg p-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                            <div className="text-sm">{card.title}</div>
+                            {card.labels.length > 0 && (
+                              <div className="flex gap-1 mt-1.5 flex-wrap">
+                                {card.labels.map((label, j) => (
+                                  <span key={j} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>
+                                    {label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {col.cards.length === 0 && (
+                          <div className="text-xs py-4 text-center" style={{ color: 'var(--text-secondary)' }}>Empty</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            /* List view */
+            <div className="flex flex-col gap-3">
+              {activeLists.map(col => {
+                const color = getListColor(col.list)
+                return (
+                  <div key={col.list} className="rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                    <button
+                      onClick={() => toggleList(col.list)}
+                      className="flex items-center gap-2 mb-2 cursor-pointer w-full text-left"
+                      style={{ background: 'none', border: 'none', padding: 0 }}
+                    >
+                      <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
+                    </button>
+                    {expandedLists.has(col.list) && col.cards.map((card, i) => (
+                      <div key={i} className="flex items-center gap-2 py-1.5 border-b last:border-b-0" style={{ borderColor: 'var(--border-divider)' }}>
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                        <span className="text-sm flex-1">{card.title}</span>
                         {card.labels.length > 0 && (
-                          <div className="flex gap-1 mt-1.5 flex-wrap">
-                            {card.labels.map((label, j) => (
+                          <div className="flex gap-1 shrink-0">
+                            {card.labels.slice(0, 3).map((label, j) => (
                               <span key={j} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>
                                 {label}
                               </span>
                             ))}
+                            {card.labels.length > 3 && <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>+{card.labels.length - 3}</span>}
                           </div>
                         )}
                       </div>
                     ))}
-                    {col.cards.length === 0 && (
-                      <div className="text-xs py-4 text-center" style={{ color: 'var(--text-secondary)' }}>Empty</div>
-                    )}
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        /* List view */
-        <div className="flex flex-col gap-3">
-          {activeLists.map(col => {
-            const color = getListColor(col.list)
-            return (
-              <div key={col.list} className="rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-                <button
-                  onClick={() => toggleList(col.list)}
-                  className="flex items-center gap-2 mb-2 cursor-pointer w-full text-left"
-                  style={{ background: 'none', border: 'none', padding: 0 }}
-                >
-                  <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
-                </button>
-                {expandedLists.has(col.list) && col.cards.map((card, i) => (
-                  <div key={i} className="flex items-center gap-2 py-1.5 border-b last:border-b-0" style={{ borderColor: 'var(--border-divider)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                    <span className="text-sm flex-1">{card.title}</span>
-                    {card.labels.length > 0 && (
-                      <div className="flex gap-1 shrink-0">
-                        {card.labels.slice(0, 3).map((label, j) => (
-                          <span key={j} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>
-                            {label}
-                          </span>
-                        ))}
-                        {card.labels.length > 3 && <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>+{card.labels.length - 3}</span>}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      )}
+                )
+              })}
+            </div>
+          )}
 
-      {/* Archive section */}
-      {archiveLists.length > 0 && (
-        <div className="mt-8">
-          <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>ARCHIVE / REFERENCE</div>
-          {archiveLists.map(col => {
-            const color = getListColor(col.list)
-            return (
-              <div key={col.list} className="rounded-lg p-4 mb-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-                <button
-                  onClick={() => toggleList(col.list)}
-                  className="flex items-center gap-2 cursor-pointer w-full text-left"
-                  style={{ background: 'none', border: 'none', padding: 0 }}
-                >
-                  <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
-                  <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{expandedLists.has(col.list) ? '▼' : '▶'}</span>
-                </button>
-                {expandedLists.has(col.list) && (
-                  <div className="mt-2 max-h-96 overflow-y-auto">
-                    {col.cards.map((card, i) => (
-                      <div key={i} className="flex items-center gap-2 py-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="w-1 h-1 rounded-full shrink-0" style={{ background: color }} />
-                        <span className="truncate">{card.title}</span>
+          {/* Archive section */}
+          {archiveLists.length > 0 && (
+            <div className="mt-8">
+              <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>ARCHIVE / REFERENCE</div>
+              {archiveLists.map(col => {
+                const color = getListColor(col.list)
+                return (
+                  <div key={col.list} className="rounded-lg p-4 mb-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                    <button
+                      onClick={() => toggleList(col.list)}
+                      className="flex items-center gap-2 cursor-pointer w-full text-left"
+                      style={{ background: 'none', border: 'none', padding: 0 }}
+                    >
+                      <span className="text-sm font-semibold" style={{ color }}>{col.list}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: color + '22', color }}>{col.cards.length}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{expandedLists.has(col.list) ? '▼' : '▶'}</span>
+                    </button>
+                    {expandedLists.has(col.list) && (
+                      <div className="mt-2 max-h-96 overflow-y-auto">
+                        {col.cards.map((card, i) => (
+                          <div key={i} className="flex items-center gap-2 py-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: color }} />
+                            <span className="truncate">{card.title}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
     </motion.div>
   )

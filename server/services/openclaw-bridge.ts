@@ -3,7 +3,7 @@
  * and exposes it as REST endpoints for GrandviewOS
  */
 import { Router } from 'express'
-import { readdir, readFile, stat } from 'fs/promises'
+import { readdir, readFile, writeFile, stat, mkdir } from 'fs/promises'
 import { join } from 'path'
 
 const router = Router()
@@ -286,6 +286,140 @@ router.get('/automations', async (_req, res) => {
     res.status(500).json({ error: String(err) })
   }
 })
+
+// --- Trello API (dynamic board sync) ---
+
+const TRELLO_KEY = process.env.TRELLO_API_KEY || ''
+const TRELLO_TOKEN_VAL = process.env.TRELLO_API_TOKEN || ''
+const TRELLO_CONFIG_FILE = join(WORKSPACE_DIR, 'memory', 'trello-config.json')
+
+interface TrelloConfig {
+  boardId: string
+  boardUrl: string
+  boardName: string
+  lastSynced: string | null
+}
+
+async function loadTrelloConfig(): Promise<TrelloConfig | null> {
+  try {
+    const content = await readFile(TRELLO_CONFIG_FILE, 'utf-8')
+    return JSON.parse(content)
+  } catch { return null }
+}
+
+async function saveTrelloConfig(config: TrelloConfig): Promise<void> {
+  await mkdir(join(WORKSPACE_DIR, 'memory'), { recursive: true })
+  await writeFile(TRELLO_CONFIG_FILE, JSON.stringify(config, null, 2))
+}
+
+// List all Trello boards for the user
+router.get('/trello/boards', async (_req, res) => {
+  try {
+    const url = `https://api.trello.com/1/members/me/boards?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,url,shortLink`
+    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    const boards = await resp.json() as Array<{ name: string; url: string; shortLink: string; id: string }>
+    res.json({ boards: boards.map(b => ({ id: b.id, name: b.name, url: b.url, shortLink: b.shortLink })) })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// Get current Trello config
+router.get('/trello/config', async (_req, res) => {
+  const config = await loadTrelloConfig()
+  res.json(config || { boardId: null, boardUrl: null, boardName: null, lastSynced: null })
+})
+
+// Connect a Trello board (and trigger sync)
+router.post('/trello/connect', async (req, res) => {
+  try {
+    const { boardUrl, boardId: directBoardId } = req.body as { boardUrl?: string; boardId?: string }
+    let boardId = directBoardId || ''
+    if (boardUrl) {
+      const match = boardUrl.match(/trello\.com\/b\/([^/]+)/)
+      if (!match) { res.status(400).json({ error: 'Invalid Trello board URL' }); return }
+      boardId = match[1]
+    }
+    if (!boardId) { res.status(400).json({ error: 'No board ID provided' }); return }
+
+    // Fetch board info
+    const infoUrl = `https://api.trello.com/1/boards/${boardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,url,shortLink`
+    const infoResp = await fetch(infoUrl, { signal: AbortSignal.timeout(15000) })
+    if (!infoResp.ok) { res.status(400).json({ error: 'Could not fetch board info' }); return }
+    const boardInfo = await infoResp.json() as { name: string; url: string; shortLink: string }
+
+    // Sync board data
+    const syncData = await syncTrelloBoard(boardId)
+    const now = new Date().toISOString()
+
+    const config: TrelloConfig = {
+      boardId,
+      boardUrl: boardInfo.url,
+      boardName: boardInfo.name,
+      lastSynced: now,
+    }
+    await saveTrelloConfig(config)
+
+    // Save trello-state.md for backward compat
+    await saveTrelloStateMd(boardInfo.name, now, syncData)
+
+    res.json({ ok: true, config, board: { boardName: boardInfo.name, lastSynced: now, lists: syncData } })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// Sync current board
+router.post('/trello/sync', async (req, res) => {
+  try {
+    const config = await loadTrelloConfig()
+    if (!config?.boardId) { res.status(400).json({ error: 'No board configured' }); return }
+
+    const syncData = await syncTrelloBoard(config.boardId)
+    const now = new Date().toISOString()
+    config.lastSynced = now
+    await saveTrelloConfig(config)
+    await saveTrelloStateMd(config.boardName, now, syncData)
+
+    res.json({ ok: true, board: { boardName: config.boardName, lastSynced: now, lists: syncData } })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+async function syncTrelloBoard(boardId: string): Promise<Array<{ list: string; count: number; cards: Array<{ title: string; labels: string[] }> }>> {
+  const url = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&cards=open&card_fields=name,labels,due,dateLastActivity`
+  const resp = await fetch(url, { signal: AbortSignal.timeout(30000) })
+  if (!resp.ok) throw new Error(`Trello API error: ${resp.status}`)
+  const lists = await resp.json() as Array<{ name: string; cards: Array<{ name: string; labels: Array<{ name: string }> }> }>
+
+  return lists.map(l => ({
+    list: l.name,
+    count: l.cards.length,
+    cards: l.cards.map(c => ({
+      title: c.name,
+      labels: c.labels.map(lb => lb.name).filter(Boolean),
+    })),
+  }))
+}
+
+async function saveTrelloStateMd(boardName: string, syncTime: string, lists: Array<{ list: string; count: number; cards: Array<{ title: string; labels: string[] }> }>): Promise<void> {
+  let md = `# ${boardName}\nLast synced: ${syncTime}\n\n`
+  for (const l of lists) {
+    md += `## ${l.list} (${l.count})\n`
+    if (l.cards.length === 0) {
+      md += '- _empty_\n'
+    } else {
+      for (const c of l.cards) {
+        const labelStr = c.labels.length > 0 ? ` (${c.labels.join(', ')})` : ''
+        md += `- ${c.title}${labelStr}\n`
+      }
+    }
+    md += '\n'
+  }
+  await writeFile(join(MEMORY_DIR, 'trello-state.md'), md)
+}
 
 // --- Projects (parse trello-state.md) ---
 

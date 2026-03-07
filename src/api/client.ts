@@ -339,6 +339,41 @@ export async function fetchProjects(): Promise<FetchResult<TrelloBoard>> {
   return apiFetch<TrelloBoard>('/openclaw/projects')
 }
 
+// Trello board management
+export interface TrelloBoardInfo {
+  id: string
+  name: string
+  url: string
+  shortLink: string
+}
+
+export interface TrelloConfig {
+  boardId: string | null
+  boardUrl: string | null
+  boardName: string | null
+  lastSynced: string | null
+}
+
+export async function fetchTrelloBoards(): Promise<FetchResult<{ boards: TrelloBoardInfo[] }>> {
+  return apiFetch<{ boards: TrelloBoardInfo[] }>('/openclaw/trello/boards')
+}
+
+export async function fetchTrelloConfig(): Promise<FetchResult<TrelloConfig>> {
+  return apiFetch<TrelloConfig>('/openclaw/trello/config')
+}
+
+export async function connectTrelloBoard(boardUrl?: string, boardId?: string): Promise<FetchResult<{ ok: boolean; config: TrelloConfig; board: TrelloBoard }>> {
+  return apiFetch<{ ok: boolean; config: TrelloConfig; board: TrelloBoard }>('/openclaw/trello/connect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ boardUrl, boardId }),
+  })
+}
+
+export async function syncTrelloBoard(): Promise<FetchResult<{ ok: boolean; board: TrelloBoard }>> {
+  return apiFetch<{ ok: boolean; board: TrelloBoard }>('/openclaw/trello/sync', { method: 'POST' })
+}
+
 // ---- OpenClaw Connection ----
 
 export async function connectOpenClaw(url: string, token: string): Promise<FetchResult<{ ok: boolean; health?: any }>> {

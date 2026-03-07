@@ -46,6 +46,26 @@ export class OpenClawConnector {
     }
   }
 
+  async post<T>(path: string, body: any): Promise<T | null> {
+    if (!this.url) return null
+    try {
+      const res = await fetch(`${this.url}${path}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'X-Bridge-Token': this.token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30000),
+      })
+      if (!res.ok) return null
+      return await res.json() as T
+    } catch {
+      return null
+    }
+  }
+
   async getHealth(): Promise<any> {
     return this.fetch('/api/system/health') ?? { gatewayRunning: false }
   }

@@ -129,6 +129,47 @@ router.get('/automations', async (req, res) => {
   }
 })
 
+// Trello board management (proxy to bridge)
+router.get('/trello/boards', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>('/api/trello/boards')
+    res.json(data || { boards: [] })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+router.get('/trello/config', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any>('/api/trello/config')
+    res.json(data || { boardId: null, boardUrl: null, boardName: null, lastSynced: null })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+router.post('/trello/connect', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>('/api/trello/connect', req.body)
+    res.json(data || { ok: false, error: 'Bridge error' })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+router.post('/trello/sync', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>('/api/trello/sync', req.body || {})
+    res.json(data || { ok: false, error: 'Bridge error' })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 // Proxy projects from bridge
 router.get('/projects', async (req, res) => {
   try {
