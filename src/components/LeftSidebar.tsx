@@ -17,8 +17,8 @@ export default function LeftSidebar({ onChatToggle }: Props) {
 
   return (
     <div
-      className="flex flex-col items-center gap-3 py-4 px-2 border-r shrink-0"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)', width: 56 }}
+      className="fixed left-3 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-3 py-4 px-2 rounded-2xl hidden xl:flex"
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}
     >
       {icons.map(icon => {
         const isActive = icon.path && location.pathname === icon.path
