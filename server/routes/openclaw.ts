@@ -9,9 +9,22 @@ async function getConnector(tenantId: string): Promise<OpenClawConnector> {
   return new OpenClawConnector(tenant?.openclawUrl || '', tenant?.openclawToken || '')
 }
 
+// Delete sample/seed sessions (keep only synced ones)
+router.post('/cleanup', async (req, res) => {
+  try {
+    const deleted = await prisma.session.deleteMany({
+      where: { tenantId: req.tenantId!, title: { startsWith: 'Sample Session' } },
+    })
+    res.json({ ok: true, deleted: deleted.count })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 router.post('/connect', async (req, res) => {
   try {
     const { url, token } = req.body
+    console.log('[OpenClaw Connect] url:', url, 'token:', token ? '***' : 'MISSING')
     const connector = new OpenClawConnector(url, token)
     const health = await connector.getHealth()
     if (health) {
