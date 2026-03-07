@@ -105,7 +105,7 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
                   style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}
                 >
                   <span className="text-[10px] font-mono" style={{ color: 'var(--accent-gold)' }}>
-                    🔧 {msg.toolName ?? 'Tool call'} <span style={{ color: 'var(--text-secondary)' }}>— click to expand</span>
+                    ⚙ {msg.toolName ?? 'Tool call'} <span style={{ color: 'var(--text-secondary)' }}>— click to expand</span>
                   </span>
                 </button>
               )
@@ -357,7 +357,7 @@ export default function TaskManager() {
       {/* Live data error banner */}
       {liveError && dataSource === 'live' && (
         <div className="rounded-lg p-3 mb-4 flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <span style={{ color: 'var(--accent-red)' }}>⚠</span>
+          <span style={{ color: 'var(--accent-red)' }}>!</span>
           <span className="text-xs" style={{ color: 'var(--accent-red)' }}>Could not fetch live data. Switch to Demo mode or check the API.</span>
         </div>
       )}

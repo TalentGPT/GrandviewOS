@@ -39,7 +39,7 @@ export default function PersistentAudioBar({ visible, speakerName = 'Muddy', spe
         className="px-4 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity shrink-0"
         style={{ background: playing ? 'var(--accent-red)' : 'var(--accent-green)', color: '#000', minHeight: '32px' }}
       >
-        {playing ? '⏸ Pause' : '🔊 Play'}
+        {playing ? '▮▮' : '▶'}
       </button>
 
       {/* Skip forward */}

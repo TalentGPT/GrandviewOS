@@ -92,7 +92,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
         </div>
         <div className="flex gap-2 mt-3">
           {standup.participants.map(p => {
-            const info = SPEAKER_COLORS[p.name] ?? { color: 'var(--text-secondary)', emoji: '🤖' }
+            const info = SPEAKER_COLORS[p.name] ?? { color: 'var(--text-secondary)', emoji: '●' }
             return (
               <span key={p.name} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: info.color + '22', color: info.color }}>
                 {info.emoji} {p.name}
@@ -117,7 +117,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
       {/* Conversation */}
       <div className="flex flex-col gap-4 mb-6">
         {standup.conversation.map((msg, i) => {
-          const info = SPEAKER_COLORS[msg.speaker] ?? { color: 'var(--text-secondary)', emoji: '🤖' }
+          const info = SPEAKER_COLORS[msg.speaker] ?? { color: 'var(--text-secondary)', emoji: '●' }
           return (
             <motion.div
               key={i}
@@ -149,7 +149,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
           </div>
           <div className="flex flex-col gap-2">
             {items.map((item, i) => {
-              const info = SPEAKER_COLORS[item.assignee] ?? { color: 'var(--text-secondary)', emoji: '🤖' }
+              const info = SPEAKER_COLORS[item.assignee] ?? { color: 'var(--text-secondary)', emoji: '●' }
               return (
                 <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-3)] transition-colors">
                   <input type="checkbox" checked={item.done} onChange={() => toggleItem(i)} className="accent-[var(--accent-green)] cursor-pointer" />

@@ -126,9 +126,9 @@ export default function MemoryViewer() {
             onClick={() => setSelectedAgent(a.id)}
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
             style={{
-              background: selectedAgent === a.id ? 'var(--accent-purple)11' : 'transparent',
-              color: selectedAgent === a.id ? 'var(--accent-purple)' : 'var(--text-primary)',
-              border: selectedAgent === a.id ? '1px solid var(--accent-purple)33' : '1px solid transparent',
+              background: selectedAgent === a.id ? 'var(--accent-teal)11' : 'transparent',
+              color: selectedAgent === a.id ? 'var(--accent-teal)' : 'var(--text-primary)',
+              border: selectedAgent === a.id ? '1px solid var(--accent-teal)33' : '1px solid transparent',
             }}
           >
             <span>{a.emoji}</span>
@@ -143,18 +143,18 @@ export default function MemoryViewer() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search memory..."
-          className="w-full px-2 py-1.5 rounded-md text-xs mb-3 focus:outline-none focus:ring-1 focus:ring-[var(--accent-purple)]"
+          className="w-full px-2 py-1.5 rounded-md text-xs mb-3 focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
           style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
         />
 
         {/* View toggle */}
         <div className="flex gap-1 mb-3">
           <button onClick={() => setView('files')} className="flex-1 px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-            style={{ background: view === 'files' ? 'var(--accent-purple)22' : 'var(--bg-3)', color: view === 'files' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
-            📄 Files
+            style={{ background: view === 'files' ? 'var(--accent-teal)22' : 'var(--bg-3)', color: view === 'files' ? 'var(--accent-teal)' : 'var(--text-secondary)', border: 'none' }}>
+            Files
           </button>
           <button onClick={() => setView('timeline')} className="flex-1 px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-            style={{ background: view === 'timeline' ? 'var(--accent-purple)22' : 'var(--bg-3)', color: view === 'timeline' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
+            style={{ background: view === 'timeline' ? 'var(--accent-teal)22' : 'var(--bg-3)', color: view === 'timeline' ? 'var(--accent-teal)' : 'var(--text-secondary)', border: 'none' }}>
             📅 Timeline
           </button>
         </div>
@@ -166,17 +166,17 @@ export default function MemoryViewer() {
               onClick={() => setSelectedFile(f)}
               className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
               style={{
-                background: selectedFile?.path === f.path ? 'var(--accent-purple)11' : 'transparent',
-                color: selectedFile?.path === f.path ? 'var(--accent-purple)' : 'var(--text-primary)',
-                border: selectedFile?.path === f.path ? '1px solid var(--accent-purple)33' : '1px solid transparent',
+                background: selectedFile?.path === f.path ? 'var(--accent-teal)11' : 'transparent',
+                color: selectedFile?.path === f.path ? 'var(--accent-teal)' : 'var(--text-primary)',
+                border: selectedFile?.path === f.path ? '1px solid var(--accent-teal)33' : '1px solid transparent',
               }}
             >
-              <span>📄 {f.name}</span>
+              <span>{f.name}</span>
               {f.date && <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{f.date}</span>}
             </button>
           ))
         ) : (
-          <div className="border-l-2 ml-2 pl-3" style={{ borderColor: 'var(--accent-purple)33' }}>
+          <div className="border-l-2 ml-2 pl-3" style={{ borderColor: 'var(--accent-teal)33' }}>
             {timelineFiles.map(f => (
               <button
                 key={f.path}
@@ -184,7 +184,7 @@ export default function MemoryViewer() {
                 className="w-full text-left mb-3 cursor-pointer hover:opacity-80"
                 style={{ background: 'none', border: 'none', padding: 0 }}
               >
-                <div className="text-[10px] font-semibold" style={{ color: 'var(--accent-purple)' }}>{f.date}</div>
+                <div className="text-[10px] font-semibold" style={{ color: 'var(--accent-teal)' }}>{f.date}</div>
                 <div className="text-xs" style={{ color: selectedFile?.path === f.path ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{f.name}</div>
               </button>
             ))}
@@ -200,11 +200,11 @@ export default function MemoryViewer() {
               <span className="text-xl">{agent?.emoji}</span>
               <span className="text-lg font-semibold">{agent?.name}</span>
               <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>›</span>
-              <span className="text-sm" style={{ color: 'var(--accent-purple)' }}>{selectedFile.name}</span>
+              <span className="text-sm" style={{ color: 'var(--accent-teal)' }}>{selectedFile.name}</span>
             </div>
             {search && (
-              <div className="text-xs mb-3 px-2 py-1 rounded" style={{ background: 'var(--accent-purple)11', color: 'var(--accent-purple)' }}>
-                🔍 Showing results for &quot;{search}&quot;
+              <div className="text-xs mb-3 px-2 py-1 rounded" style={{ background: 'var(--accent-teal)11', color: 'var(--accent-teal)' }}>
+                Showing results for &quot;{search}&quot;
               </div>
             )}
             <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
@@ -214,7 +214,7 @@ export default function MemoryViewer() {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="text-4xl mb-3">🧠</div>
+              <div className="text-4xl mb-3 opacity-20">—</div>
               <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Select a memory file to view</div>
             </div>
           </div>

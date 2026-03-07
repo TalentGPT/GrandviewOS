@@ -90,7 +90,7 @@ export default function WeeklyReviews() {
       <PageHeader title="Weekly Reviews" subtitle="Structured weekly review summaries" />
 
       {selected && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
           <StatCard label="Sessions" value={selected.metrics.sessions} />
           <StatCard label="Tokens" value={formatTokens(selected.metrics.tokens)} color="var(--accent-teal)" />
           <StatCard label="Cost" value={formatCost(selected.metrics.cost)} color="var(--accent-red)" />
@@ -126,7 +126,7 @@ export default function WeeklyReviews() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Highlights */}
               <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-green)22' }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-green)' }}>✅ Highlights</h3>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-green)' }}>Highlights</h3>
                 {selected.highlights.map((h, i) => (
                   <div key={i} className="flex items-start gap-2 mb-2">
                     <span className="text-xs mt-0.5" style={{ color: 'var(--accent-green)' }}>●</span>
@@ -136,7 +136,7 @@ export default function WeeklyReviews() {
               </div>
               {/* Lowlights */}
               <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-red)22' }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-red)' }}>⚠️ Lowlights</h3>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-red)' }}>Lowlights</h3>
                 {selected.lowlights.map((l, i) => (
                   <div key={i} className="flex items-start gap-2 mb-2">
                     <span className="text-xs mt-0.5" style={{ color: 'var(--accent-red)' }}>●</span>

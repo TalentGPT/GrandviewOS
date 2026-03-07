@@ -132,7 +132,7 @@ export default function IdeationLogs() {
                 {isExpanded && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-divider)' }}>
                     <div className="mb-3">
-                      <div className="text-xs font-semibold mb-2" style={{ color: 'var(--accent-green)' }}>💡 Key Ideas</div>
+                      <div className="text-xs font-semibold mb-2" style={{ color: 'var(--accent-green)' }}>Key Ideas</div>
                       {entry.keyIdeas.map((idea, i) => (
                         <div key={i} className="flex items-start gap-2 mb-1.5">
                           <span className="text-xs mt-0.5" style={{ color: 'var(--accent-green)' }}>•</span>
@@ -141,7 +141,7 @@ export default function IdeationLogs() {
                       ))}
                     </div>
                     <div>
-                      <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent-teal)' }}>📋 Outcomes</div>
+                      <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent-teal)' }}>Outcomes</div>
                       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{entry.outcomes}</p>
                     </div>
                   </motion.div>

@@ -37,7 +37,7 @@ export default function Settings() {
 
       {error && (
         <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--accent-red)11', border: '1px solid var(--accent-red)33' }}>
-          <div className="text-sm" style={{ color: 'var(--accent-red)' }}>⚠ {error}</div>
+          <div className="text-sm" style={{ color: 'var(--accent-red)' }}>{error}</div>
           <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Showing available data. Some features may use mock data.</div>
         </div>
       )}

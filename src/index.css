@@ -344,8 +344,13 @@ body {
   outline-offset: 2px;
 }
 
-button, a, [role="button"] {
-  transition: all 150ms ease;
+button, a, [role="button"], [role="tab"] {
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+/* Clickable elements */
+button:not(:disabled), a, [role="button"] {
+  cursor: pointer;
 }
 
 /* ============================================

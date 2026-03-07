@@ -58,7 +58,7 @@ export default function MobileNav({ onChatToggle }: Props) {
             onClick={onChatToggle}
             className="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
             style={{ background: 'var(--accent-green)22', border: '1px solid var(--accent-green)44' }}
-          >💬</button>
+          >◆</button>
           <button
             onClick={() => setOpen(!open)}
             className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
@@ -133,11 +133,11 @@ export default function MobileNav({ onChatToggle }: Props) {
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around py-2 border-t md:hidden"
         style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         {[
-          { emoji: '📊', label: 'Tasks', path: '/ops/task-manager' },
-          { emoji: '👥', label: 'Org', path: '/ops/org-chart' },
-          { emoji: '🎙️', label: 'Standup', path: '/ops/standup' },
-          { emoji: '🧠', label: 'Brain', path: '/brain/memory' },
-          { emoji: '🧪', label: 'Lab', path: '/lab/ideas' },
+          { emoji: '⬡', label: 'Tasks', path: '/ops/task-manager' },
+          { emoji: '◇', label: 'Org', path: '/ops/org-chart' },
+          { emoji: '●', label: 'Standup', path: '/ops/standup' },
+          { emoji: '◆', label: 'Brain', path: '/brain/memory' },
+          { emoji: '△', label: 'Lab', path: '/lab/ideas' },
         ].map(item => {
           const isActive = location.pathname.startsWith(item.path.split('/').slice(0, 3).join('/'))
           return (

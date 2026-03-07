@@ -52,7 +52,7 @@ export default function IdeaGallery() {
     }
     setIdeas(prev => [idea, ...prev])
     setNewTitle(''); setNewDesc(''); setShowAdd(false)
-    addToast('Idea added! 💡')
+    addToast('Idea added')
   }
 
   return (

@@ -1,18 +1,18 @@
 {
   "date": "2026-03-07",
-  "totalCost": 441.99428725,
-  "totalTokens": 248866999,
+  "totalCost": 438.72431325,
+  "totalTokens": 243945456,
   "byModel": {
     "claude-opus-4-6": {
-      "cost": 441.99428725,
-      "tokens": 248866999,
+      "cost": 438.72431325,
+      "tokens": 243945456,
       "sessions": 50
     }
   },
   "byAgent": {
     "main": {
-      "cost": 441.99428725,
-      "tokens": 248866999,
+      "cost": 438.72431325,
+      "tokens": 243945456,
       "sessions": 50
     }
   }
