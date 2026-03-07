@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# GrandviewOS v2.0
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI-powered operating system for managing agent teams. Now with PostgreSQL + Express + Prisma backend.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend:** React 19 + TypeScript + Tailwind CSS 4 + Vite
+- **Backend:** Express.js + TypeScript
+- **Database:** PostgreSQL via Prisma ORM
+- **Auth:** JWT + bcrypt (multi-tenant)
+- **Remote:** OpenClaw API connector
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Install dependencies
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Set up PostgreSQL
+Create a `.env` file (see `.env.example`):
 ```
+DATABASE_URL=postgresql://user:pass@localhost:5432/grandviewos
+JWT_SECRET=your-secret-key
+ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+PORT=3000
+```
+
+### 3. Push schema & seed
+```bash
+npx prisma db push
+npm run db:seed
+```
+
+### 4. Run
+```bash
+# Backend (serves API + static frontend)
+npm run dev
+
+# Frontend dev server (optional, for HMR)
+npm run dev:frontend
+```
+
+### 5. Login
+- **Email:** admin@grandview.com
+- **Password:** admin123
+
+## Architecture
+
+```
+server/
+  index.ts           # Express entry point
+  db.ts              # Prisma client
+  seed.ts            # Database seeder
+  middleware/
+    auth.ts          # JWT auth middleware
+  routes/
+    auth.ts          # Login/Register
+    agents.ts        # Agent CRUD
+    sessions.ts      # Session management
+    standups.ts      # Voice standups
+    integrations.ts  # Integration management
+    secrets.ts       # Encrypted secrets vault
+    mcp.ts           # MCP server management
+    llm.ts           # LLM provider config
+    permissions.ts   # Agent permissions
+    system.ts        # Health, config, cost, briefs, projects, ideas, reviews, docs
+    workspace.ts     # Agent file read/write
+    openclaw.ts      # Remote OpenClaw connector routes
+  services/
+    openclaw-connector.ts  # HTTP client for remote OpenClaw
+prisma/
+  schema.prisma      # Database schema
+src/                 # React frontend
+```
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Express server (watches for changes) |
+| `npm run dev:frontend` | Start Vite dev server with HMR |
+| `npm run build` | Build frontend for production |
+| `npm start` | Start production server |
+| `npm run db:push` | Push Prisma schema to database |
+| `npm run db:seed` | Seed database with sample data |
+| `npm run db:studio` | Open Prisma Studio |

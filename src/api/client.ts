@@ -1,31 +1,70 @@
 import type { ApiSession, ApiAgent, SystemHealth, ApiConfig, SessionMessage, StandupResponse, CostBreakdown, DailyCostEntry } from '../types/api'
 
 const API_BASE = '/api'
-const AUTH_KEY_STORAGE = 'grandviewos-api-key'
+const TOKEN_KEY = 'grandviewos-jwt'
+const LEGACY_KEY = 'grandviewos-api-key'
 
 // ---- Auth helpers ----
 
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_KEY)
+}
+
+export function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(LEGACY_KEY)
+}
+
+// Legacy compat
 export function getStoredApiKey(): string | null {
-  return localStorage.getItem(AUTH_KEY_STORAGE)
+  return getStoredToken()
 }
 
 export function setStoredApiKey(key: string): void {
-  localStorage.setItem(AUTH_KEY_STORAGE, key)
+  setStoredToken(key)
 }
 
 export function clearStoredApiKey(): void {
-  localStorage.removeItem(AUTH_KEY_STORAGE)
+  clearStoredToken()
 }
 
-export async function verifyApiKey(key: string): Promise<boolean> {
+export async function verifyApiKey(_key: string): Promise<boolean> {
+  return true
+}
+
+export async function login(email: string, password: string): Promise<{ token: string; user: any; tenant: any } | null> {
   try {
-    const res = await fetch(`${API_BASE}/auth/verify`, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
-      headers: { 'X-Muddy-Key': key },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
     })
-    return res.ok
+    if (!res.ok) return null
+    const data = await res.json() as { token: string; user: any; tenant: any }
+    setStoredToken(data.token)
+    return data
   } catch {
-    return false
+    return null
+  }
+}
+
+export async function register(tenantName: string, email: string, password: string, name?: string): Promise<{ token: string; user: any; tenant: any } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantName, email, password, name }),
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { token: string; user: any; tenant: any }
+    setStoredToken(data.token)
+    return data
+  } catch {
+    return null
   }
 }
 
@@ -38,18 +77,19 @@ interface FetchResult<T> {
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<FetchResult<T>> {
   try {
-    const key = getStoredApiKey()
+    const token = getStoredToken()
     const headers: Record<string, string> = {
       ...(options?.headers as Record<string, string> ?? {}),
     }
-    if (key) {
-      headers['X-Muddy-Key'] = key
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+      headers['X-Muddy-Key'] = token // legacy compat
     }
 
     const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
 
     if (res.status === 401) {
-      clearStoredApiKey()
+      clearStoredToken()
       window.location.reload()
       return { data: null, error: 'Unauthorized' }
     }
@@ -118,8 +158,8 @@ export async function fetchStandup(id: string): Promise<FetchResult<StandupRespo
 }
 
 export function getStandupAudioUrl(id: string): string {
-  const key = getStoredApiKey()
-  return `${API_BASE}/standups/${encodeURIComponent(id)}/audio${key ? `?key=${encodeURIComponent(key)}` : ''}`
+  const token = getStoredToken()
+  return `${API_BASE}/standups/${encodeURIComponent(id)}/audio${token ? `?key=${encodeURIComponent(token)}` : ''}`
 }
 
 // Docs
@@ -142,8 +182,8 @@ export async function fetchCostHistory(days: number = 7): Promise<FetchResult<Da
 
 // SSE
 export function createEventSource(onMessage: (data: Record<string, unknown>) => void, onError?: () => void): EventSource {
-  const key = getStoredApiKey()
-  const url = `${API_BASE}/events${key ? `?key=${encodeURIComponent(key)}` : ''}`
+  const token = getStoredToken()
+  const url = `${API_BASE}/events${token ? `?key=${encodeURIComponent(token)}` : ''}`
   const es = new EventSource(url)
   es.onmessage = (event) => {
     try {

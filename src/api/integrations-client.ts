@@ -1,16 +1,20 @@
 import type { SecretEntry, IntegrationEntry, McpServer, McpTool, LlmProvider, AgentPermissions } from '../types/integrations'
 
 const API_BASE = '/api'
-const AUTH_KEY_STORAGE = 'grandviewos-api-key'
+const TOKEN_KEY = 'grandviewos-jwt'
+const LEGACY_KEY = 'grandviewos-api-key'
 
 function getKey(): string | null {
-  return localStorage.getItem(AUTH_KEY_STORAGE)
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_KEY)
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const key = getKey()
   const headers: Record<string, string> = { ...(options?.headers as Record<string, string> ?? {}) }
-  if (key) headers['X-Muddy-Key'] = key
+  if (key) {
+    headers['Authorization'] = `Bearer ${key}`
+    headers['X-Muddy-Key'] = key
+  }
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<T>

@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  openclawUrl   String?
+  openclawToken String?
+
+  users            User[]
+  agents           Agent[]
+  sessions         Session[]
+  standups         Standup[]
+  integrations     Integration[]
+  secrets          Secret[]
+  agentPermissions AgentPermission[]
+  mcpServers       McpServer[]
+  llmProviders     LlmProvider[]
+  cronJobs         CronJob[]
+  memoryEntries    MemoryEntry[]
+  auditLogs        AuditLog[]
+  costEntries      CostEntry[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String
+  password  String
+  name      String
+  role      String   @default("operator")
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([email, tenantId])
+}
+
+model Agent {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  slug          String
+  name          String
+  persona       String?
+  role          String
+  department    String?
+  division      String?
+  parentId      String?
+  primaryModel  String
+  failsafeModel String?
+  gatewayMode   String   @default("shared")
+  status        String   @default("active")
+  soulMd        String?  @db.Text
+  identityMd    String?  @db.Text
+  userMd        String?  @db.Text
+  toolsMd       String?  @db.Text
+  agentsMd      String?  @db.Text
+  memoryMd      String?  @db.Text
+  heartbeatMd   String?  @db.Text
+  emoji         String?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions      Session[]
+  permissions   AgentPermission[]
+  costEntries   CostEntry[]
+  memoryEntries MemoryEntry[]
+
+  @@unique([tenantId, slug])
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  agentId      String?
+  agent        Agent?    @relation(fields: [agentId], references: [id])
+  openclawId   String?
+  title        String?
+  model        String
+  provider     String?
+  status       String    @default("active")
+  messageCount Int       @default(0)
+  tokensIn     Int       @default(0)
+  tokensOut    Int       @default(0)
+  totalTokens  Int       @default(0)
+  totalCost    Float     @default(0)
+  transcript   Json?
+  lastMessage  String?
+  isActive     Boolean   @default(true)
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  lastActivity DateTime  @default(now())
+
+  @@index([tenantId, isActive])
+  @@index([tenantId, agentId])
+}
+
+model Standup {
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  title        String
+  participants Json
+  transcript   Json?
+  actionItems  Json?
+  deliverables Json?
+  audioPath    String?
+  status       String    @default("pending")
+  triggeredAt  DateTime  @default(now())
+  completedAt  DateTime?
+}
+
+model Integration {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  type        String
+  name        String
+  description String?
+  status      String    @default("disconnected")
+  config      Json?
+  secretIds   Json?
+  lastUsed    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([tenantId, type])
+}
+
+model Secret {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  name           String
+  type           String
+  encryptedValue String   @db.Text
+  iv             String
+  lastRotated    DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantId, name])
+}
+
+model AgentPermission {
+  id                  String @id @default(uuid())
+  tenantId            String
+  tenant              Tenant @relation(fields: [tenantId], references: [id])
+  agentId             String
+  agent               Agent  @relation(fields: [agentId], references: [id])
+  allowedModels       Json
+  allowedTools        Json
+  allowedIntegrations Json
+
+  @@unique([tenantId, agentId])
+}
+
+model McpServer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  url       String
+  authType  String   @default("none")
+  secretId  String?
+  tools     Json?
+  status    String   @default("unknown")
+  createdAt DateTime @default(now())
+}
+
+model LlmProvider {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  provider     String
+  name         String
+  secretId     String?
+  models       Json
+  defaultModel String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@unique([tenantId, provider])
+}
+
+model CronJob {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  name      String
+  schedule  String
+  agentSlug String?
+  command   String
+  status    String    @default("active")
+  lastRun   DateTime?
+  nextRun   DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model MemoryEntry {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  agentId   String?
+  agent     Agent?   @relation(fields: [agentId], references: [id])
+  type      String
+  date      DateTime
+  content   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model CostEntry {
+  id       String   @id @default(uuid())
+  tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  agentId  String?
+  agent    Agent?   @relation(fields: [agentId], references: [id])
+  date     DateTime
+  model    String
+  tokensIn  Int     @default(0)
+  tokensOut Int     @default(0)
+  cost     Float    @default(0)
+  sessions Int      @default(0)
+
+  @@index([tenantId, date])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
