@@ -55,7 +55,8 @@ app.use('/api', systemRoutes)
 app.use(express.static(distPath))
 
 // SPA fallback
-app.get('/{0,}(.*)', (_req, res) => {
+// SPA fallback — use middleware instead of route to avoid path-to-regexp issues
+app.use((_req, res) => {
   res.sendFile(join(distPath, 'index.html'))
 })
 
