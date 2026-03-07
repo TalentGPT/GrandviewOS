@@ -281,12 +281,12 @@ export default function Standup() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div>
           <h1 className="text-xl font-semibold">Executive Standup</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kick off meetings with the chiefs and review past transcripts</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {/* Data source toggle */}
           <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border-divider)' }}>
             <button onClick={() => setDataSource('live')} className="px-3 py-1 text-xs font-medium cursor-pointer transition-colors"

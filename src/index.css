@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 :root {
   --bg-primary: #000000;
@@ -32,6 +31,8 @@
   --model-gemini-flash: #00BCD4;
   --model-gemini-pro: #00ACC1;
   --model-nano: #827717;
+  /* Sidebar width */
+  --sidebar-width: 52px;
 }
 
 * {
@@ -40,11 +41,16 @@
   box-sizing: border-box;
 }
 
+html {
+  font-size: 14px;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Scrollbar */
@@ -52,12 +58,19 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border-divider); border-radius: 3px; }
 
-/* Gold page border */
+/* Gold page border — 2px on desktop, 1px on tablet, none on mobile */
 #root {
   border: 2px solid var(--border-page);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 1279px) {
+  #root { border-width: 1px; }
+}
+@media (max-width: 767px) {
+  #root { border: none; }
 }
 
 /* Pulsing green dot */
@@ -77,13 +90,12 @@ body {
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.4), 0 0 30px rgba(0, 229, 255, 0.1);
 }
 
-/* Mobile warning */
-@media (max-width: 1023px) {
-  .desktop-only { display: none !important; }
-  .mobile-warning { display: flex !important; }
-}
-@media (min-width: 1024px) {
-  .mobile-warning { display: none !important; }
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 40;
 }
 
 /* Markdown rendering styles for Workspaces & Docs */

@@ -1,6 +1,35 @@
 import type { ApiSession, ApiAgent, SystemHealth, ApiConfig, SessionMessage, StandupResponse, CostBreakdown, DailyCostEntry } from '../types/api'
 
 const API_BASE = '/api'
+const AUTH_KEY_STORAGE = 'grandviewos-api-key'
+
+// ---- Auth helpers ----
+
+export function getStoredApiKey(): string | null {
+  return localStorage.getItem(AUTH_KEY_STORAGE)
+}
+
+export function setStoredApiKey(key: string): void {
+  localStorage.setItem(AUTH_KEY_STORAGE, key)
+}
+
+export function clearStoredApiKey(): void {
+  localStorage.removeItem(AUTH_KEY_STORAGE)
+}
+
+export async function verifyApiKey(key: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify`, {
+      method: 'POST',
+      headers: { 'X-Muddy-Key': key },
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+// ---- Fetch wrapper with auth ----
 
 interface FetchResult<T> {
   data: T | null
@@ -9,7 +38,22 @@ interface FetchResult<T> {
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<FetchResult<T>> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, options)
+    const key = getStoredApiKey()
+    const headers: Record<string, string> = {
+      ...(options?.headers as Record<string, string> ?? {}),
+    }
+    if (key) {
+      headers['X-Muddy-Key'] = key
+    }
+
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+
+    if (res.status === 401) {
+      clearStoredApiKey()
+      window.location.reload()
+      return { data: null, error: 'Unauthorized' }
+    }
+
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}` }
     }
@@ -20,12 +64,16 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<FetchRe
   }
 }
 
-export async function fetchSessions(): Promise<FetchResult<ApiSession[]>> {
-  return apiFetch<ApiSession[]>('/sessions')
+export async function fetchSessions(limit = 50, offset = 0): Promise<FetchResult<{ sessions: ApiSession[]; total: number }>> {
+  return apiFetch<{ sessions: ApiSession[]; total: number }>(`/sessions?limit=${limit}&offset=${offset}`)
 }
 
 export async function fetchSessionTranscript(id: string): Promise<FetchResult<ApiSession & { messages: SessionMessage[] }>> {
-  return apiFetch<ApiSession & { messages: SessionMessage[] }>(`/sessions/${id}/transcript`)
+  return apiFetch<ApiSession & { messages: SessionMessage[] }>(`/sessions/${encodeURIComponent(id)}/transcript`)
+}
+
+export async function killSession(id: string): Promise<FetchResult<{ ok: boolean }>> {
+  return apiFetch<{ ok: boolean }>(`/sessions/${encodeURIComponent(id)}/kill`, { method: 'POST' })
 }
 
 export async function fetchAgents(): Promise<FetchResult<ApiAgent[]>> {
@@ -41,11 +89,11 @@ export async function fetchConfig(): Promise<FetchResult<ApiConfig>> {
 }
 
 export async function fetchWorkspaceFile(agentId: string, fileName: string): Promise<FetchResult<{ content: string }>> {
-  return apiFetch<{ content: string }>(`/workspace/${agentId}/${fileName}`)
+  return apiFetch<{ content: string }>(`/workspace/${encodeURIComponent(agentId)}/${encodeURIComponent(fileName)}`)
 }
 
 export async function saveWorkspaceFile(agentId: string, fileName: string, content: string): Promise<FetchResult<{ ok: boolean }>> {
-  return apiFetch<{ ok: boolean }>(`/workspace/${agentId}/${fileName}`, {
+  return apiFetch<{ ok: boolean }>(`/workspace/${encodeURIComponent(agentId)}/${encodeURIComponent(fileName)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
@@ -53,7 +101,7 @@ export async function saveWorkspaceFile(agentId: string, fileName: string, conte
 }
 
 export async function fetchAgentFiles(agentId: string): Promise<FetchResult<Array<{ name: string; size: number }>>> {
-  return apiFetch<Array<{ name: string; size: number }>>(`/agents/${agentId}/files`)
+  return apiFetch<Array<{ name: string; size: number }>>(`/agents/${encodeURIComponent(agentId)}/files`)
 }
 
 // Standups
@@ -66,11 +114,12 @@ export async function fetchStandups(): Promise<FetchResult<StandupResponse[]>> {
 }
 
 export async function fetchStandup(id: string): Promise<FetchResult<StandupResponse>> {
-  return apiFetch<StandupResponse>(`/standups/${id}`)
+  return apiFetch<StandupResponse>(`/standups/${encodeURIComponent(id)}`)
 }
 
 export function getStandupAudioUrl(id: string): string {
-  return `${API_BASE}/standups/${id}/audio`
+  const key = getStoredApiKey()
+  return `${API_BASE}/standups/${encodeURIComponent(id)}/audio${key ? `?key=${encodeURIComponent(key)}` : ''}`
 }
 
 // Docs
@@ -93,7 +142,9 @@ export async function fetchCostHistory(days: number = 7): Promise<FetchResult<Da
 
 // SSE
 export function createEventSource(onMessage: (data: Record<string, unknown>) => void, onError?: () => void): EventSource {
-  const es = new EventSource(`${API_BASE}/events`)
+  const key = getStoredApiKey()
+  const url = `${API_BASE}/events${key ? `?key=${encodeURIComponent(key)}` : ''}`
+  const es = new EventSource(url)
   es.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data as string) as Record<string, unknown>

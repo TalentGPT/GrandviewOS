@@ -51,7 +51,7 @@ export default function OrgChart() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
         <h1 className="text-xl font-semibold">Organization Chart</h1>
         <div className="flex gap-2">
           <button onClick={expandAll} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>Expand All</button>
@@ -59,7 +59,7 @@ export default function OrgChart() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
         <StatCard label="Chiefs" value={3} icon="👑" />
         <StatCard label="Total Agents" value={25} />
         <StatCard label="Active" value={21} color="var(--accent-green)" icon="🟢" />
@@ -97,7 +97,7 @@ export default function OrgChart() {
       </div>
 
       {/* Department heads + divisions */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
         {deptConfig.map(({ head, dept, label }) => {
           const divs = divisions[dept]
           const agentCount = divs.reduce((sum, d) => sum + d.agents.length, 0)
@@ -171,7 +171,7 @@ export default function OrgChart() {
         <AnimatePresence>
           {showDeprecated && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 mt-2">
                 {deprecatedAgents.map(a => <AgentCard key={a.name} agent={a} />)}
               </div>
             </motion.div>

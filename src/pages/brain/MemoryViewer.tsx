@@ -116,9 +116,9 @@ export default function MemoryViewer() {
   const agent = agents.find(a => a.id === selectedAgent)
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-0 h-[calc(100vh-96px)] -m-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col md:flex-row gap-0 md:h-[calc(100vh-96px)] -m-4 md:-m-6">
       {/* Left sidebar: agents + files */}
-      <div className="w-60 shrink-0 overflow-y-auto border-r p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+      <div className="w-full md:w-60 shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
         <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>AGENTS</div>
         {agents.map(a => (
           <button

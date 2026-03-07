@@ -24,6 +24,7 @@ export default function Docs() {
   const [docs, setDocs] = useState<Record<string, string>>(mockDocs)
   const [isGenerated, setIsGenerated] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const { addToast } = useToast()
 
@@ -56,49 +57,63 @@ export default function Docs() {
 
   const handleNav = (item: string) => {
     setActiveDoc(item)
+    setSidebarOpen(false)
     contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-0 h-[calc(100vh-64px)] -m-6">
-      {/* Sidebar */}
-      <div className="w-56 shrink-0 overflow-y-auto border-r p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] font-semibold tracking-wider" style={{ color: 'var(--text-secondary)' }}>DOCUMENTATION</div>
-          {isGenerated && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>Live</span>}
-        </div>
-        {navItems.map(item => (
-          <button
-            key={item}
-            onClick={() => handleNav(item)}
-            className="w-full text-left px-2 py-1.5 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
-            style={{
-              background: activeDoc === item ? 'var(--accent-teal)11' : 'transparent',
-              color: activeDoc === item ? 'var(--accent-teal)' : 'var(--text-secondary)',
-              border: activeDoc === item ? '1px solid var(--accent-teal)33' : '1px solid transparent',
-              fontWeight: activeDoc === item ? 600 : 400,
-            }}
-          >
-            {item}
-          </button>
-        ))}
-
-        <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
-          className="w-full mt-4 px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 disabled:opacity-50 transition-opacity"
-          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}
-        >
-          {regenerating ? '⏳ Generating...' : '🔄 Regenerate Docs'}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="-m-4 md:-m-6">
+      {/* Mobile doc picker */}
+      <div className="md:hidden p-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-card)' }}>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer"
+          style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
+          {sidebarOpen ? '✕ Close' : '📚 Topics'}
         </button>
+        <span className="text-sm truncate" style={{ color: 'var(--accent-teal)' }}>{activeDoc}</span>
       </div>
 
-      {/* Content */}
-      <div ref={contentRef} className="flex-1 overflow-y-auto p-6 scroll-smooth">
-        <div className="max-w-3xl docs-markdown">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-            {content}
-          </ReactMarkdown>
+      <div className="flex" style={{ minHeight: 'calc(100vh - 120px)' }}>
+        {/* Sidebar */}
+        <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-56 shrink-0 overflow-y-auto border-r p-4`}
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-semibold tracking-wider" style={{ color: 'var(--text-secondary)' }}>DOCUMENTATION</div>
+            {isGenerated && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>Live</span>}
+          </div>
+          {navItems.map(item => (
+            <button
+              key={item}
+              onClick={() => handleNav(item)}
+              className="w-full text-left px-2 py-2 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+              style={{
+                background: activeDoc === item ? 'var(--accent-teal)11' : 'transparent',
+                color: activeDoc === item ? 'var(--accent-teal)' : 'var(--text-secondary)',
+                border: activeDoc === item ? '1px solid var(--accent-teal)33' : '1px solid transparent',
+                fontWeight: activeDoc === item ? 600 : 400,
+              }}
+            >
+              {item}
+            </button>
+          ))}
+
+          <button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="w-full mt-4 px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 disabled:opacity-50 transition-opacity"
+            style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}
+          >
+            {regenerating ? '⏳ Generating...' : '🔄 Regenerate Docs'}
+          </button>
+        </div>
+
+        {/* Content */}
+        <div ref={contentRef} className={`${sidebarOpen ? 'hidden' : 'block'} md:block flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth`}>
+          <div className="max-w-3xl docs-markdown">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {content}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
     </motion.div>

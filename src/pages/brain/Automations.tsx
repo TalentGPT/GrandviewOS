@@ -100,7 +100,7 @@ export default function Automations() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total" value={automations.length} icon="⚡" />
         <StatCard label="Active" value={active} color="var(--accent-green)" icon="🟢" />
         <StatCard label="Paused" value={paused} color="#FFC107" icon="⏸️" />

@@ -85,13 +85,13 @@ export default function DailyBriefs() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <StatCard label="Total Sessions (14d)" value={totals.sessions} icon="📊" />
         <StatCard label="Total Tokens (14d)" value={formatTokens(totals.tokens)} color="var(--accent-teal)" icon="🔤" />
         <StatCard label="Total Cost (14d)" value={formatCost(totals.cost)} color="var(--accent-red)" icon="💰" />
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {/* Date list */}
         <div className="w-48 shrink-0">
           <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>DATES</div>
@@ -121,7 +121,7 @@ export default function DailyBriefs() {
               <h2 className="text-lg font-semibold mb-1">Brief — {selected.date}</h2>
               <div className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>Auto-generated from session data</div>
 
-              <div className="grid grid-cols-4 gap-3 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-hover)' }}>
                   <div className="text-2xl font-bold" style={{ color: 'var(--accent-purple)', fontFamily: 'var(--font-mono)' }}>{selected.agentsActive}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Agents Active</div>

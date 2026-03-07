@@ -68,7 +68,7 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="fixed top-0 right-0 h-full w-[520px] z-40 overflow-y-auto border-l shadow-2xl"
+      className="fixed top-0 right-0 h-full w-full md:w-[520px] z-40 overflow-y-auto border-l shadow-2xl"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
     >
       <div className="sticky top-0 p-4 border-b flex items-center justify-between z-10" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
@@ -158,7 +158,7 @@ function MockTranscriptPanel({ session, onClose }: { session: Session; onClose: 
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="fixed top-0 right-0 h-full w-[480px] z-40 overflow-y-auto border-l shadow-2xl"
+      className="fixed top-0 right-0 h-full w-full md:w-[480px] z-40 overflow-y-auto border-l shadow-2xl"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
     >
       <div className="sticky top-0 p-4 border-b flex items-center justify-between" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
@@ -250,8 +250,12 @@ export default function TaskManager() {
   useEffect(() => {
     const load = async () => {
       const { data, error } = await fetchSessions()
-      if (data && data.length > 0) {
-        setLiveSessions(data)
+      if (data && data.sessions && data.sessions.length > 0) {
+        setLiveSessions(data.sessions)
+        setLiveError(false)
+      } else if (data && Array.isArray(data)) {
+        // Backwards compat
+        setLiveSessions(data as unknown as ApiSession[])
         setLiveError(false)
       } else {
         setLiveError(!!error)
@@ -299,9 +303,9 @@ export default function TaskManager() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
         <h1 className="text-xl font-semibold">Task Manager</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Data source toggle */}
           <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border-divider)' }}>
             <button
@@ -351,7 +355,7 @@ export default function TaskManager() {
       )}
 
       {/* Stat cards */}
-      <div className="flex gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
         {showLive ? (
           <>
             <StatCard label="Active" value={liveActive} icon="🟢" />
@@ -375,7 +379,7 @@ export default function TaskManager() {
       <ModelFleetGrid liveSessions={liveSessions} />
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
         {([['sessions', 'Active Sessions'], ['cron', 'Cron Jobs'], ['overnight', 'Overnight Log'], ['costs', 'Cost Breakdown']] as const).map(([key, label]) => (
           <button
             key={key}
@@ -395,34 +399,62 @@ export default function TaskManager() {
       {/* Tab Content */}
       <AnimatePresence mode="wait">
         {tab === 'sessions' && showLive && (
-          <motion.div key="live-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
+          <motion.div key="live-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
             {liveSessions.slice(0, 20).map(s => {
               const display = apiToDisplaySession(s)
               return (
                 <div
                   key={s.id}
                   onClick={() => setSelectedLiveSessionId(s.id)}
-                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                  className="rounded-lg p-3 md:p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
                   style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
                 >
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#FFC107' }}></span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">🐕 {display.title}</div>
-                    <div className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{display.status}</div>
+                  {/* Desktop: single row */}
+                  <div className="hidden md:flex items-center gap-4">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#FFC107' }}></span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">🐕 {display.title}</div>
+                      <div className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{display.status}</div>
+                    </div>
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium shrink-0" style={{ background: display.modelColor + '22', color: display.modelColor }}>{display.model}</span>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</span>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</span>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
+                    {s.isActive && (
+                      <button
+                        onClick={(e) => killSession(s.id, e)}
+                        className="text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
+                        style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
+                      >
+                        Kill
+                      </button>
+                    )}
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: display.modelColor + '22', color: display.modelColor }}>{display.model}</span>
-                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</span>
-                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</span>
-                  <span className="text-xs shrink-0" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
-                  {s.isActive && (
-                    <button
-                      onClick={(e) => killSession(s.id, e)}
-                      className="text-[10px] px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
-                      style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
-                    >
-                      Kill
-                    </button>
-                  )}
+                  {/* Mobile: stacked card */}
+                  <div className="md:hidden">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#FFC107' }}></span>
+                      <div className="text-sm font-medium truncate flex-1">🐕 {display.title}</div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.status}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: display.modelColor + '22', color: display.modelColor }}>{display.model}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs flex-wrap">
+                      <span style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</span>
+                      <span style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
+                      {s.isActive && (
+                        <button
+                          onClick={(e) => killSession(s.id, e)}
+                          className="text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80 ml-auto"
+                          style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
+                        >
+                          Kill
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )
             })}
@@ -430,23 +462,42 @@ export default function TaskManager() {
         )}
 
         {tab === 'sessions' && !showLive && (
-          <motion.div key="mock-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
+          <motion.div key="mock-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
             {mockSessions.map(s => (
               <div
                 key={s.id}
                 onClick={() => setSelectedMockSession(s)}
-                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                className="rounded-lg p-3 md:p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }}></span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{s.agentEmoji} {s.title}</div>
-                  <div className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{s.status}</div>
+                {/* Desktop row */}
+                <div className="hidden md:flex items-center gap-4">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }}></span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{s.agentEmoji} {s.title}</div>
+                    <div className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{s.status}</div>
+                  </div>
+                  <span className="text-xs px-2.5 py-1 rounded-full font-medium shrink-0" style={{ background: s.modelColor + '22', color: s.modelColor }}>{s.model}</span>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</span>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</span>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: s.modelColor + '22', color: s.modelColor }}>{s.model}</span>
-                <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</span>
-                <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</span>
-                <span className="text-xs shrink-0" style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
+                {/* Mobile stacked */}
+                <div className="md:hidden">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }}></span>
+                    <div className="text-sm font-medium truncate flex-1">{s.agentEmoji} {s.title}</div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.status}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: s.modelColor + '22', color: s.modelColor }}>{s.model}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</span>
+                    <span style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
+                  </div>
+                </div>
               </div>
             ))}
           </motion.div>

@@ -1,8 +1,11 @@
 import type { Plugin, ViteDevServer } from 'vite'
-import { exec, execFile } from 'child_process'
-import { readdir, readFile, stat, access, writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { execFile } from 'child_process'
+import { readdir, readFile, stat, access, writeFile, mkdir, unlink } from 'fs/promises'
+import { createReadStream, createWriteStream } from 'fs'
+import { join, resolve } from 'path'
 import { homedir } from 'os'
+import { randomBytes } from 'crypto'
+import { pipeline } from 'stream/promises'
 
 const OPENCLAW_DIR = join(homedir(), '.openclaw')
 const SESSIONS_DIR = join(OPENCLAW_DIR, 'agents', 'main', 'sessions')
@@ -12,6 +15,138 @@ const WORKSPACE_DIR = join(OPENCLAW_DIR, 'workspace')
 const STANDUPS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'standups')
 const DOCS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'generated-docs')
 const COST_LOG_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'cost-logs')
+const GRANDVIEW_CONFIG_DIR = join(homedir(), '.grandviewos')
+const GRANDVIEW_CONFIG_FILE = join(GRANDVIEW_CONFIG_DIR, 'config.json')
+
+const MAX_FILE_SIZE = 1024 * 1024 // 1MB
+
+// ---- AUTHENTICATION ----
+
+let cachedApiKey: string | null = null
+
+async function getApiKey(): Promise<string> {
+  if (cachedApiKey) return cachedApiKey
+
+  // 1. Check environment variable
+  if (process.env.MUDDY_API_KEY) {
+    cachedApiKey = process.env.MUDDY_API_KEY
+    return cachedApiKey
+  }
+
+  // 2. Check config file
+  try {
+    const raw = await readFile(GRANDVIEW_CONFIG_FILE, 'utf-8')
+    const config = JSON.parse(raw) as { apiKey?: string }
+    if (config.apiKey) {
+      cachedApiKey = config.apiKey
+      return cachedApiKey
+    }
+  } catch { /* no config file yet */ }
+
+  // 3. Generate a new key
+  const newKey = randomBytes(32).toString('hex')
+  await mkdir(GRANDVIEW_CONFIG_DIR, { recursive: true })
+  await writeFile(GRANDVIEW_CONFIG_FILE, JSON.stringify({ apiKey: newKey }, null, 2))
+  cachedApiKey = newKey
+  console.log('\n╔══════════════════════════════════════════════════════╗')
+  console.log('║  GrandviewOS API Key (auto-generated, first run):   ║')
+  console.log(`║  ${newKey}  ║`)
+  console.log('╚══════════════════════════════════════════════════════╝\n')
+  return cachedApiKey
+}
+
+function checkAuth(req: import('http').IncomingMessage, apiKey: string): boolean {
+  // Check header
+  const headerKey = req.headers['x-muddy-key'] as string | undefined
+  if (headerKey === apiKey) return true
+
+  // Check query param (for SSE)
+  try {
+    const url = new URL(req.url ?? '', 'http://localhost')
+    const queryKey = url.searchParams.get('key')
+    if (queryKey === apiKey) return true
+  } catch { /* ignore */ }
+
+  return false
+}
+
+// ---- RATE LIMITING ----
+
+interface RateLimitConfig {
+  maxRequests: number
+  windowMs: number
+}
+
+const rateLimitBuckets: Record<string, RateLimitConfig> = {
+  'standup-create': { maxRequests: 1, windowMs: 60000 },
+  'doc-generate': { maxRequests: 1, windowMs: 60000 },
+  'workspace-write': { maxRequests: 10, windowMs: 60000 },
+}
+
+const rateLimitStore = new Map<string, number[]>()
+
+function checkRateLimit(ip: string, bucket: string): boolean {
+  const config = rateLimitBuckets[bucket]
+  if (!config) return true
+
+  const key = `${ip}:${bucket}`
+  const now = Date.now()
+  const timestamps = rateLimitStore.get(key) ?? []
+
+  // Remove expired timestamps
+  const valid = timestamps.filter(t => now - t < config.windowMs)
+
+  if (valid.length >= config.maxRequests) {
+    rateLimitStore.set(key, valid)
+    return false
+  }
+
+  valid.push(now)
+  rateLimitStore.set(key, valid)
+  return true
+}
+
+// Clean up rate limit store every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, timestamps] of rateLimitStore.entries()) {
+    const valid = timestamps.filter(t => now - t < 120000)
+    if (valid.length === 0) rateLimitStore.delete(key)
+    else rateLimitStore.set(key, valid)
+  }
+}, 300000)
+
+// ---- PATH VALIDATION ----
+
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]+$/
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9_.-]+$/
+
+function validateAgentId(id: string): boolean {
+  return SAFE_ID_RE.test(id) && id.length <= 64
+}
+
+function validateFileName(name: string): boolean {
+  return SAFE_FILENAME_RE.test(name) && !name.includes('..') && name.length <= 255
+}
+
+// ---- SESSION CACHE ----
+
+interface CachedSession {
+  mtime: number
+  data: ParsedSession
+}
+
+const sessionCache = new Map<string, CachedSession>()
+
+// Clear stale cache entries every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of sessionCache.entries()) {
+    if (now - entry.mtime > 300000) sessionCache.delete(key)
+  }
+}, 300000)
+
+// ---- TYPES ----
 
 interface JsonlSession {
   type: string
@@ -97,6 +232,18 @@ function extractTitle(messages: ParsedSession['messages']): string {
 
 async function parseSessionFile(filePath: string, includeMessages = false): Promise<ParsedSession | null> {
   try {
+    // Check cache (only for non-message requests)
+    if (!includeMessages) {
+      const fileStat = await stat(filePath)
+      const mtimeMs = fileStat.mtimeMs
+      const cached = sessionCache.get(filePath)
+      if (cached && cached.mtime === mtimeMs) {
+        // Still need to check isActive
+        const isActive = await fileExists(filePath + '.lock')
+        return { ...cached.data, isActive }
+      }
+    }
+
     const raw = await readFile(filePath, 'utf-8')
     const lines = raw.trim().split('\n')
 
@@ -160,7 +307,7 @@ async function parseSessionFile(filePath: string, includeMessages = false): Prom
 
     const isActive = await fileExists(filePath + '.lock')
 
-    return {
+    const result: ParsedSession = {
       id: sessionId,
       timestamp: sessionTimestamp,
       lastActivity: lastTimestamp || sessionTimestamp,
@@ -173,28 +320,40 @@ async function parseSessionFile(filePath: string, includeMessages = false): Prom
       title: includeMessages ? extractTitle(messages) : '',
       messages: includeMessages ? messages : [],
     }
+
+    // Cache non-message results
+    if (!includeMessages) {
+      const fileStat = await stat(filePath)
+      sessionCache.set(filePath, { mtime: fileStat.mtimeMs, data: result })
+    }
+
+    return result
   } catch {
     return null
   }
 }
 
-async function getSessions(): Promise<ParsedSession[]> {
+async function getSessions(limit = 50, offset = 0): Promise<{ sessions: ParsedSession[]; total: number }> {
   try {
     const files = await readdir(SESSIONS_DIR)
     const jsonlFiles = files
       .filter(f => f.endsWith('.jsonl') && !f.includes('.deleted'))
       .sort()
-      .slice(-50)
+
+    const total = jsonlFiles.length
+    const sliced = jsonlFiles.slice(-(offset + limit)).slice(0, limit)
 
     const sessions = await Promise.all(
-      jsonlFiles.map(f => parseSessionFile(join(SESSIONS_DIR, f)))
+      sliced.map(f => parseSessionFile(join(SESSIONS_DIR, f)))
     )
 
-    return sessions
+    const sorted = sessions
       .filter((s): s is ParsedSession => s !== null)
       .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
+
+    return { sessions: sorted, total }
   } catch {
-    return []
+    return { sessions: [], total: 0 }
   }
 }
 
@@ -268,7 +427,7 @@ async function getAgents(): Promise<Array<{
 
 function runCommand(cmd: string): Promise<string> {
   return new Promise((resolve) => {
-    exec(cmd, { timeout: 10000 }, (error, stdout, stderr) => {
+    execFile('bash', ['-c', cmd], { timeout: 10000 }, (error, stdout, stderr) => {
       resolve(error ? stderr || error.message : stdout)
     })
   })
@@ -341,11 +500,20 @@ async function getConfig(): Promise<{
 }
 
 async function getWorkspaceFile(agentId: string, fileName: string): Promise<string | null> {
-  const agentPath = join(AGENTS_DIR, agentId, 'agent', fileName)
+  if (!validateAgentId(agentId) || !validateFileName(fileName)) return null
+
+  const agentDir = join(AGENTS_DIR, agentId, 'agent')
+  const agentPath = join(agentDir, fileName)
+  // Verify resolved path is within expected directory
+  if (!resolve(agentPath).startsWith(resolve(agentDir))) return null
+
   if (await fileExists(agentPath)) {
     return readFile(agentPath, 'utf-8')
   }
+
   const wsPath = join(WORKSPACE_DIR, fileName)
+  if (!resolve(wsPath).startsWith(resolve(WORKSPACE_DIR))) return null
+
   if (await fileExists(wsPath)) {
     return readFile(wsPath, 'utf-8')
   }
@@ -353,20 +521,26 @@ async function getWorkspaceFile(agentId: string, fileName: string): Promise<stri
 }
 
 async function saveWorkspaceFile(agentId: string, fileName: string, content: string): Promise<boolean> {
-  // Try agent workspace first
-  const agentPath = join(AGENTS_DIR, agentId, 'agent', fileName)
+  if (!validateAgentId(agentId) || !validateFileName(fileName)) return false
+  if (Buffer.byteLength(content, 'utf-8') > MAX_FILE_SIZE) return false
+
   const agentDir = join(AGENTS_DIR, agentId, 'agent')
+  const agentPath = join(agentDir, fileName)
+  if (!resolve(agentPath).startsWith(resolve(agentDir))) return false
+
   if (await fileExists(agentDir)) {
     await writeFile(agentPath, content, 'utf-8')
     return true
   }
-  // Fallback to main workspace
+
   const wsPath = join(WORKSPACE_DIR, fileName)
+  if (!resolve(wsPath).startsWith(resolve(WORKSPACE_DIR))) return false
   await writeFile(wsPath, content, 'utf-8')
   return true
 }
 
 async function getAgentFiles(agentId: string): Promise<Array<{ name: string; size: number }>> {
+  if (!validateAgentId(agentId)) return []
   const agentPath = join(AGENTS_DIR, agentId, 'agent')
   try {
     const files = await readdir(agentPath)
@@ -409,7 +583,29 @@ async function ensureDir(dir: string): Promise<void> {
   await mkdir(dir, { recursive: true })
 }
 
-function generateStandupConversation(): Array<{ speaker: string; text: string }> {
+async function generateStandupConversation(): Promise<Array<{ speaker: string; text: string }>> {
+  // Try to use OpenClaw CLI for real AI conversation
+  try {
+    const result = await new Promise<string>((res, rej) => {
+      execFile('openclaw', ['run', '--model', 'anthropic/claude-sonnet-4-6', '--prompt',
+        `You are simulating an executive standup meeting for an AI company. Generate a JSON array of conversation turns. Each turn has "speaker" (one of: Muddy, Elon, Gary, Warren) and "text". Muddy is COO, Elon is CTO, Gary is CMO, Warren is CRO. Make it realistic, covering engineering, marketing, revenue, and action items. 5-7 turns. Return ONLY valid JSON array, no markdown.`
+      ], { timeout: 30000 }, (err, stdout) => {
+        if (err) rej(err)
+        else res(stdout)
+      })
+    })
+    // Try to parse the result
+    const jsonMatch = result.match(/\[[\s\S]*\]/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]) as Array<{ speaker: string; text: string }>
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].speaker && parsed[0].text) {
+        return parsed
+      }
+    }
+  } catch {
+    // Fallback to hardcoded
+  }
+
   const today = new Date().toISOString().split('T')[0]
   return [
     { speaker: 'Muddy', text: `Good morning team. Let's run through our status for ${today}. We have a lot of moving pieces — I want crisp updates from each department. Elon, engineering first.` },
@@ -442,14 +638,36 @@ async function generateTTSAudio(text: string, voice: string, outputPath: string)
   })
 }
 
+async function hasFfmpeg(): Promise<boolean> {
+  return new Promise((res) => {
+    execFile('which', ['ffmpeg'], (err) => res(!err))
+  })
+}
+
 async function concatenateAudioFiles(files: string[], outputPath: string): Promise<void> {
-  // Simple concatenation using cat for mp3 (works for playback, not perfect but functional)
-  const fileList = files.join(' ')
-  return new Promise((resolve, reject) => {
-    exec(`cat ${fileList} > ${outputPath}`, (error) => {
-      if (error) reject(error)
-      else resolve()
+  if (files.length === 0) return
+
+  // Try ffmpeg first
+  if (await hasFfmpeg()) {
+    const concatStr = files.join('|')
+    return new Promise((resolve, reject) => {
+      execFile('ffmpeg', ['-i', `concat:${concatStr}`, '-acodec', 'copy', '-y', outputPath],
+        { timeout: 30000 }, (error) => {
+          if (error) reject(error)
+          else resolve()
+        })
     })
+  }
+
+  // Fallback: stream-based concatenation
+  const writeStream = createWriteStream(outputPath)
+  for (const file of files) {
+    await pipeline(createReadStream(file), writeStream, { end: false })
+  }
+  writeStream.end()
+  await new Promise<void>((resolve, reject) => {
+    writeStream.on('finish', resolve)
+    writeStream.on('error', reject)
   })
 }
 
@@ -458,7 +676,7 @@ async function runStandup(standupId: string): Promise<StandupData> {
   const standupDir = join(STANDUPS_DIR, standupId)
   await ensureDir(standupDir)
 
-  const conversation = generateStandupConversation()
+  const conversation = await generateStandupConversation()
   const actionItems = extractActionItems(conversation)
   const now = new Date()
 
@@ -476,10 +694,8 @@ async function runStandup(standupId: string): Promise<StandupData> {
     createdAt: now.toISOString(),
   }
 
-  // Save initial state
   await writeFile(join(standupDir, 'data.json'), JSON.stringify(standupData, null, 2))
 
-  // Generate TTS audio segments
   const audioSegments: string[] = []
   try {
     for (let i = 0; i < conversation.length; i++) {
@@ -491,7 +707,6 @@ async function runStandup(standupId: string): Promise<StandupData> {
       audioSegments.push(segmentPath)
     }
 
-    // Concatenate all segments
     const fullAudioPath = join(standupDir, 'full-meeting.mp3')
     if (audioSegments.length > 0) {
       await concatenateAudioFiles(audioSegments, fullAudioPath)
@@ -505,6 +720,22 @@ async function runStandup(standupId: string): Promise<StandupData> {
   }
 
   await writeFile(join(standupDir, 'data.json'), JSON.stringify(standupData, null, 2))
+
+  // Send to Telegram if configured
+  try {
+    const configRaw = await readFile(GRANDVIEW_CONFIG_FILE, 'utf-8').catch(() => '{}')
+    const gvConfig = JSON.parse(configRaw) as { telegramBotToken?: string; telegramChatId?: string }
+    if (gvConfig.telegramBotToken && gvConfig.telegramChatId) {
+      const summary = `📋 *Standup Complete*\n${standupData.title}\n\n` +
+        conversation.map(m => `*${m.speaker}:* ${m.text.slice(0, 100)}...`).join('\n')
+      await fetch(`https://api.telegram.org/bot${gvConfig.telegramBotToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: gvConfig.telegramChatId, text: summary, parse_mode: 'Markdown' }),
+      }).catch(() => {})
+    }
+  } catch { /* ignore telegram errors */ }
+
   return standupData
 }
 
@@ -530,10 +761,8 @@ async function listStandups(): Promise<StandupData[]> {
 
 async function generateDocs(): Promise<Record<string, string>> {
   const docs: Record<string, string> = {}
-
-  // Get agent and session data
   const agents = await getAgents()
-  const sessions = await getSessions()
+  const { sessions } = await getSessions()
   const config = await getConfig()
   const health = await getSystemHealth()
 
@@ -541,247 +770,18 @@ async function generateDocs(): Promise<Record<string, string>> {
   const totalTokens = sessions.reduce((sum, s) => sum + s.totalTokens, 0)
   const totalCost = sessions.reduce((sum, s) => sum + s.totalCost, 0)
 
-  docs['Overview'] = `# GrandviewOS — System Overview
+  docs['Overview'] = `# GrandviewOS — System Overview\n\n*Auto-generated on ${new Date().toISOString().split('T')[0]}*\n\n## System Status\n- **Gateway:** ${health.gatewayRunning ? '🟢 Online' : '🔴 Offline'}\n- **Version:** ${health.version}\n- **Total Sessions:** ${health.totalSessions}\n- **Active Sessions:** ${health.activeSessions}\n- **Agents Registered:** ${agents.length}\n\n## Tech Stack\n- **Frontend:** React 19 + TypeScript + Tailwind CSS 4\n- **Build:** Vite 7 with HMR\n- **AI Runtime:** OpenClaw\n- **Primary Model:** ${config.model.primary}`
 
-*Auto-generated on ${new Date().toISOString().split('T')[0]}*
+  docs['Task Manager'] = `# Task Manager\n\n*Auto-generated from ${sessions.length} sessions*\n\n## Current Statistics\n- **Active Sessions:** ${activeSessions.length}\n- **Total Sessions:** ${sessions.length}\n- **Total Tokens:** ${totalTokens >= 1000000 ? (totalTokens / 1000000).toFixed(1) + 'M' : totalTokens >= 1000 ? (totalTokens / 1000).toFixed(1) + 'K' : totalTokens}\n- **Total Cost:** $${totalCost.toFixed(2)}`
 
-## System Status
-- **Gateway:** ${health.gatewayRunning ? '🟢 Online' : '🔴 Offline'}
-- **Version:** ${health.version}
-- **Total Sessions:** ${health.totalSessions}
-- **Active Sessions:** ${health.activeSessions}
-- **Agents Registered:** ${agents.length}
+  docs['Organization Chart'] = `# Organization Chart\n\n## Hierarchy\n\`\`\`\n        👤 CEO (Marcelo)\n             │\n        🐕 COO (Muddy)\n        ┌────┼────┐\n   🚀 CTO  📣 CMO  💰 CRO\n   (Elon)  (Gary)  (Warren)\n\`\`\`\n\n## Registered Agents (${agents.length})\n${agents.map(a => `- **${a.name}** — ${a.hasSoul ? '✅ SOUL' : '❌ SOUL'} ${a.hasMemory ? '✅ MEM' : '❌ MEM'} (${a.files.length} files)`).join('\n')}`
 
-## Architecture
+  docs['Team Workspaces'] = `# Team Workspaces\n\n${agents.map(a => `### ${a.name}\n- **Path:** \`${a.workspace}\`\n- **Files:** ${a.files.join(', ') || 'None'}`).join('\n\n')}`
 
-\`\`\`
-┌─────────────────────────────────────────────┐
-│              GrandviewOS Frontend            │
-│       React + TypeScript SPA (Tab-Based)     │
-├──────────┬──────────┬───────────────────────┤
-│   OPS    │  BRAIN   │         LAB            │
-│(Current) │  (V2)    │        (V2)            │
-├──────────┤──────────┤───────────────────────┤
-│Task Mgr  │Memory    │Idea Gallery            │
-│Org Chart │Viewer    │Prototype Fleet         │
-│Standup   │Daily     │Weekly Reviews          │
-│Workspace │Briefs    │Ideation Logs           │
-│Docs      │Projects  │                        │
-└──────────┴──────────┴───────────────────────┘
-         │
-    ┌────┴────┐
-    │  Vite   │
-    │  API    │
-    │ Proxy   │
-    └────┬────┘
-         │
-┌────────┴────────────────────────────────────┐
-│          OpenClaw Runtime                    │
-│  Gateway · Sessions · Cron · Workspaces     │
-│  Memory · Tools · Agents                    │
-└─────────────────────────────────────────────┘
-\`\`\`
+  docs['Voice Standup'] = `# Voice Standup System\n\n## Agent Voice Assignments\n| Agent | Voice | Role |\n|-------|-------|------|\n| Muddy 🐕 | en-US-GuyNeural | COO |\n| Elon 🚀 | en-US-ChristopherNeural | CTO |\n| Gary 📣 | en-US-JasonNeural | CMO |\n| Warren 💰 | en-GB-RyanNeural | CRO |`
 
-## Tech Stack
-- **Frontend:** React 19 + TypeScript + Tailwind CSS 4
-- **Build:** Vite 7 with HMR
-- **Design:** Dark-mode "Phosphor Emerald"
-- **AI Runtime:** OpenClaw
-- **Primary Model:** ${config.model.primary}
-- **Fallbacks:** ${config.model.fallbacks.join(', ') || 'None configured'}
+  docs['Memory Architecture'] = `# Memory Architecture\n\n## Memory Types\n- **Daily Notes** (\`memory/YYYY-MM-DD.md\`)\n- **Long-term Memory** (\`MEMORY.md\`) — Found in ${agents.filter(a => a.hasMemory).length}/${agents.length} agents`
 
-## Modules
-1. **Ops** (Current) — Task Manager, Org Chart, Standups, Workspaces, Docs, Settings
-2. **Brain** (V2) — Memory Viewer, Daily Briefs, Project Tracking
-3. **Lab** (V2) — Idea Gallery, Prototype Fleet, Weekly Reviews`
-
-  docs['Task Manager'] = `# Task Manager
-
-*Auto-generated from ${sessions.length} sessions*
-
-## Current Statistics
-- **Active Sessions:** ${activeSessions.length}
-- **Total Sessions:** ${sessions.length}
-- **Total Tokens:** ${totalTokens >= 1000000 ? (totalTokens / 1000000).toFixed(1) + 'M' : totalTokens >= 1000 ? (totalTokens / 1000).toFixed(1) + 'K' : totalTokens}
-- **Total Cost:** $${totalCost.toFixed(2)}
-
-## Features
-- **5 Stat Cards:** Active, Idle, Total Sessions, Tokens Used, Total Cost
-- **Model Fleet Grid:** All AI models with per-model usage stats
-- **Session List:** Live and demo data toggle
-- **Transcript Viewer:** Click any session to see full conversation
-- **Cron Jobs:** Scheduled recurring automations
-- **Overnight Log:** Timeline of overnight agent activity
-- **Cost Breakdown:** Per-agent and per-model cost analysis
-- **Live Mode:** Auto-refresh with green pulsing indicator
-
-## Top Models by Usage
-${sessions.reduce((acc, s) => {
-    const model = s.model || 'unknown'
-    if (!acc[model]) acc[model] = { tokens: 0, cost: 0, count: 0 }
-    acc[model].tokens += s.totalTokens
-    acc[model].cost += s.totalCost
-    acc[model].count++
-    return acc
-  }, {} as Record<string, { tokens: number; cost: number; count: number }>)
-    ? Object.entries(sessions.reduce((acc, s) => {
-        const model = s.model || 'unknown'
-        if (!acc[model]) acc[model] = { tokens: 0, cost: 0, count: 0 }
-        acc[model].tokens += s.totalTokens
-        acc[model].cost += s.totalCost
-        acc[model].count++
-        return acc
-      }, {} as Record<string, { tokens: number; cost: number; count: number }>))
-      .sort((a, b) => b[1].cost - a[1].cost)
-      .slice(0, 5)
-      .map(([model, stats]) => `| ${model} | ${stats.count} sessions | $${stats.cost.toFixed(2)} |`)
-      .join('\n')
-    : 'No data yet'}`
-
-  docs['Organization Chart'] = `# Organization Chart
-
-## Hierarchy
-\`\`\`
-        👤 CEO (Marcelo)
-             │
-        🐕 COO (Muddy)
-        ┌────┼────┐
-   🚀 CTO  📣 CMO  💰 CRO
-   (Elon)  (Gary)  (Warren)
-\`\`\`
-
-## Registered Agents (${agents.length})
-${agents.map(a => `- **${a.name}** — ${a.hasSoul ? '✅ SOUL' : '❌ SOUL'} ${a.hasMemory ? '✅ MEM' : '❌ MEM'} (${a.files.length} files)`).join('\n')}
-
-## Agent Statuses
-- 🟢 **Active** — Operational and responding
-- 🟡 **Scaffolded** — Structure created, not deployed
-- 🔴 **Deprecated** — No longer in use`
-
-  docs['Team Workspaces'] = `# Team Workspaces
-
-*Auto-generated from agent filesystem*
-
-## Agent Workspaces
-${agents.map(a => `### ${a.name}
-- **Path:** \`${a.workspace}\`
-- **Files:** ${a.files.join(', ') || 'None'}
-- **Has SOUL:** ${a.hasSoul ? 'Yes' : 'No'}
-- **Has Memory:** ${a.hasMemory ? 'Yes' : 'No'}
-${a.soulSnippet ? `- **Soul Preview:** ${a.soulSnippet.slice(0, 100)}...` : ''}`).join('\n\n')}
-
-## Standard Files
-| File | Purpose |
-|------|---------|
-| \`SOUL.md\` | Agent personality, behavioral rules |
-| \`IDENTITY.md\` | Core identity attributes |
-| \`USER.md\` | Context about the human operator |
-| \`TOOLS.md\` | Available tools and configurations |
-| \`AGENTS.md\` | Workspace conventions |
-| \`MEMORY.md\` | Long-term curated memory |`
-
-  docs['Sub-Agents & Spawning'] = `# Sub-Agents & Spawning
-
-## How It Works
-OpenClaw supports spawning sub-agents for specialized tasks. The main agent (Muddy) can delegate work to department heads, who can further delegate to specialists.
-
-## Spawn Flow
-1. Main agent receives complex task
-2. Assesses if existing specialists can handle it
-3. Spawns sub-agent with appropriate model and tools
-4. Sub-agent runs in isolated session
-5. Results reported back to parent agent
-
-## Current Agent Count: ${agents.length}
-
-## Best Practices
-- Assign the right model for the task complexity
-- Sub-agents inherit parent context but run independently
-- Keep specialist count manageable per department
-- Regular cleanup of completed sub-agent sessions`
-
-  docs['Gateway vs Sub-Agents'] = `# Gateway vs Sub-Agents
-
-## Concepts
-- **Gateway** = OpenClaw daemon managing sessions and model access
-- **Agent** = Configured identity with workspace and model assignment
-- **Session** = Single conversation/task between agent and AI model
-
-## Current Gateway Status
-- **Running:** ${health.gatewayRunning ? 'Yes' : 'No'}
-- **PID:** ${health.gatewayPid ?? 'N/A'}
-- **Active Sessions:** ${health.activeSessions}
-
-## Architecture
-Heavy-traffic agents (like community bots) may use separate gateways. All other agents share the primary gateway for efficiency.`
-
-  docs['Voice Standup'] = `# Voice Standup System
-
-## How It Works
-1. **Trigger:** Click "+ New Standup" or schedule via cron
-2. **Participants:** COO + department heads join automatically
-3. **Discussion:** Turn-based conversation generated by AI
-4. **TTS Audio:** Microsoft Edge TTS generates unique voices per agent
-5. **Action Items:** Extracted from conversation automatically
-6. **Archive:** Transcript + audio stored for review
-
-## Agent Voice Assignments
-| Agent | Voice | Role |
-|-------|-------|------|
-| Muddy 🐕 | en-US-GuyNeural | COO |
-| Elon 🚀 | en-US-ChristopherNeural | CTO |
-| Gary 📣 | en-US-JasonNeural | CMO |
-| Warren 💰 | en-GB-RyanNeural | CRO |
-
-## Audio Generation
-Uses \`edge-tts\` (Microsoft open-source TTS) via Python CLI. Each speaker's message is synthesized separately, then concatenated into a full meeting recording.`
-
-  docs['Partnership Pipeline'] = `# Partnership Pipeline
-
-## Pipeline Stages
-\`\`\`
-Identified → Contacted → Responded → Proposal → Negotiation → Closed
-\`\`\`
-
-## Agent Roles
-- **Deal** 🤝 — Manages active proposals and negotiations
-- **Scout** 🔭 — Researches and identifies opportunities
-- **Closer** 💼 — Handles final negotiations
-- **Outreach** 📧 — Cold outreach and email sequences`
-
-  docs['Memory Architecture'] = `# Memory Architecture
-
-*Auto-generated from agent analysis*
-
-## Memory Types
-### Daily Notes (\`memory/YYYY-MM-DD.md\`)
-Raw session logs — what happened each day.
-
-### Long-term Memory (\`MEMORY.md\`)
-Curated insights and decisions. Found in ${agents.filter(a => a.hasMemory).length}/${agents.length} agents.
-
-### Heartbeat State (\`memory/heartbeat-state.json\`)
-Tracks periodic check timestamps.
-
-## Agents with Memory
-${agents.filter(a => a.hasMemory).map(a => `- **${a.name}** ✅`).join('\n') || 'No agents have MEMORY.md yet'}
-
-## Memory Flow
-\`\`\`
-Session starts
-    ├─ Read SOUL.md (identity)
-    ├─ Read USER.md (human context)
-    ├─ Read memory/today.md
-    ├─ Read memory/yesterday.md
-    └─ If main session: Read MEMORY.md
-         │
-    Session work happens
-         │
-    ├─ Write to memory/today.md
-    └─ Periodically update MEMORY.md
-\`\`\``
-
-  // Save generated docs
   await ensureDir(DOCS_DIR)
   for (const [key, content] of Object.entries(docs)) {
     await writeFile(join(DOCS_DIR, `${key}.md`), content)
@@ -822,7 +822,7 @@ async function getCostBreakdown(): Promise<{
   byAgent: Record<string, { cost: number; tokens: number; sessions: number }>
   total: { cost: number; tokens: number; sessions: number }
 }> {
-  const sessions = await getSessions()
+  const { sessions } = await getSessions()
   const byModel: Record<string, { cost: number; tokens: number; sessions: number }> = {}
   const byAgent: Record<string, { cost: number; tokens: number; sessions: number }> = {}
   let totalCost = 0
@@ -835,7 +835,6 @@ async function getCostBreakdown(): Promise<{
     byModel[model].tokens += s.totalTokens
     byModel[model].sessions++
 
-    // For now, attribute to "main" agent since we parse main sessions
     const agent = 'main'
     if (!byAgent[agent]) byAgent[agent] = { cost: 0, tokens: 0, sessions: 0 }
     byAgent[agent].cost += s.totalCost
@@ -884,14 +883,21 @@ async function getCostHistory(days: number = 7): Promise<DailyCostEntry[]> {
   return entries.reverse()
 }
 
-// ---- SSE (Server-Sent Events) ----
+// ---- SSE ----
 
-function setupSSE(server: ViteDevServer): void {
+function setupSSE(server: ViteDevServer, apiKey: string): void {
   const clients: Set<import('http').ServerResponse> = new Set()
 
   server.middlewares.use((req, res, next) => {
-    if (req.url !== '/api/events') {
+    if (req.url?.split('?')[0] !== '/api/events') {
       next()
+      return
+    }
+
+    // Auth check for SSE via query param
+    if (!checkAuth(req, apiKey)) {
+      res.statusCode = 401
+      res.end(JSON.stringify({ error: 'Unauthorized' }))
       return
     }
 
@@ -899,7 +905,6 @@ function setupSSE(server: ViteDevServer): void {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
     })
 
     res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
@@ -914,39 +919,113 @@ function setupSSE(server: ViteDevServer): void {
   setInterval(async () => {
     if (clients.size === 0) return
     try {
-      const sessions = await getSessions()
+      const { sessions } = await getSessions(20)
       const health = await getSystemHealth()
       const data = JSON.stringify({
         type: 'session:update',
-        sessions: sessions.slice(0, 20),
+        sessions,
         health,
         timestamp: new Date().toISOString(),
       })
       for (const client of clients) {
         client.write(`data: ${data}\n\n`)
       }
-    } catch {
-      // ignore broadcast errors
-    }
+    } catch { /* ignore */ }
   }, 5000)
+}
+
+// ---- COST LOG TIMER (instead of side-effect in GET) ----
+
+function startCostLogTimer(): void {
+  // Log cost every 5 minutes
+  setInterval(() => {
+    logDailyCost().catch(() => {})
+  }, 300000)
+  // Log once on startup after a short delay
+  setTimeout(() => { logDailyCost().catch(() => {}) }, 5000)
 }
 
 // ---- REQUEST BODY PARSER ----
 
-function parseBody(req: import('http').IncomingMessage): Promise<string> {
-  return new Promise((resolve) => {
+function parseBody(req: import('http').IncomingMessage, maxSize: number = MAX_FILE_SIZE): Promise<string> {
+  return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > maxSize) {
+        reject(new Error('PAYLOAD_TOO_LARGE'))
+        req.destroy()
+        return
+      }
+      body += chunk.toString()
+    })
     req.on('end', () => resolve(body))
+    req.on('error', reject)
   })
+}
+
+// ---- CRON JOB HELPERS ----
+
+async function listCronJobs(): Promise<Array<{ id: string; name: string; schedule: string; status: string }>> {
+  try {
+    const result = await new Promise<string>((res) => {
+      execFile('openclaw', ['cron', 'list', '--json'], { timeout: 10000 }, (err, stdout) => {
+        res(err ? '[]' : stdout)
+      })
+    })
+    const jsonMatch = result.match(/\[[\s\S]*\]/)
+    if (jsonMatch) return JSON.parse(jsonMatch[0]) as Array<{ id: string; name: string; schedule: string; status: string }>
+  } catch { /* ignore */ }
+  return []
 }
 
 export function openclawApiPlugin(): Plugin {
   return {
     name: 'openclaw-api',
     configureServer(server: ViteDevServer) {
-      // Set up SSE
-      setupSSE(server)
+      let apiKey = ''
+
+      // Initialize auth key and SSE
+      const initPromise = getApiKey().then(key => {
+        apiKey = key
+        setupSSE(server, apiKey)
+        startCostLogTimer()
+      })
+
+      // CORS middleware
+      server.middlewares.use((req, res, next) => {
+        const origin = req.headers.origin
+        const allowedOrigins = ['http://localhost:7100', 'http://127.0.0.1:7100', 'http://0.0.0.0:7100']
+        if (origin && allowedOrigins.includes(origin)) {
+          res.setHeader('Access-Control-Allow-Origin', origin)
+        }
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Muddy-Key')
+
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 204
+          res.end()
+          return
+        }
+        next()
+      })
+
+      // Auth endpoint (no auth required)
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url === '/api/auth/verify' && req.method === 'POST') {
+          await initPromise
+          res.setHeader('Content-Type', 'application/json')
+          if (checkAuth(req, apiKey)) {
+            res.end(JSON.stringify({ valid: true }))
+          } else {
+            res.statusCode = 401
+            res.end(JSON.stringify({ valid: false, error: 'Invalid API key' }))
+          }
+          return
+        }
+        next()
+      })
 
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith('/api/')) {
@@ -954,11 +1033,23 @@ export function openclawApiPlugin(): Plugin {
           return
         }
 
-        // Skip SSE endpoint (handled above)
-        if (req.url === '/api/events') {
+        // Skip SSE (handled separately) and auth verify
+        if (req.url?.split('?')[0] === '/api/events' || req.url === '/api/auth/verify') {
           next()
           return
         }
+
+        await initPromise
+
+        // Auth check
+        if (!checkAuth(req, apiKey)) {
+          res.statusCode = 401
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Unauthorized. Provide X-Muddy-Key header.' }))
+          return
+        }
+
+        const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0] ?? req.socket.remoteAddress ?? 'unknown'
 
         res.setHeader('Content-Type', 'application/json')
 
@@ -967,8 +1058,10 @@ export function openclawApiPlugin(): Plugin {
 
           // ---- SESSIONS ----
           if (url.pathname === '/api/sessions') {
-            const sessions = await getSessions()
-            res.end(JSON.stringify(sessions))
+            const limit = parseInt(url.searchParams.get('limit') ?? '50')
+            const offset = parseInt(url.searchParams.get('offset') ?? '0')
+            const { sessions, total } = await getSessions(limit, offset)
+            res.end(JSON.stringify({ sessions, total }))
             return
           }
 
@@ -990,11 +1083,16 @@ export function openclawApiPlugin(): Plugin {
               const files = await readdir(SESSIONS_DIR)
               const lockFile = files.find(f => f.startsWith(killMatch[1]) && f.endsWith('.jsonl.lock'))
               if (lockFile) {
-                const { unlink } = await import('fs/promises')
                 await unlink(join(SESSIONS_DIR, lockFile))
+                res.end(JSON.stringify({ ok: true }))
+              } else {
+                res.statusCode = 404
+                res.end(JSON.stringify({ error: 'Session lock not found' }))
               }
-            } catch { /* ignore */ }
-            res.end(JSON.stringify({ ok: true }))
+            } catch {
+              res.statusCode = 500
+              res.end(JSON.stringify({ error: 'Failed to kill session' }))
+            }
             return
           }
 
@@ -1007,6 +1105,11 @@ export function openclawApiPlugin(): Plugin {
 
           const agentFilesMatch = url.pathname.match(/^\/api\/agents\/([^/]+)\/files$/)
           if (agentFilesMatch) {
+            if (!validateAgentId(agentFilesMatch[1])) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'Invalid agent ID' }))
+              return
+            }
             const files = await getAgentFiles(agentFilesMatch[1])
             res.end(JSON.stringify(files))
             return
@@ -1015,14 +1118,56 @@ export function openclawApiPlugin(): Plugin {
           // ---- WORKSPACE ----
           const workspaceFileMatch = url.pathname.match(/^\/api\/workspace\/([^/]+)\/(.+)$/)
           if (workspaceFileMatch) {
-            if (req.method === 'PUT') {
-              const body = await parseBody(req)
-              const { content } = JSON.parse(body) as { content: string }
-              const ok = await saveWorkspaceFile(workspaceFileMatch[1], workspaceFileMatch[2], content)
-              res.end(JSON.stringify({ ok }))
+            const agentId = workspaceFileMatch[1]
+            const fileName = workspaceFileMatch[2]
+
+            if (!validateAgentId(agentId) || !validateFileName(fileName)) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'Invalid agent ID or file name' }))
               return
             }
-            const content = await getWorkspaceFile(workspaceFileMatch[1], workspaceFileMatch[2])
+
+            if (req.method === 'PUT') {
+              if (!checkRateLimit(clientIp, 'workspace-write')) {
+                res.statusCode = 429
+                res.end(JSON.stringify({ error: 'Too many requests. Try again later.' }))
+                return
+              }
+
+              // Check Content-Length
+              const contentLength = parseInt(req.headers['content-length'] ?? '0')
+              if (contentLength > MAX_FILE_SIZE) {
+                res.statusCode = 413
+                res.end(JSON.stringify({ error: 'Payload too large. Max 1MB.' }))
+                return
+              }
+
+              try {
+                const body = await parseBody(req)
+                const { content } = JSON.parse(body) as { content: string }
+                if (Buffer.byteLength(content, 'utf-8') > MAX_FILE_SIZE) {
+                  res.statusCode = 413
+                  res.end(JSON.stringify({ error: 'File content too large. Max 1MB.' }))
+                  return
+                }
+                const ok = await saveWorkspaceFile(agentId, fileName, content)
+                if (!ok) {
+                  res.statusCode = 400
+                  res.end(JSON.stringify({ error: 'Failed to save file' }))
+                  return
+                }
+                res.end(JSON.stringify({ ok }))
+              } catch (err) {
+                if (err instanceof Error && err.message === 'PAYLOAD_TOO_LARGE') {
+                  res.statusCode = 413
+                  res.end(JSON.stringify({ error: 'Payload too large. Max 1MB.' }))
+                } else {
+                  throw err
+                }
+              }
+              return
+            }
+            const content = await getWorkspaceFile(agentId, fileName)
             if (content !== null) {
               res.end(JSON.stringify({ content }))
             } else {
@@ -1047,10 +1192,13 @@ export function openclawApiPlugin(): Plugin {
 
           // ---- STANDUPS ----
           if (url.pathname === '/api/standups' && req.method === 'POST') {
+            if (!checkRateLimit(clientIp, 'standup-create')) {
+              res.statusCode = 429
+              res.end(JSON.stringify({ error: 'Too many requests. Max 1 standup per minute.' }))
+              return
+            }
             const standupId = `standup-${Date.now()}`
-            // Start standup async, return immediately
             res.end(JSON.stringify({ id: standupId, status: 'started' }))
-            // Run in background
             runStandup(standupId).catch(err => console.error('Standup error:', err))
             return
           }
@@ -1063,7 +1211,13 @@ export function openclawApiPlugin(): Plugin {
 
           const standupDataMatch = url.pathname.match(/^\/api\/standups\/([^/]+)$/)
           if (standupDataMatch && req.method === 'GET') {
-            const dataPath = join(STANDUPS_DIR, standupDataMatch[1], 'data.json')
+            const id = standupDataMatch[1]
+            if (!validateAgentId(id.replace(/\./g, ''))) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'Invalid standup ID' }))
+              return
+            }
+            const dataPath = join(STANDUPS_DIR, id, 'data.json')
             if (await fileExists(dataPath)) {
               const raw = await readFile(dataPath, 'utf-8')
               res.end(raw)
@@ -1097,6 +1251,11 @@ export function openclawApiPlugin(): Plugin {
           }
 
           if (url.pathname === '/api/docs/generate' && req.method === 'POST') {
+            if (!checkRateLimit(clientIp, 'doc-generate')) {
+              res.statusCode = 429
+              res.end(JSON.stringify({ error: 'Too many requests. Max 1 doc generation per minute.' }))
+              return
+            }
             const docs = await generateDocs()
             res.end(JSON.stringify(docs))
             return
@@ -1111,23 +1270,55 @@ export function openclawApiPlugin(): Plugin {
 
           if (url.pathname === '/api/cost/history') {
             const days = parseInt(url.searchParams.get('days') ?? '7')
-            // Also log today's cost
-            await logDailyCost()
+            // No side effect — cost logging happens on timer
             const history = await getCostHistory(days)
             res.end(JSON.stringify(history))
             return
           }
 
-          if (url.pathname === '/api/cron-jobs') {
-            res.end(JSON.stringify([]))
+          // ---- CRON JOBS ----
+          if (url.pathname === '/api/cron-jobs' && req.method === 'GET') {
+            const jobs = await listCronJobs()
+            res.end(JSON.stringify(jobs))
+            return
+          }
+
+          if (url.pathname === '/api/cron-jobs' && req.method === 'POST') {
+            const body = await parseBody(req)
+            const { name, schedule, command } = JSON.parse(body) as { name: string; schedule: string; command: string }
+            const result = await new Promise<string>((res) => {
+              execFile('openclaw', ['cron', 'create', '--name', name, '--schedule', schedule, '--command', command],
+                { timeout: 10000 }, (err, stdout) => res(err ? err.message : stdout))
+            })
+            res.end(JSON.stringify({ ok: true, result: result.trim() }))
+            return
+          }
+
+          const cronPatchMatch = url.pathname.match(/^\/api\/cron-jobs\/([^/]+)$/)
+          if (cronPatchMatch && req.method === 'PATCH') {
+            const body = await parseBody(req)
+            const { action } = JSON.parse(body) as { action: 'pause' | 'resume' }
+            const result = await new Promise<string>((res) => {
+              execFile('openclaw', ['cron', action, cronPatchMatch[1]],
+                { timeout: 10000 }, (err, stdout) => res(err ? err.message : stdout))
+            })
+            res.end(JSON.stringify({ ok: true, result: result.trim() }))
+            return
+          }
+
+          if (cronPatchMatch && req.method === 'DELETE') {
+            const result = await new Promise<string>((res) => {
+              execFile('openclaw', ['cron', 'delete', cronPatchMatch[1]],
+                { timeout: 10000 }, (err, stdout) => res(err ? err.message : stdout))
+            })
+            res.end(JSON.stringify({ ok: true, result: result.trim() }))
             return
           }
 
           // ---- BRIEFS ----
           if (url.pathname === '/api/briefs') {
-            // Generate brief from session data for the given date
             const dateParam = url.searchParams.get('date') ?? new Date().toISOString().split('T')[0]
-            const allSessions = await getSessions()
+            const { sessions: allSessions } = await getSessions()
             const daySessions = allSessions.filter(s => s.timestamp.startsWith(dateParam))
             const brief = {
               date: dateParam,
@@ -1184,7 +1375,7 @@ export function openclawApiPlugin(): Plugin {
 
           // ---- REVIEWS ----
           if (url.pathname === '/api/reviews') {
-            const allSessions = await getSessions()
+            const { sessions: allSessions } = await getSessions()
             const totalTokens = allSessions.reduce((s, sess) => s + sess.totalTokens, 0)
             const totalCost = allSessions.reduce((s, sess) => s + sess.totalCost, 0)
             const review = {
@@ -1227,18 +1418,44 @@ export function openclawApiPlugin(): Plugin {
             return
           }
 
-          // ---- NOTIFICATIONS ----
+          // ---- NOTIFICATIONS / TELEGRAM ----
+          if (url.pathname === '/api/notifications/telegram' && req.method === 'POST') {
+            const body = await parseBody(req)
+            const { message } = JSON.parse(body) as { message: string }
+            try {
+              const configRaw = await readFile(GRANDVIEW_CONFIG_FILE, 'utf-8')
+              const gvConfig = JSON.parse(configRaw) as { telegramBotToken?: string; telegramChatId?: string }
+              if (!gvConfig.telegramBotToken || !gvConfig.telegramChatId) {
+                res.statusCode = 400
+                res.end(JSON.stringify({ error: 'Telegram not configured. Set telegramBotToken and telegramChatId in ~/.grandviewos/config.json' }))
+                return
+              }
+              const tgRes = await fetch(`https://api.telegram.org/bot${gvConfig.telegramBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: gvConfig.telegramChatId, text: message, parse_mode: 'Markdown' }),
+              })
+              const tgData = await tgRes.json()
+              res.end(JSON.stringify({ ok: true, telegram: tgData }))
+            } catch {
+              res.statusCode = 500
+              res.end(JSON.stringify({ error: 'Failed to send Telegram message' }))
+            }
+            return
+          }
+
           if (url.pathname === '/api/notifications/test' && req.method === 'POST') {
-            // Placeholder — would integrate with Telegram via OpenClaw message tool
-            res.end(JSON.stringify({ ok: true, message: 'Notification endpoint ready (use OpenClaw message tool for Telegram)' }))
+            res.end(JSON.stringify({ ok: true, message: 'Notification endpoint ready' }))
             return
           }
 
           res.statusCode = 404
           res.end(JSON.stringify({ error: 'Not found' }))
         } catch (err) {
-          res.statusCode = 500
-          res.end(JSON.stringify({ error: String(err) }))
+          if (!res.headersSent) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: String(err) }))
+          }
         }
       })
     },

@@ -45,20 +45,20 @@ export default function TopNavBar() {
   return (
     <nav className="border-b" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
       {/* Top row: logo + module switcher */}
-      <div className="flex items-center px-5 py-2 gap-4">
+      <div className="flex items-center px-5 py-3 gap-4">
         <NavLink to="/" className="flex items-center gap-2 mr-4 no-underline">
-          <span className="text-lg font-bold" style={{ color: 'var(--accent-teal)' }}>⬡</span>
-          <span className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>GrandviewOS</span>
+          <span className="text-xl font-bold" style={{ color: 'var(--accent-teal)' }}>⬡</span>
+          <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>GrandviewOS</span>
         </NavLink>
 
         {/* Module switcher */}
-        <div className="flex gap-1 rounded-lg p-0.5" style={{ background: 'var(--bg-hover)' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--bg-hover)' }}>
           {modules.map(m => {
             const isActive = location.pathname.startsWith(m.prefix)
             return (
               <NavLink key={m.prefix} to={m.tabs[0].path} className="no-underline">
                 <span
-                  className="px-4 py-1.5 rounded-md text-xs font-semibold transition-all inline-block"
+                  className="px-5 py-2 rounded-md text-sm font-semibold transition-all inline-block"
                   style={{
                     background: isActive ? m.color + '22' : 'transparent',
                     color: isActive ? m.color : 'var(--text-secondary)',
@@ -73,17 +73,19 @@ export default function TopNavBar() {
         </div>
       </div>
 
-      {/* Bottom row: tabs for active module */}
-      <div className="flex gap-1 px-5 pb-2">
+      {/* Bottom row: tabs for active module — scrollable on tablet */}
+      <div className="flex gap-2 px-5 pb-3 overflow-x-auto">
         {activeModule.tabs.map(tab => (
-          <NavLink key={tab.path} to={tab.path} className="no-underline">
+          <NavLink key={tab.path} to={tab.path} className="no-underline shrink-0">
             {({ isActive }) => (
               <span
-                className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+                className="px-5 py-2 rounded-full text-sm font-medium transition-all inline-block"
                 style={{
                   background: isActive ? tab.color + '22' : 'transparent',
                   color: isActive ? tab.color : 'var(--text-secondary)',
                   border: isActive ? `1px solid ${tab.color}44` : '1px solid transparent',
+                  minHeight: '36px',
+                  lineHeight: '20px',
                 }}
               >
                 {tab.label}

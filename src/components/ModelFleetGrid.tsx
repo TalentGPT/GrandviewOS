@@ -17,7 +17,6 @@ const MODEL_FLEET: ModelInfo[] = [
   { name: 'Nano Banana Pro', desc: 'Creative & graphics generation', icon: '🍌', color: 'var(--model-nano)', agents: ['Canvas', 'Motion'] },
 ]
 
-// Mock stats per model (could be derived from live data)
 const MODEL_STATS: Record<string, { cost: string; tokens: string; sessions: number; status: 'Active' | 'Standby' }> = {
   'Claude Opus 4.6': { cost: '$28.40', tokens: '3.2M', sessions: 22, status: 'Active' },
   'Claude Opus 4.5': { cost: '$12.10', tokens: '1.8M', sessions: 8, status: 'Active' },
@@ -35,28 +34,28 @@ export default function ModelFleetGrid({ liveSessions: _liveSessions }: Props) {
   return (
     <>
       <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Model Fleet</h2>
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
         {MODEL_FLEET.map(m => {
           const stats = MODEL_STATS[m.name] ?? { cost: '$0', tokens: '0', sessions: 0, status: 'Standby' as const }
           return (
-            <div key={m.name} className="rounded-lg p-4 hover:border-[var(--accent-teal)] transition-colors cursor-default" style={{ background: 'var(--bg-card)', border: `1px solid ${m.color}33` }}>
-              <div className="flex items-start justify-between mb-2">
+            <div key={m.name} className="rounded-lg p-4 md:p-5 hover:border-[var(--accent-teal)] transition-colors cursor-default" style={{ background: 'var(--bg-card)', border: `1px solid ${m.color}33` }}>
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{m.icon}</span>
+                  <span className="text-xl">{m.icon}</span>
                   <div>
                     <div className="text-sm font-semibold">{m.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{m.desc}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{m.desc}</div>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
+                <span className="text-xs px-2 py-1 rounded-full font-medium shrink-0" style={{
                   background: stats.status === 'Active' ? 'var(--accent-green)22' : 'var(--bg-hover)',
                   color: stats.status === 'Active' ? 'var(--accent-green)' : 'var(--text-secondary)',
                 }}>{stats.status}</span>
               </div>
               {/* Agent names */}
-              <div className="flex flex-wrap gap-1 mb-3">
+              <div className="flex flex-wrap gap-1.5 mb-3">
                 {m.agents.map(a => (
-                  <span key={a} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: m.color + '15', color: m.color }}>{a}</span>
+                  <span key={a} className="text-xs px-2 py-0.5 rounded" style={{ background: m.color + '15', color: m.color }}>{a}</span>
                 ))}
               </div>
               <div className="flex gap-4 text-xs" style={{ fontFamily: 'var(--font-mono)' }}>

@@ -62,7 +62,7 @@ export default function PrototypeFleet() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <StatCard label="Total Prototypes" value={prototypes.length} icon="🧪" />
         <StatCard label="Testing" value={testing} color="var(--accent-teal)" icon="⚗️" />
         <StatCard label="Graduated" value={graduated} color="var(--accent-green)" icon="🎓" />

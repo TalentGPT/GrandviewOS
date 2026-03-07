@@ -46,7 +46,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          className="fixed top-0 right-0 h-full w-[400px] z-50 flex flex-col border-l shadow-2xl"
+          className="fixed top-0 right-0 h-full w-full md:w-[400px] z-50 flex flex-col border-l shadow-2xl"
           style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
         >
           {/* Header */}

@@ -41,7 +41,7 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* System Health */}
         <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
           <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--accent-teal)' }}>System Health</h2>
@@ -111,7 +111,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Channels */}
         <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
           <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--accent-teal)' }}>Connected Channels</h2>

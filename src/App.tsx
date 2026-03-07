@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import TopNavBar from './components/TopNavBar'
 import LeftSidebar from './components/LeftSidebar'
+import MobileNav from './components/MobileNav'
 import StatusBar from './components/StatusBar'
 import OperatorChat from './components/OperatorChat'
 import ErrorBoundary from './components/ErrorBoundary'
 import PageTitle from './components/PageTitle'
 import { ToastProvider } from './components/Toast'
+import LoginScreen from './components/LoginScreen'
+import { PageSkeleton } from './components/Skeleton'
+import { getStoredApiKey } from './api/client'
+
+// Eagerly loaded (Ops core)
 import TaskManager from './pages/TaskManager'
 import OrgChart from './pages/OrgChart'
 import Standup from './pages/Standup'
@@ -14,40 +20,56 @@ import Workspaces from './pages/Workspaces'
 import Docs from './pages/Docs'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
-// Brain module
-import MemoryViewer from './pages/brain/MemoryViewer'
-import DailyBriefs from './pages/brain/DailyBriefs'
-import Automations from './pages/brain/Automations'
-import ProjectTracking from './pages/brain/ProjectTracking'
-// Lab module
-import IdeaGallery from './pages/lab/IdeaGallery'
-import PrototypeFleet from './pages/lab/PrototypeFleet'
-import WeeklyReviews from './pages/lab/WeeklyReviews'
-import IdeationLogs from './pages/lab/IdeationLogs'
+
+// Code-split: Brain module
+const MemoryViewer = lazy(() => import('./pages/brain/MemoryViewer'))
+const DailyBriefs = lazy(() => import('./pages/brain/DailyBriefs'))
+const Automations = lazy(() => import('./pages/brain/Automations'))
+const ProjectTracking = lazy(() => import('./pages/brain/ProjectTracking'))
+
+// Code-split: Lab module
+const IdeaGallery = lazy(() => import('./pages/lab/IdeaGallery'))
+const PrototypeFleet = lazy(() => import('./pages/lab/PrototypeFleet'))
+const WeeklyReviews = lazy(() => import('./pages/lab/WeeklyReviews'))
+const IdeationLogs = lazy(() => import('./pages/lab/IdeationLogs'))
+
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </Suspense>
+  )
+}
 
 function App() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [authenticated, setAuthenticated] = useState(() => !!getStoredApiKey())
+
+  if (!authenticated) {
+    return <LoginScreen onAuthenticated={() => setAuthenticated(true)} />
+  }
 
   return (
     <BrowserRouter>
       <ToastProvider>
         <PageTitle />
 
-        {/* Mobile warning */}
-        <div className="mobile-warning fixed inset-0 bg-black flex items-center justify-center z-50 p-8">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🖥️</div>
-            <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Desktop Required</h1>
-            <p className="text-[var(--text-secondary)]">GrandviewOS requires a desktop browser (≥1024px width)</p>
+        <div className="flex flex-col min-h-screen">
+          {/* Desktop nav */}
+          <div className="hidden md:block">
+            <TopNavBar />
           </div>
-        </div>
 
-        {/* Main app */}
-        <div className="desktop-only flex flex-col min-h-screen">
-          <TopNavBar />
+          {/* Mobile nav */}
+          <MobileNav onChatToggle={() => setChatOpen(o => !o)} />
+
           <div className="flex flex-1 overflow-hidden">
-            <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
-            <main className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
+            {/* Desktop sidebar */}
+            <div className="hidden md:block">
+              <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
+            </div>
+
+            <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ background: 'var(--bg-primary)' }}>
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Navigate to="/ops/task-manager" replace />} />
@@ -66,18 +88,18 @@ function App() {
                   <Route path="/ops/workspaces" element={<Workspaces />} />
                   <Route path="/ops/docs" element={<Docs />} />
                   <Route path="/ops/settings" element={<Settings />} />
-                  {/* Brain module */}
+                  {/* Brain module (lazy) */}
                   <Route path="/brain" element={<Navigate to="/brain/memory" replace />} />
-                  <Route path="/brain/memory" element={<ErrorBoundary><MemoryViewer /></ErrorBoundary>} />
-                  <Route path="/brain/briefs" element={<ErrorBoundary><DailyBriefs /></ErrorBoundary>} />
-                  <Route path="/brain/automations" element={<ErrorBoundary><Automations /></ErrorBoundary>} />
-                  <Route path="/brain/projects" element={<ErrorBoundary><ProjectTracking /></ErrorBoundary>} />
-                  {/* Lab module */}
+                  <Route path="/brain/memory" element={<LazyPage><MemoryViewer /></LazyPage>} />
+                  <Route path="/brain/briefs" element={<LazyPage><DailyBriefs /></LazyPage>} />
+                  <Route path="/brain/automations" element={<LazyPage><Automations /></LazyPage>} />
+                  <Route path="/brain/projects" element={<LazyPage><ProjectTracking /></LazyPage>} />
+                  {/* Lab module (lazy) */}
                   <Route path="/lab" element={<Navigate to="/lab/ideas" replace />} />
-                  <Route path="/lab/ideas" element={<ErrorBoundary><IdeaGallery /></ErrorBoundary>} />
-                  <Route path="/lab/prototypes" element={<ErrorBoundary><PrototypeFleet /></ErrorBoundary>} />
-                  <Route path="/lab/reviews" element={<ErrorBoundary><WeeklyReviews /></ErrorBoundary>} />
-                  <Route path="/lab/ideation" element={<ErrorBoundary><IdeationLogs /></ErrorBoundary>} />
+                  <Route path="/lab/ideas" element={<LazyPage><IdeaGallery /></LazyPage>} />
+                  <Route path="/lab/prototypes" element={<LazyPage><PrototypeFleet /></LazyPage>} />
+                  <Route path="/lab/reviews" element={<LazyPage><WeeklyReviews /></LazyPage>} />
+                  <Route path="/lab/ideation" element={<LazyPage><IdeationLogs /></LazyPage>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ErrorBoundary>

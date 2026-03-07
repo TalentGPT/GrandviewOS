@@ -94,16 +94,16 @@ export default function WeeklyReviews() {
       </div>
 
       {selected && (
-        <div className="flex gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
           <StatCard label="Sessions" value={selected.metrics.sessions} icon="📊" />
           <StatCard label="Tokens" value={formatTokens(selected.metrics.tokens)} color="var(--accent-teal)" icon="🔤" />
           <StatCard label="Cost" value={formatCost(selected.metrics.cost)} color="var(--accent-red)" icon="💰" />
         </div>
       )}
 
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {/* Week list */}
-        <div className="w-52 shrink-0">
+        <div className="w-full md:w-52 shrink-0">
           <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>WEEKS</div>
           {reviews.map(r => (
             <button key={r.id} onClick={() => setSelected(r)}
@@ -127,7 +127,7 @@ export default function WeeklyReviews() {
               <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{selected.startDate} — {selected.endDate}</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Highlights */}
               <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-green)22' }}>
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-green)' }}>✅ Highlights</h3>
