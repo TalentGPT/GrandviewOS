@@ -9,9 +9,7 @@ import PersistentAudioBar from './components/PersistentAudioBar'
 import ErrorBoundary from './components/ErrorBoundary'
 import PageTitle from './components/PageTitle'
 import { ToastProvider } from './components/Toast'
-import LoginScreen from './components/LoginScreen'
 import { PageSkeleton } from './components/Skeleton'
-import { getStoredApiKey } from './api/client'
 
 // Eagerly loaded (Ops core)
 import TaskManager from './pages/TaskManager'
@@ -71,12 +69,6 @@ function AudioBarWithBreadcrumb() {
 
 function App() {
   const [chatOpen, setChatOpen] = useState(false)
-  const [authenticated, setAuthenticated] = useState(() => !!getStoredApiKey())
-
-  if (!authenticated) {
-    return <LoginScreen onAuthenticated={() => setAuthenticated(true)} />
-  }
-
   return (
     <BrowserRouter>
       <ToastProvider>

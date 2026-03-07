@@ -55,19 +55,9 @@ async function getApiKey(): Promise<string> {
   return cachedApiKey
 }
 
-function checkAuth(req: import('http').IncomingMessage, apiKey: string): boolean {
-  // Check header
-  const headerKey = req.headers['x-muddy-key'] as string | undefined
-  if (headerKey === apiKey) return true
-
-  // Check query param (for SSE)
-  try {
-    const url = new URL(req.url ?? '', 'http://localhost')
-    const queryKey = url.searchParams.get('key')
-    if (queryKey === apiKey) return true
-  } catch { /* ignore */ }
-
-  return false
+function checkAuth(_req: import('http').IncomingMessage, _apiKey: string): boolean {
+  // Auth disabled — open access
+  return true
 }
 
 // ---- RATE LIMITING ----
