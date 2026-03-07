@@ -1,114 +1,199 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useToast } from '../components/Toast'
+import { standups } from '../data/mockStandups'
+import type { StandupMeeting } from '../data/mockStandups'
 
-const participants = [
-  { name: 'Muddy', emoji: '🐕', role: 'COO', color: 'var(--accent-teal)' },
-  { name: 'Gary', emoji: '📣', role: 'CMO', color: '#FF9800' },
-  { name: 'Elon', emoji: '🚀', role: 'CTO', color: '#E53935' },
-  { name: 'Warren', emoji: '💰', role: 'CRO', color: '#7B1FA2' },
-]
-
-const conversation = [
-  { speaker: participants[0], text: "Good morning team. Let's review our progress on the partnership pipeline and align on priorities for this week. Warren, you've been leading the outreach — what's the status?" },
-  { speaker: participants[3], text: "We've identified 12 potential partners in the AI tooling space. Three have responded positively to initial outreach. I'm drafting personalized proposals for TechCorp, AIFlow, and DataStream. Expected to have all three proposals sent by end of day." },
-  { speaker: participants[2], text: "On the technical side, I've completed the API integration framework that partners will need. The SDK documentation is 80% complete. I also patched two security vulnerabilities that Atlas flagged yesterday in the auth middleware." },
-  { speaker: participants[1], text: "Content is aligned with the partnership push. I've prepared co-marketing templates and a press release draft. The community engagement metrics are up 23% this week — Clay's been doing excellent work in Discord. I'm also finalizing the newsletter featuring our partnership vision." },
-  { speaker: participants[0], text: "Excellent progress across the board. Let me summarize the action items and we'll reconvene tomorrow for a quick sync. Gary, make sure the newsletter goes out before the partner proposals — we want them to see our momentum." },
-]
-
-const actionItems = [
-  { text: 'Send personalized proposals to TechCorp, AIFlow, DataStream', assignee: participants[3], done: true },
-  { text: 'Complete SDK documentation (remaining 20%)', assignee: participants[2], done: true },
-  { text: 'Publish co-marketing templates to shared workspace', assignee: participants[1], done: true },
-  { text: 'Send weekly newsletter with partnership vision', assignee: participants[1], done: true },
-  { text: 'Review and approve partner API access levels', assignee: participants[0], done: true },
-  { text: 'Schedule follow-up calls with responsive partners', assignee: participants[3], done: true },
-  { text: 'Update MEMORY.md with partnership pipeline status', assignee: participants[0], done: true },
-  { text: 'Run security scan on partner integration endpoints', assignee: participants[2], done: true },
-  { text: 'Prepare Discord announcement for partnership program', assignee: participants[1], done: true },
-  { text: 'Brief CEO on partnership progress and timeline', assignee: participants[0], done: true },
-]
-
-export default function Standup() {
-  const [showArchive] = useState(false)
+function AudioPlayer({ standup }: { standup: StandupMeeting }) {
+  const [segment, setSegment] = useState(1)
+  const [playing, setPlaying] = useState(false)
+  const speaker = standup.conversation[Math.min(segment - 1, standup.conversation.length - 1)]?.speaker
 
   return (
-    <div>
+    <div className="flex items-center gap-3 p-3 rounded-lg mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <button
+        onClick={() => setPlaying(!playing)}
+        className="px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+        style={{ background: playing ? 'var(--accent-red)' : 'var(--accent-green)', color: '#000' }}
+      >
+        {playing ? '⏸ Pause' : '🔊 Play'}
+      </button>
+      <button onClick={() => setSegment(Math.max(1, segment - 1))} className="text-xs cursor-pointer hover:opacity-70" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>⏪</button>
+      <button onClick={() => setSegment(Math.min(standup.audioSegments, segment + 1))} className="text-xs cursor-pointer hover:opacity-70" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>⏩</button>
+      <span className="text-xs" style={{ color: speaker?.color }}>{speaker?.emoji} {speaker?.name}</span>
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-divider)' }}>
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: 'var(--accent-green)' }}
+          animate={{ width: `${(segment / standup.audioSegments) * 100}%` }}
+          transition={{ duration: 0.3 }}
+        />
+      </div>
+      <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{segment}/{standup.audioSegments} — {segment}s/{standup.audioDuration}</span>
+    </div>
+  )
+}
+
+function MeetingView({ standup }: { standup: StandupMeeting }) {
+  const { addToast } = useToast()
+  const [items, setItems] = useState(standup.actionItems.map(i => ({ ...i })))
+  const doneCount = items.filter(i => i.done).length
+  const allDone = doneCount === items.length
+
+  const toggleItem = (idx: number) => {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, done: !item.done } : item))
+    addToast(items[idx].done ? 'Task reopened' : 'Task completed ✓')
+  }
+
+  return (
+    <>
+      {/* Meeting card */}
+      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+        <div className="text-base font-semibold mb-1">{standup.title}</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>📅 {standup.date} — {standup.time}</div>
+        <div className="flex gap-2">
+          {standup.participants.map(p => (
+            <span key={p.name} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: p.color + '22', color: p.color }}>
+              {p.emoji} {p.name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <AudioPlayer standup={standup} />
+
+      {/* Conversation */}
+      <div className="flex flex-col gap-4 mb-6">
+        {standup.conversation.map((msg, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="p-4 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors"
+            style={{ background: 'var(--bg-card)', borderLeft: `3px solid ${msg.speaker.color}` }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span>{msg.speaker.emoji}</span>
+              <span className="font-semibold text-sm">{msg.speaker.name}</span>
+              <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{msg.speaker.role}</span>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{msg.text}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Action Items */}
+      <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold">Deliverables Checklist</h3>
+          <span className="text-xs" style={{ color: allDone ? 'var(--accent-green)' : 'var(--accent-teal)' }}>
+            {allDone ? '🎉 All Tasks Complete' : `${doneCount}/${items.length} complete`}
+          </span>
+        </div>
+
+        {allDone && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-4 p-4 rounded-lg text-center"
+            style={{ background: 'var(--accent-green)11', border: '1px solid var(--accent-green)33' }}
+          >
+            <div className="text-2xl mb-1">🎉</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--accent-green)' }}>All Tasks Complete!</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Great work, team. All {items.length} deliverables shipped.</div>
+          </motion.div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {items.map((item, i) => (
+            <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors">
+              <span className="text-xs font-medium w-5 text-right" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{i + 1}.</span>
+              <input
+                type="checkbox"
+                checked={item.done}
+                onChange={() => toggleItem(i)}
+                className="accent-[var(--accent-green)] cursor-pointer"
+              />
+              <span className={item.done ? 'line-through opacity-50' : ''} style={{ color: 'var(--text-primary)' }}>{item.text}</span>
+              <span className="ml-auto text-sm" title={item.assignee.name}>{item.assignee.emoji}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default function Standup() {
+  const { addToast } = useToast()
+  const [showArchive, setShowArchive] = useState(false)
+  const [selectedStandup, setSelectedStandup] = useState(standups[0])
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <div className="flex items-center justify-between mb-2">
         <div>
           <h1 className="text-xl font-semibold">Executive Standup</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kick off meetings with the chiefs and review past transcripts</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
-            Meeting Archive
+          <button
+            onClick={() => setShowArchive(!showArchive)}
+            className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+            style={{ background: showArchive ? 'var(--accent-green)22' : 'var(--bg-hover)', color: showArchive ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${showArchive ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
+          >
+            {showArchive ? '← Back' : '📂 Meeting Archive'}
           </button>
-          <button className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
+          <button
+            onClick={() => addToast('Standup triggered — agents joining...', 'info')}
+            className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+            style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}
+          >
             + New Standup
           </button>
         </div>
       </div>
 
-      {!showArchive && (
-        <>
-          {/* Meeting card */}
-          <div className="rounded-lg p-5 mb-6 mt-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-            <div className="text-base font-semibold mb-1">Partnership & Sponsorship Strategy</div>
-            <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>📅 March 7, 2026 — 08:00 UTC</div>
-            <div className="flex gap-2">
-              {participants.map(p => (
-                <span key={p.name} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: p.color + '22', color: p.color }}>
-                  {p.emoji} {p.name}
-                </span>
-              ))}
+      <AnimatePresence mode="wait">
+        {showArchive ? (
+          <motion.div key="archive" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
+            <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Meeting Archive</h2>
+            <div className="flex flex-col gap-3">
+              {standups.map(s => {
+                const doneCount = s.actionItems.filter(i => i.done).length
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => { setSelectedStandup(s); setShowArchive(false) }}
+                    className="rounded-lg p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold">{s.title}</div>
+                        <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>📅 {s.date} — {s.time}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs" style={{ color: doneCount === s.actionItems.length ? 'var(--accent-green)' : 'var(--accent-teal)' }}>
+                          {doneCount}/{s.actionItems.length} items
+                        </div>
+                        <div className="flex gap-1 mt-1">
+                          {s.participants.map(p => <span key={p.name} className="text-sm">{p.emoji}</span>)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
-
-          {/* Audio player mock */}
-          <div className="flex items-center gap-3 p-3 rounded-lg mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-            <button className="px-3 py-1 rounded-full text-xs font-medium cursor-pointer" style={{ background: 'var(--accent-green)', color: '#000' }}>
-              🔊 Play
-            </button>
-            <button className="text-xs cursor-pointer" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>⏪</button>
-            <button className="text-xs cursor-pointer" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>⏩</button>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>🐕 Muddy</span>
-            <div className="flex-1 h-1 rounded-full" style={{ background: 'var(--border-divider)' }}>
-              <div className="h-full rounded-full w-[20%]" style={{ background: 'var(--accent-green)' }}></div>
-            </div>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>1/5 — 4s/24s</span>
-          </div>
-
-          {/* Conversation */}
-          <div className="flex flex-col gap-4 mb-6">
-            {conversation.map((msg, i) => (
-              <div key={i} className="p-4 rounded-lg" style={{ background: 'var(--bg-card)', borderLeft: `3px solid ${msg.speaker.color}` }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span>{msg.speaker.emoji}</span>
-                  <span className="font-semibold text-sm">{msg.speaker.name}</span>
-                  <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{msg.speaker.role}</span>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{msg.text}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Action Items */}
-          <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Action Items</h3>
-              <span className="text-xs" style={{ color: 'var(--accent-green)' }}>🎉 All Tasks Complete 10/10</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {actionItems.map((item, i) => (
-                <label key={i} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={item.done} readOnly className="accent-[var(--accent-green)]" />
-                  <span className={item.done ? 'line-through opacity-60' : ''}>{item.text}</span>
-                  <span className="ml-auto text-xs">{item.assignee.emoji}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+          </motion.div>
+        ) : (
+          <motion.div key="meeting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
+            <MeetingView standup={selectedStandup} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

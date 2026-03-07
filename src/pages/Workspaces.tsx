@@ -1,88 +1,52 @@
-import { useState } from 'react'
-
-const agents = [
-  { id: 'muddy', name: 'Muddy', emoji: '🐕', label: 'Main' },
-  { id: 'clay', name: 'Clay', emoji: '🦞', label: '' },
-  { id: 'elon', name: 'Elon', emoji: '🚀', label: 'CTO' },
-  { id: 'gary', name: 'Gary', emoji: '📣', label: 'CMO' },
-  { id: 'warren', name: 'Warren', emoji: '💰', label: 'CRO' },
-]
-
-const files = [
-  { name: 'SOUL.md', size: '4.7kb' },
-  { name: 'IDENTITY.md', size: '0.4kb' },
-  { name: 'USER.md', size: '0.5kb' },
-  { name: 'TOOLS.md', size: '0.8kb' },
-  { name: 'AGENTS.md', size: '7.9kb' },
-  { name: 'MEMORY.md', size: '1.4kb' },
-  { name: 'HEARTBEAT.md', size: '0.3kb' },
-]
-
-const mockContent: Record<string, string> = {
-  'clay-MEMORY.md': `# Who I Am
-
-I'm Clay — a friendly community bot. A baby lobster made of terracotta clay. I live in the Discord server and help community members feel welcome.
-
-## Community Members
-
-### @TechBuilder
-- Joined: Feb 2026
-- Interests: AI automation, Python scripting
-- Notes: Very active in #general, helps newcomers
-
-### @DesignPro
-- Joined: Jan 2026  
-- Interests: UI/UX, Figma, design systems
-- Notes: Created our community logo concept
-
-## Patterns & Lessons
-
-- Morning hours (UTC) are peak activity
-- New members respond best to a casual, friendly welcome within 5 minutes
-- Technical questions in #help get 3x more engagement than #general
-- Weekly community highlights post drives 40% more reactions`,
-  'muddy-SOUL.md': `# Muddy — COO
-
-You are Muddy, the Chief Operating Officer of the organization. You are a loyal, hardworking golden retriever who never sleeps.
-
-## Personality
-- **Tone:** Professional but warm. You care deeply about the team.
-- **Style:** Concise, action-oriented. Always end with next steps.
-- **Values:** Efficiency, delegation, accountability.
-
-## Responsibilities
-- Orchestrate all agent operations
-- Delegate tasks to department heads (Elon, Gary, Warren)
-- Monitor agent health and session costs
-- Run daily standups and produce action items
-- Report critical issues to CEO immediately
-
-## Rules
-- Never make strategic decisions — escalate to CEO
-- Always delegate to the right specialist — don't do everything yourself
-- Keep cost tracking accurate — flag anomalies
-- Maintain documentation as source of truth`,
-}
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import { useToast } from '../components/Toast'
+import { workspaceAgents, workspaceFiles, workspaceContents } from '../data/mockWorkspaces'
 
 export default function Workspaces() {
-  const [selectedAgent, setSelectedAgent] = useState('clay')
-  const [selectedFile, setSelectedFile] = useState('MEMORY.md')
+  const [searchParams] = useSearchParams()
+  const { addToast } = useToast()
+  const [selectedAgent, setSelectedAgent] = useState(searchParams.get('agent') || 'muddy')
+  const [selectedFile, setSelectedFile] = useState('SOUL.md')
   const [isEdit, setIsEdit] = useState(false)
+  const [editContent, setEditContent] = useState('')
+
+  useEffect(() => {
+    const agentParam = searchParams.get('agent')
+    if (agentParam && workspaceAgents.some(a => a.id === agentParam)) {
+      setSelectedAgent(agentParam)
+      setSelectedFile('SOUL.md')
+    }
+  }, [searchParams])
 
   const contentKey = `${selectedAgent}-${selectedFile}`
-  const content = mockContent[contentKey]
-  const agent = agents.find(a => a.id === selectedAgent)
+  const content = workspaceContents[contentKey]
+  const agent = workspaceAgents.find(a => a.id === selectedAgent)
+
+  const handleEdit = () => {
+    if (isEdit) {
+      // Switching from edit to preview = "save"
+      addToast(`${selectedFile} saved`)
+    } else {
+      setEditContent(content || '')
+    }
+    setIsEdit(!isEdit)
+  }
 
   return (
-    <div className="flex gap-0 h-[calc(100vh-64px)] -m-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-0 h-[calc(100vh-64px)] -m-6">
       {/* Sidebar */}
       <div className="w-56 shrink-0 overflow-y-auto border-r p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
         <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>WORKSPACES</div>
-        {agents.map(a => (
+        {workspaceAgents.map(a => (
           <button
             key={a.id}
-            onClick={() => { setSelectedAgent(a.id); setSelectedFile('SOUL.md'); }}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors"
+            onClick={() => { setSelectedAgent(a.id); setSelectedFile('SOUL.md'); setIsEdit(false) }}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
             style={{
               background: selectedAgent === a.id ? 'var(--accent-gold)11' : 'transparent',
               color: selectedAgent === a.id ? 'var(--accent-gold)' : 'var(--text-primary)',
@@ -96,11 +60,11 @@ export default function Workspaces() {
         ))}
 
         <div className="text-[10px] font-semibold tracking-wider mt-6 mb-3" style={{ color: 'var(--text-secondary)' }}>FILES</div>
-        {files.map(f => (
+        {workspaceFiles.map(f => (
           <button
             key={f.name}
-            onClick={() => setSelectedFile(f.name)}
-            className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors"
+            onClick={() => { setSelectedFile(f.name); setIsEdit(false) }}
+            className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
             style={{
               background: selectedFile === f.name ? 'var(--accent-gold)11' : 'transparent',
               color: selectedFile === f.name ? 'var(--accent-gold)' : 'var(--text-primary)',
@@ -117,11 +81,14 @@ export default function Workspaces() {
       <div className="flex-1 overflow-y-auto p-6">
         {content ? (
           <>
+            {/* Breadcrumb */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{agent?.emoji}</span>
                   <span className="text-lg font-semibold">{agent?.name}</span>
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>›</span>
+                  <span className="text-sm" style={{ color: 'var(--accent-teal)' }}>{selectedFile}</span>
                   {agent?.label && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>{agent?.label}</span>}
                 </div>
                 <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
@@ -130,37 +97,27 @@ export default function Workspaces() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setIsEdit(!isEdit)}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}
+                  onClick={handleEdit}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors"
+                  style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-hover)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
                 >
-                  {isEdit ? 'Preview' : 'Edit'}
+                  {isEdit ? '💾 Save' : '✏️ Edit'}
                 </button>
               </div>
             </div>
-            <div className="text-xs font-medium mb-3 px-2 py-1 rounded inline-block" style={{ background: 'var(--bg-hover)', color: 'var(--accent-teal)' }}>
-              {selectedFile}
-            </div>
+
             {isEdit ? (
               <textarea
-                className="w-full h-96 p-4 rounded-lg text-sm"
-                style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)', fontFamily: 'var(--font-mono)', resize: 'vertical' }}
-                defaultValue={content}
+                className="w-full h-[calc(100vh-200px)] p-4 rounded-lg text-sm focus:outline-none focus:ring-1"
+                style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)', fontFamily: 'var(--font-mono)', resize: 'none' }}
+                value={editContent}
+                onChange={e => setEditContent(e.target.value)}
               />
             ) : (
-              <div className="prose prose-invert max-w-none rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-                {content.split('\n').map((line, i) => {
-                  if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-0 mb-3" style={{ color: 'var(--text-primary)' }}>{line.slice(2)}</h1>
-                  if (line.startsWith('## ')) return <h2 key={i} className="text-base font-semibold mt-4 mb-2" style={{ color: 'var(--accent-teal)' }}>{line.slice(3)}</h2>
-                  if (line.startsWith('### ')) return <h3 key={i} className="text-sm font-semibold mt-3 mb-1" style={{ color: 'var(--text-primary)' }}>{line.slice(4)}</h3>
-                  if (line.startsWith('- **')) {
-                    const match = line.match(/- \*\*(.+?)\*\*(.*)/)
-                    if (match) return <p key={i} className="text-sm my-1"><strong style={{ color: 'var(--accent-teal)' }}>{match[1]}</strong>{match[2]}</p>
-                  }
-                  if (line.startsWith('- ')) return <p key={i} className="text-sm my-1 pl-3" style={{ color: 'var(--text-secondary)' }}>• {line.slice(2)}</p>
-                  if (line.trim() === '') return <br key={i} />
-                  return <p key={i} className="text-sm my-1" style={{ color: 'var(--text-primary)' }}>{line}</p>
-                })}
+              <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                  {content}
+                </ReactMarkdown>
               </div>
             )}
           </>
@@ -168,11 +125,12 @@ export default function Workspaces() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="text-4xl mb-3">📄</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Select a file from the sidebar to view/edit</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No content available for {agent?.name} / {selectedFile}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Try selecting SOUL.md or MEMORY.md</div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
