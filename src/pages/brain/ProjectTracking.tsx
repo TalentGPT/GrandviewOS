@@ -357,7 +357,11 @@ export default function ProjectTracking() {
     if (!selectedBoardId) return
     setConnecting(true)
     try {
-      const res = await connectTrelloBoard(undefined, selectedBoardId)
+      // Extract board ID from URL if a full URL was pasted
+      let boardId = selectedBoardId.trim()
+      const urlMatch = boardId.match(/trello\.com\/b\/([a-zA-Z0-9]+)/)
+      if (urlMatch) boardId = urlMatch[1]
+      const res = await connectTrelloBoard(undefined, boardId)
       if (res.data?.ok && res.data.board) {
         setBoard(res.data.board)
         setTrelloConfig(res.data.config)
@@ -421,36 +425,24 @@ export default function ProjectTracking() {
         </button>
       </PageHeader>
 
-      {/* Board Selector Bar */}
+      {/* Board URL Input Bar */}
       <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         <div className="flex flex-wrap items-center gap-3">
-          <select
+          <input
+            type="text"
             value={selectedBoardId}
             onChange={e => setSelectedBoardId(e.target.value)}
+            placeholder="Paste Trello board URL (e.g. https://trello.com/b/xuXo0nuP/my-board)"
             className="flex-1 min-w-[200px] px-3 py-2 rounded-md text-sm"
             style={{
               background: 'var(--bg-1)',
               color: 'var(--text-primary)',
               border: '1px solid var(--border-divider)',
               outline: 'none',
+              fontFamily: 'var(--font-mono)',
             }}
-          >
-            <option value="">Select a Trello board...</option>
-            {availableBoards.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-
-          <button
-            onClick={handleRefreshBoards}
-            disabled={loadingBoards}
-            className="px-2 py-2 rounded-md text-xs cursor-pointer"
-            style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}
-            title="Refresh board list"
-          >
-            {loadingBoards ? '⏳' : '🔄'}
-          </button>
-
+            onKeyDown={e => { if (e.key === 'Enter' && selectedBoardId) handleConnect() }}
+          />
           <button
             onClick={handleConnect}
             disabled={!selectedBoardId || connecting}
