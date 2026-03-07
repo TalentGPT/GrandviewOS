@@ -266,7 +266,7 @@ export default function TaskManager() {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await fetchSessions()
+      const { data, error } = await fetchSessions(100)
       if (data && data.sessions && data.sessions.length > 0) {
         setLiveSessions(data.sessions)
         setLiveError(false)
@@ -283,14 +283,9 @@ export default function TaskManager() {
 
   useEffect(() => {
     if (!isLive) return
-    const es = createEventSource((data) => {
-      if (data.type === 'session:update' && data.sessions) {
-        setLiveSessions(data.sessions as ApiSession[])
-        setLiveError(false)
-      }
-    }, () => {})
-    const interval = setInterval(doRefresh, 10000)
-    return () => { es.close(); clearInterval(interval) }
+    // Poll every 30s instead of SSE (SSE events can reset state with stale data)
+    const interval = setInterval(doRefresh, 30000)
+    return () => clearInterval(interval)
   }, [isLive, doRefresh])
 
   if (loading) return <PageSkeleton />
