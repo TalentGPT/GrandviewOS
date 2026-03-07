@@ -69,12 +69,12 @@ export default function Workspaces() {
           onClick={() => selectAgent(a.id)}
           className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
           style={{
-            background: selectedAgent === a.id ? 'var(--accent-gold)11' : 'transparent',
-            color: selectedAgent === a.id ? 'var(--accent-gold)' : 'var(--text-primary)',
-            border: selectedAgent === a.id ? '1px solid var(--accent-gold)33' : '1px solid transparent',
+            background: selectedAgent === a.id ? 'var(--accent-teal)11' : 'transparent',
+            color: selectedAgent === a.id ? 'var(--accent-teal)' : 'var(--text-primary)',
+            borderLeft: selectedAgent === a.id ? '3px solid var(--accent-teal)' : '3px solid transparent',
           }}
         >
-          <span>{a.emoji}</span>
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent-green)' }} />
           <span>{a.name}</span>
           {a.label && <span className="text-[10px] ml-auto" style={{ color: 'var(--text-secondary)' }}>{a.label}</span>}
         </button>
@@ -87,13 +87,15 @@ export default function Workspaces() {
           onClick={() => selectFile(f.name)}
           className="w-full flex items-center justify-between px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
           style={{
-            background: selectedFile === f.name ? 'var(--accent-gold)11' : 'transparent',
-            color: selectedFile === f.name ? 'var(--accent-gold)' : 'var(--text-primary)',
-            border: selectedFile === f.name ? '1px solid var(--accent-gold)33' : '1px solid transparent',
+            background: selectedFile === f.name ? 'var(--accent-teal)11' : 'transparent',
+            color: selectedFile === f.name ? 'var(--accent-teal)' : 'var(--text-primary)',
+            borderLeft: selectedFile === f.name ? '3px solid var(--accent-teal)' : '3px solid transparent',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '12px',
           }}
         >
-          <span>📄 {f.name}</span>
-          <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{f.size}</span>
+          <span>{f.name}</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{f.size}</span>
         </button>
       ))}
     </>
@@ -109,7 +111,7 @@ export default function Workspaces() {
           {sidebarOpen ? '✕ Close' : '📁 Browse'}
         </button>
         <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
-          {agent?.emoji} {agent?.name} › {selectedFile}
+          {agent?.name} › {selectedFile}
         </span>
       </div>
 
@@ -127,7 +129,7 @@ export default function Workspaces() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xl">{agent?.emoji}</span>
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--accent-green)' }} />
                     <span className="text-lg font-semibold">{agent?.name}</span>
                     <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>›</span>
                     <span className="text-sm" style={{ color: 'var(--accent-teal)' }}>{selectedFile}</span>
@@ -165,7 +167,7 @@ export default function Workspaces() {
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="text-4xl mb-3">📄</div>
+                <div className="text-4xl mb-3 opacity-20">—</div>
                 <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No content available for {agent?.name} / {selectedFile}</div>
               </div>
             </div>

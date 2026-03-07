@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import StatCard from '../../components/StatCard'
+import PageHeader from '../../components/PageHeader'
 import { useToast } from '../../components/Toast'
 
 interface Automation {
@@ -81,31 +82,25 @@ export default function Automations() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Automations</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>View and manage automated workflows and triggers</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowTimeline(!showTimeline)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-            style={{ background: showTimeline ? 'var(--accent-purple)22' : 'var(--bg-3)', color: showTimeline ? 'var(--accent-purple)' : 'var(--text-secondary)', border: `1px solid ${showTimeline ? 'var(--accent-purple)44' : 'var(--border-divider)'}` }}>
-            📅 Timeline
-          </button>
-          <button onClick={() => setShowAdd(!showAdd)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-            style={{ background: 'var(--accent-purple)22', color: 'var(--accent-purple)', border: '1px solid var(--accent-purple)44' }}>
-            + Add Rule
-          </button>
-        </div>
-      </div>
+      <PageHeader title="Automations" subtitle="View and manage automated workflows and triggers">
+        <button onClick={() => setShowTimeline(!showTimeline)}
+          className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
+          style={{ background: showTimeline ? 'var(--accent-teal)22' : 'var(--bg-3)', color: showTimeline ? 'var(--accent-teal)' : 'var(--text-secondary)', border: `1px solid ${showTimeline ? 'var(--accent-teal)44' : 'var(--border-divider)'}` }}>
+          Timeline
+        </button>
+        <button onClick={() => setShowAdd(!showAdd)}
+          className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
+          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
+          + Add Rule
+        </button>
+      </PageHeader>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard label="Total" value={automations.length} icon="⚡" />
-        <StatCard label="Active" value={active} color="var(--accent-green)" icon="🟢" />
-        <StatCard label="Paused" value={paused} color="#EAB308" icon="⏸️" />
-        <StatCard label="Cron Jobs" value={automations.filter(a => a.type === 'cron').length} icon="🔄" />
-        <StatCard label="Triggers" value={automations.filter(a => a.type === 'trigger').length} icon="🎯" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+        <StatCard label="Total" value={automations.length} />
+        <StatCard label="Active" value={active} color="var(--accent-green)" />
+        <StatCard label="Paused" value={paused} color="#EAB308" />
+        <StatCard label="Cron Jobs" value={automations.filter(a => a.type === 'cron').length} />
+        <StatCard label="Triggers" value={automations.filter(a => a.type === 'trigger').length} />
       </div>
 
       {/* Add form */}
@@ -160,7 +155,7 @@ export default function Automations() {
         {automations.map(a => (
           <motion.div key={a.id} layout className="rounded-lg p-4 flex items-center gap-4"
             style={{ background: 'var(--bg-2)', border: `1px solid ${a.status === 'active' ? 'var(--accent-green)22' : a.status === 'paused' ? '#EAB30822' : 'var(--accent-red)22'}` }}>
-            <span className="text-xl">{a.agentEmoji}</span>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.status === 'active' ? 'var(--accent-green)' : a.status === 'paused' ? '#EAB308' : 'var(--accent-red)' }} />
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold">{a.name}</span>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import PageHeader from '../../components/PageHeader'
 
 interface IdeationEntry {
   id: string
@@ -73,13 +74,9 @@ export default function IdeationLogs() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Ideation Logs</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Chronological log of brainstorming sessions</p>
-        </div>
-        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{filtered.length} sessions</div>
-      </div>
+      <PageHeader title="Ideation Logs" subtitle="Chronological log of brainstorming sessions">
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{filtered.length} sessions</span>
+      </PageHeader>
 
       {/* Filters */}
       <div className="flex gap-4 mb-6">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import StatCard from '../../components/StatCard'
+import PageHeader from '../../components/PageHeader'
 import { PageSkeleton } from '../../components/Skeleton'
 import { formatCost, formatTokens } from '../../api/client'
 
@@ -78,17 +79,12 @@ export default function DailyBriefs() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Daily Briefs</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Auto-generated daily summaries of agent activity</p>
-        </div>
-      </div>
+      <PageHeader title="Daily Briefs" subtitle="Auto-generated daily summaries of agent activity" />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <StatCard label="Total Sessions (14d)" value={totals.sessions} icon="📊" />
-        <StatCard label="Total Tokens (14d)" value={formatTokens(totals.tokens)} color="var(--accent-teal)" icon="🔤" />
-        <StatCard label="Total Cost (14d)" value={formatCost(totals.cost)} color="var(--accent-red)" icon="💰" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+        <StatCard label="Total Sessions (14d)" value={totals.sessions} />
+        <StatCard label="Total Tokens (14d)" value={formatTokens(totals.tokens)} color="var(--accent-teal)" />
+        <StatCard label="Total Cost (14d)" value={formatCost(totals.cost)} color="var(--accent-red)" />
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">

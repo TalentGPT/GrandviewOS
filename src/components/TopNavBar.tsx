@@ -46,7 +46,7 @@ export default function TopNavBar() {
       {/* Top row: logo + module switcher */}
       <div className="flex items-center px-6 h-14 gap-6">
         <NavLink to="/" className="flex items-center gap-2.5 no-underline shrink-0">
-          <span className="text-lg font-bold" style={{ color: 'var(--accent-teal)' }}>⬡</span>
+          <span className="text-lg font-bold" style={{ color: 'var(--accent-gold)' }}>⬡</span>
           <span className="text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>GrandviewOS</span>
         </NavLink>
 

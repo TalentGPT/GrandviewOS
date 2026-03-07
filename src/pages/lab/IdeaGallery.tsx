@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../../components/Toast'
+import PageHeader from '../../components/PageHeader'
 
 interface Idea {
   id: string
@@ -56,17 +57,13 @@ export default function IdeaGallery() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Idea Gallery</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Agent-generated ideas and proposals</p>
-        </div>
+      <PageHeader title="Idea Gallery" subtitle="Agent-generated ideas and proposals">
         <button onClick={() => setShowAdd(!showAdd)}
           className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
+          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
           + New Idea
         </button>
-      </div>
+      </PageHeader>
 
       {/* Tag filters */}
       <div className="flex gap-2 mb-4 flex-wrap">

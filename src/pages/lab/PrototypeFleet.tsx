@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import StatCard from '../../components/StatCard'
+import PageHeader from '../../components/PageHeader'
 import { useToast } from '../../components/Toast'
 
 type ProtoStatus = 'testing' | 'graduated' | 'archived'
@@ -55,18 +56,13 @@ export default function PrototypeFleet() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Prototype Fleet</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Experimental agent configurations and prototypes</p>
-        </div>
-      </div>
+      <PageHeader title="Prototype Fleet" subtitle="Experimental agent configurations and prototypes" />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total Prototypes" value={prototypes.length} icon="🧪" />
-        <StatCard label="Testing" value={testing} color="var(--accent-teal)" icon="⚗️" />
-        <StatCard label="Graduated" value={graduated} color="var(--accent-green)" icon="🎓" />
-        <StatCard label="Archived" value={prototypes.length - testing - graduated} icon="📦" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <StatCard label="Total Prototypes" value={prototypes.length} />
+        <StatCard label="Testing" value={testing} color="var(--accent-teal)" />
+        <StatCard label="Graduated" value={graduated} color="var(--accent-green)" />
+        <StatCard label="Archived" value={prototypes.length - testing - graduated} />
       </div>
 
       {/* Filter */}

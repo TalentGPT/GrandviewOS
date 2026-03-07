@@ -28,10 +28,10 @@ export interface StandupMeeting {
   audioDuration: string
 }
 
-const muddy: Participant = { name: 'Muddy', emoji: '🐕', role: 'COO', color: 'var(--accent-teal)' }
-const gary: Participant = { name: 'Gary', emoji: '📣', role: 'CMO', color: '#FF9800' }
-const elon: Participant = { name: 'Elon', emoji: '🚀', role: 'CTO', color: '#E53935' }
-const warren: Participant = { name: 'Warren', emoji: '💰', role: 'CRO', color: '#7B1FA2' }
+const muddy: Participant = { name: 'Muddy', emoji: '●', role: 'COO', color: 'var(--accent-teal)' }
+const gary: Participant = { name: 'Gary', emoji: '●', role: 'CMO', color: '#FF9800' }
+const elon: Participant = { name: 'Elon', emoji: '●', role: 'CTO', color: '#E53935' }
+const warren: Participant = { name: 'Warren', emoji: '●', role: 'CRO', color: '#7B1FA2' }
 
 export const standups: StandupMeeting[] = [
   {

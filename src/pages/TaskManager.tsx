@@ -363,7 +363,7 @@ export default function TaskManager() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
         {showLive ? (
           <>
             <StatCard label="Active" value={liveActive} />
@@ -452,7 +452,7 @@ export default function TaskManager() {
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }} />
-                    <div className="text-base font-semibold truncate">{s.agentEmoji} {s.title}</div>
+                    <div className="text-base font-semibold truncate">{s.title}</div>
                   </div>
                   <div className="flex items-center gap-5 shrink-0 ml-4">
                     <div className="text-right">

@@ -89,7 +89,7 @@ export default function Docs() {
               style={{
                 background: activeDoc === item ? 'var(--accent-teal)11' : 'transparent',
                 color: activeDoc === item ? 'var(--accent-teal)' : 'var(--text-secondary)',
-                border: activeDoc === item ? '1px solid var(--accent-teal)33' : '1px solid transparent',
+                borderLeft: activeDoc === item ? '3px solid var(--accent-teal)' : '3px solid transparent',
                 fontWeight: activeDoc === item ? 600 : 400,
               }}
             >

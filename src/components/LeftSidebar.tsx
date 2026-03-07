@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const icons = [
-  { emoji: '📊', label: 'Dashboard', path: '/ops/task-manager' },
-  { emoji: '💬', label: 'Chat with COO', action: 'chat' },
-  { emoji: '⚙️', label: 'Settings', path: '/ops/settings' },
-  { emoji: '🔔', label: 'Notifications', action: 'notify' },
+  { icon: '⬡', label: 'Dashboard', path: '/ops/task-manager' },
+  { icon: '◆', label: 'Chat with COO', action: 'chat' },
+  { icon: '⚙', label: 'Settings', path: '/ops/settings' },
+  { icon: '●', label: 'Notifications', action: 'notify' },
 ]
 
 interface Props {
@@ -36,14 +36,15 @@ export default function LeftSidebar({ onChatToggle }: Props) {
               onMouseLeave={() => setHoveredIdx(null)}
               className="w-10 h-10 rounded-lg flex items-center justify-center text-sm cursor-pointer transition-all"
               style={{
-                background: isActive ? 'var(--accent-teal)15' : 'transparent',
+                background: isActive ? 'rgba(0,229,255,0.12)' : 'transparent',
                 border: 'none',
                 color: isActive ? 'var(--accent-teal)' : 'var(--text-secondary)',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '16px',
               }}
             >
-              {icon.emoji}
+              {icon.icon}
             </button>
-            {/* Tooltip */}
             {hoveredIdx === idx && (
               <div
                 className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap z-50"

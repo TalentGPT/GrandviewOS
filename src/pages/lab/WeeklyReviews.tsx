@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import StatCard from '../../components/StatCard'
+import PageHeader from '../../components/PageHeader'
 import { PageSkeleton } from '../../components/Skeleton'
 import { formatCost, formatTokens } from '../../api/client'
 
@@ -86,18 +87,13 @@ export default function WeeklyReviews() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Weekly Reviews</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Structured weekly review summaries</p>
-        </div>
-      </div>
+      <PageHeader title="Weekly Reviews" subtitle="Structured weekly review summaries" />
 
       {selected && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          <StatCard label="Sessions" value={selected.metrics.sessions} icon="📊" />
-          <StatCard label="Tokens" value={formatTokens(selected.metrics.tokens)} color="var(--accent-teal)" icon="🔤" />
-          <StatCard label="Cost" value={formatCost(selected.metrics.cost)} color="var(--accent-red)" icon="💰" />
+          <StatCard label="Sessions" value={selected.metrics.sessions} />
+          <StatCard label="Tokens" value={formatTokens(selected.metrics.tokens)} color="var(--accent-teal)" />
+          <StatCard label="Cost" value={formatCost(selected.metrics.cost)} color="var(--accent-red)" />
         </div>
       )}
 

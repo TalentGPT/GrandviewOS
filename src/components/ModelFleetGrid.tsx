@@ -32,7 +32,7 @@ interface Props {
 
 export default function ModelFleetGrid({ liveSessions: _liveSessions }: Props) {
   return (
-    <div className="mb-10">
+    <div className="mb-12">
       <div className="section-header">
         <h2>Model Fleet</h2>
         <span className="count-badge">{MODEL_FLEET.length}</span>

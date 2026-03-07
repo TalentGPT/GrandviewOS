@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import PageHeader from '../components/PageHeader'
 import { fetchConfig, fetchSystemHealth, fetchAgents } from '../api/client'
 import type { SystemHealth, ApiConfig, ApiAgent } from '../types/api'
 
@@ -32,10 +33,7 @@ export default function Settings() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="page-container">
-      <div className="flex items-center gap-3 mb-8">
-        <span className="w-2.5 h-2.5 rounded-full pulse-dot shrink-0" style={{ background: 'var(--accent-green)' }} />
-        <h1 className="text-h1">Settings & Configuration</h1>
-      </div>
+      <PageHeader title="Settings & Configuration" subtitle="System health, model config, and connected channels" />
 
       {error && (
         <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--accent-red)11', border: '1px solid var(--accent-red)33' }}>
@@ -123,7 +121,7 @@ export default function Settings() {
               {Object.entries(config.channels).map(([name, ch]) => (
                 <div key={name} className="flex items-center justify-between p-2 rounded-lg" style={{ background: 'var(--bg-3)' }}>
                   <div className="flex items-center gap-2">
-                    <span>{name === 'telegram' ? '📱' : name === 'discord' ? '💬' : '🔗'}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ background: ch.enabled ? 'var(--accent-green)' : 'var(--accent-red)' }} />
                     <span className="text-sm capitalize">{name}</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded-full"

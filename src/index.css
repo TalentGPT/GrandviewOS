@@ -19,7 +19,9 @@
 
   /* Borders */
   --border-page: #FFD700;
-  --border-divider: #222222;
+  --border-default: #2A2A2A;
+  --border-divider: #2A2A2A;
+  --border-hover: #333333;
   --border-subtle: #1A1A1A;
 
   /* Text */
@@ -118,7 +120,7 @@ body {
 
 .text-display {
   font-size: 48px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-mono);
   line-height: 1;
   letter-spacing: -0.02em;
@@ -159,7 +161,8 @@ body {
   font-size: 10px;
   font-weight: 500;
   line-height: 1.4;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ============================================
@@ -236,7 +239,7 @@ body {
 
 .stat-card .stat-value {
   font-size: 48px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-mono);
   line-height: 1;
   letter-spacing: -0.02em;
@@ -319,7 +322,7 @@ body {
 
 /* Page layout */
 .page-container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }

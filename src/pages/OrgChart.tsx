@@ -15,9 +15,9 @@ function AgentCard({ agent, onClick }: { agent: Agent; onClick?: () => void }) {
       className="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--bg-4)] transition-colors cursor-pointer"
       style={{ background: 'var(--bg-3)', borderLeft: `3px solid ${agent.modelColor}` }}
     >
-      <div className="relative">
-        <span className="text-lg">{agent.emoji}</span>
-        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-black" style={{ background: statusColor }}></span>
+      <div className="relative shrink-0">
+        <span className="w-3 h-3 rounded-full inline-block" style={{ background: agent.modelColor }} />
+        <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-black" style={{ background: statusColor }}></span>
       </div>
       <div className="flex-1">
         <div className="text-sm font-medium">{agent.name}</div>
@@ -57,7 +57,7 @@ export default function OrgChart() {
         <button onClick={collapseAll} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-4)] transition-colors" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>Collapse All</button>
       </PageHeader>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
         <StatCard label="Chiefs" value={3} />
         <StatCard label="Total Agents" value={25} />
         <StatCard label="Active" value={21} color="var(--accent-green)" />
@@ -68,7 +68,7 @@ export default function OrgChart() {
       {/* CEO */}
       <div className="flex flex-col items-center mb-6">
         <div className="rounded-xl p-5 text-center glow-gold cursor-pointer hover:scale-[1.02] transition-transform" style={{ background: 'var(--bg-2)', border: '2px solid var(--accent-gold)' }}>
-          <div className="text-3xl mb-2">👤</div>
+          <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ background: 'var(--accent-gold)', opacity: 0.8 }} />
           <div className="font-semibold">Marcelo Oliveira</div>
           <div className="text-xs" style={{ color: 'var(--accent-gold)' }}>CEO</div>
           <div className="text-[10px] mt-1" style={{ color: 'var(--text-secondary)' }}>Vision · Strategy · Final Decisions</div>
@@ -79,7 +79,7 @@ export default function OrgChart() {
         {/* COO */}
         <div onClick={() => goToWorkspace('muddy')} className="rounded-xl p-5 text-center glow-teal cursor-pointer hover:scale-[1.02] transition-transform" style={{ background: 'var(--bg-2)', border: '2px solid var(--accent-teal)' }}>
           <div className="relative inline-block">
-            <span className="text-3xl">🐕</span>
+            <div className="w-8 h-8 rounded-full mx-auto" style={{ background: 'var(--accent-teal)', opacity: 0.8 }} />
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--accent-green)] border-2 border-black pulse-dot"></span>
           </div>
           <div className="font-semibold mt-2">Muddy</div>
@@ -107,7 +107,7 @@ export default function OrgChart() {
                 style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}
               >
                 <div className="relative inline-block">
-                  <span className="text-2xl">{head.emoji}</span>
+                  <div className="w-6 h-6 rounded-full mx-auto" style={{ background: 'var(--model-opus)', opacity: 0.7 }} />
                   <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--accent-green)] border-2 border-black"></span>
                 </div>
                 <div className="font-semibold mt-1">{head.name}</div>
@@ -162,7 +162,7 @@ export default function OrgChart() {
       {/* Deprecated */}
       <div className="mb-8">
         <button onClick={() => setShowDeprecated(!showDeprecated)} className="flex items-center gap-2 p-3 rounded-lg w-full text-left cursor-pointer hover:bg-[var(--bg-3)] transition-colors" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-red)33' }}>
-          <span style={{ color: 'var(--accent-red)' }}>❌</span>
+          <span className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-red)' }} />
           <span className="text-sm font-medium" style={{ color: 'var(--accent-red)' }}>Deprecated Agents ({deprecatedAgents.length})</span>
           <span className="ml-auto text-xs" style={{ color: 'var(--text-secondary)' }}>{showDeprecated ? '▼' : '▶'}</span>
         </button>
@@ -184,7 +184,7 @@ export default function OrgChart() {
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1 text-xs"><span className="w-2 h-2 rounded-full bg-[var(--accent-green)]"></span> Active</span>
             <span className="flex items-center gap-1 text-xs"><span className="w-2 h-2 rounded-full bg-[#EAB308]"></span> Scaffolded</span>
-            <span className="flex items-center gap-1 text-xs"><span style={{ color: 'var(--accent-red)' }}>✕</span> Deprecated</span>
+            <span className="flex items-center gap-1 text-xs"><span className="w-2 h-2 rounded-full bg-[var(--accent-red)]"></span> Deprecated</span>
           </div>
           <div className="flex items-center gap-3">
             {modelLegend.map(m => (

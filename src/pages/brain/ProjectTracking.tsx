@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../../components/Toast'
+import PageHeader from '../../components/PageHeader'
 import { PageSkeleton } from '../../components/Skeleton'
 
 type ProjectStatus = 'backlog' | 'in-progress' | 'review' | 'done'
@@ -76,17 +77,13 @@ export default function ProjectTracking() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Project Tracking</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Track progress across multi-agent projects</p>
-        </div>
+      <PageHeader title="Project Tracking" subtitle="Track progress across multi-agent projects">
         <button onClick={() => setShowAdd(!showAdd)}
           className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: 'var(--accent-purple)22', color: 'var(--accent-purple)', border: '1px solid var(--accent-purple)44' }}>
+          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
           + New Project
         </button>
-      </div>
+      </PageHeader>
 
       <AnimatePresence>
         {showAdd && (
