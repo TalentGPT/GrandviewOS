@@ -6,8 +6,9 @@ import { openclawApiPlugin } from './src/server/api'
 export default defineConfig({
   plugins: [react(), tailwindcss(), openclawApiPlugin()],
   server: {
-    port: 7100,
+    port: 5000,
     host: '0.0.0.0',
+    allowedHosts: 'all',
   },
   build: {
     rollupOptions: {
