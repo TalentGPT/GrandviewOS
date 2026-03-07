@@ -10,10 +10,25 @@ export default function Settings() {
   const [agents, setAgents] = useState<ApiAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [bridgeUrl, setBridgeUrl] = useState('http://3.145.179.193:7101')
+  const [bridgeUrl, setBridgeUrl] = useState('http://3.145.179.193:7100')
   const [bridgeToken, setBridgeToken] = useState('gv-bridge-2026')
   const [connectStatus, setConnectStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [syncStatus, setSyncStatus] = useState<string>('')
+
+  // Auto-connect on mount
+  useEffect(() => {
+    const autoConnect = async () => {
+      try {
+        const res = await connectOpenClaw('http://3.145.179.193:7100', 'gv-bridge-2026')
+        if (res.data?.ok) {
+          setConnectStatus('connected')
+          const syncRes = await syncOpenClaw()
+          setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : '')
+        }
+      } catch {}
+    }
+    autoConnect()
+  }, [])
 
   useEffect(() => {
     const load = async () => {
