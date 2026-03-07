@@ -60,15 +60,23 @@ export default function Settings() {
           <div className="flex gap-2">
             <button
               onClick={async () => {
-                setConnectStatus('connecting')
-                const res = await connectOpenClaw(bridgeUrl, bridgeToken)
-                if (res.data?.ok) {
-                  setConnectStatus('connected')
-                  // Auto-sync after connect
-                  setSyncStatus('Syncing sessions...')
-                  const syncRes = await syncOpenClaw()
-                  setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : 'Sync failed')
-                } else {
+                try {
+                  setConnectStatus('connecting')
+                  console.log('[Settings] Connecting to', bridgeUrl)
+                  const res = await connectOpenClaw(bridgeUrl, bridgeToken)
+                  console.log('[Settings] Connect response:', JSON.stringify(res))
+                  if (res.data?.ok) {
+                    setConnectStatus('connected')
+                    setSyncStatus('Syncing sessions...')
+                    const syncRes = await syncOpenClaw()
+                    console.log('[Settings] Sync response:', JSON.stringify(syncRes))
+                    setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : 'Sync failed')
+                  } else {
+                    console.error('[Settings] Connect failed:', res.error)
+                    setConnectStatus('error')
+                  }
+                } catch (err) {
+                  console.error('[Settings] Connect exception:', err)
                   setConnectStatus('error')
                 }
               }}
