@@ -67,7 +67,7 @@ export default function Workspaces() {
         <button
           key={a.id}
           onClick={() => selectAgent(a.id)}
-          className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+          className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
           style={{
             background: selectedAgent === a.id ? 'var(--accent-gold)11' : 'transparent',
             color: selectedAgent === a.id ? 'var(--accent-gold)' : 'var(--text-primary)',
@@ -85,7 +85,7 @@ export default function Workspaces() {
         <button
           key={f.name}
           onClick={() => selectFile(f.name)}
-          className="w-full flex items-center justify-between px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+          className="w-full flex items-center justify-between px-2 py-2 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
           style={{
             background: selectedFile === f.name ? 'var(--accent-gold)11' : 'transparent',
             color: selectedFile === f.name ? 'var(--accent-gold)' : 'var(--text-primary)',
@@ -102,10 +102,10 @@ export default function Workspaces() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="-m-4 md:-m-6">
       {/* Mobile sidebar toggle */}
-      <div className="md:hidden p-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-card)' }}>
+      <div className="md:hidden p-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-2)' }}>
         <button onClick={() => setSidebarOpen(!sidebarOpen)}
           className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
+          style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
           {sidebarOpen ? '✕ Close' : '📁 Browse'}
         </button>
         <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
@@ -116,7 +116,7 @@ export default function Workspaces() {
       <div className="flex" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {/* Sidebar — always visible on desktop, toggleable on mobile */}
         <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-56 shrink-0 overflow-y-auto border-r p-4`}
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+          style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
           {sidebar}
         </div>
 
@@ -131,7 +131,7 @@ export default function Workspaces() {
                     <span className="text-lg font-semibold">{agent?.name}</span>
                     <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>›</span>
                     <span className="text-sm" style={{ color: 'var(--accent-teal)' }}>{selectedFile}</span>
-                    {agent?.label && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>{agent?.label}</span>}
+                    {agent?.label && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>{agent?.label}</span>}
                   </div>
                   <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                     ~/.openclaw/workspaces/{selectedAgent}/{selectedFile}
@@ -140,8 +140,8 @@ export default function Workspaces() {
                 <button
                   onClick={handleEdit}
                   disabled={saving}
-                  className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors disabled:opacity-50 self-start"
-                  style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-hover)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
+                  className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-4)] transition-colors disabled:opacity-50 self-start"
+                  style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-3)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
                 >
                   {saving ? '⏳ Saving...' : isEdit ? '💾 Save' : '✏️ Edit'}
                 </button>
@@ -150,12 +150,12 @@ export default function Workspaces() {
               {isEdit ? (
                 <textarea
                   className="w-full p-4 rounded-lg text-sm focus:outline-none focus:ring-1"
-                  style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)', fontFamily: 'var(--font-mono)', resize: 'none', minHeight: '60vh' }}
+                  style={{ background: 'var(--bg-2)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)', fontFamily: 'var(--font-mono)', resize: 'none', minHeight: '60vh' }}
                   value={editContent}
                   onChange={e => setEditContent(e.target.value)}
                 />
               ) : (
-                <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                     {content}
                   </ReactMarkdown>

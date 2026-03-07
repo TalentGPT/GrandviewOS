@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import StatCard from '../components/StatCard'
+import PageHeader from '../components/PageHeader'
 import { PageSkeleton } from '../components/Skeleton'
 import { sessions as mockSessions, cronJobs, overnightLog } from '../data/mockSessions'
 import { fetchSessions, fetchSessionTranscript, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
@@ -12,7 +13,6 @@ import type { Session, TranscriptMessage } from '../data/mockSessions'
 type Tab = 'sessions' | 'cron' | 'overnight' | 'costs'
 type DataSource = 'live' | 'mock'
 
-// Convert API session to display format
 function apiToDisplaySession(s: ApiSession): Session & { lastMessage?: string } {
   const title = s.title && s.title !== 'Untitled Session' ? s.title : `Session started via ${s.isActive ? 'active run' : 'completed task'}`
   return {
@@ -68,10 +68,10 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="fixed top-0 right-0 h-full w-full md:w-[520px] z-40 overflow-y-auto border-l shadow-2xl"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
+      className="fixed top-0 right-0 h-full w-full md:w-[520px] z-40 overflow-y-auto border-l"
+      style={{ background: 'var(--bg-1)', borderColor: 'var(--border-divider)', boxShadow: 'var(--shadow-lg)' }}
     >
-      <div className="sticky top-0 p-4 border-b flex items-center justify-between z-10" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+      <div className="sticky top-0 p-4 border-b flex items-center justify-between z-10" style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         <div>
           <div className="text-sm font-semibold">Session Transcript</div>
           <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
@@ -86,7 +86,7 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
             )}
           </div>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
+        <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-3)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
       </div>
 
       <div className="p-4 flex flex-col gap-3">
@@ -101,8 +101,8 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
                 <button
                   key={i}
                   onClick={() => toggleTool(i)}
-                  className="text-left rounded-lg p-2 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
+                  className="text-left rounded-lg p-2 cursor-pointer hover:bg-[var(--bg-3)] transition-colors"
+                  style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}
                 >
                   <span className="text-[10px] font-mono" style={{ color: 'var(--accent-gold)' }}>
                     🔧 {msg.toolName ?? 'Tool call'} <span style={{ color: 'var(--text-secondary)' }}>— click to expand</span>
@@ -116,14 +116,14 @@ function LiveTranscriptPanel({ sessionId, onClose }: { sessionId: string; onClos
 
             return (
               <div key={i} className={`rounded-lg p-3 ${isUser ? 'ml-8' : 'mr-4'}`} style={{
-                background: isUser ? 'var(--bg-hover)' : isSystem ? 'var(--accent-teal)08' : 'var(--bg-card)',
+                background: isUser ? 'var(--bg-3)' : isSystem ? 'rgba(0,229,255,0.03)' : 'var(--bg-2)',
                 borderLeft: `3px solid ${isUser ? 'var(--accent-green)' : isSystem ? 'var(--accent-gold)' : 'var(--accent-teal)'}`,
               }}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{
                     color: isUser ? 'var(--accent-green)' : isSystem ? 'var(--accent-gold)' : 'var(--accent-teal)',
                   }}>
-                    {isUser ? '👤 User' : isSystem ? '⚙️ System' : '🤖 Assistant'}
+                    {isUser ? 'User' : isSystem ? 'System' : 'Assistant'}
                   </span>
                   <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
@@ -158,29 +158,29 @@ function MockTranscriptPanel({ session, onClose }: { session: Session; onClose: 
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="fixed top-0 right-0 h-full w-full md:w-[480px] z-40 overflow-y-auto border-l shadow-2xl"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
+      className="fixed top-0 right-0 h-full w-full md:w-[480px] z-40 overflow-y-auto border-l"
+      style={{ background: 'var(--bg-1)', borderColor: 'var(--border-divider)', boxShadow: 'var(--shadow-lg)' }}
     >
-      <div className="sticky top-0 p-4 border-b flex items-center justify-between" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+      <div className="sticky top-0 p-4 border-b flex items-center justify-between" style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         <div>
           <div className="text-sm font-semibold">{session.title}</div>
           <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-            {session.agentEmoji} {session.agent} · <span style={{ color: session.modelColor }}>{session.model}</span> · {session.tokens} tokens · <span style={{ color: 'var(--accent-red)' }}>{session.cost}</span>
+            {session.agent} · <span style={{ color: session.modelColor }}>{session.model}</span> · {session.tokens} tokens · <span style={{ color: 'var(--accent-red)' }}>{session.cost}</span>
           </div>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
+        <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-3)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
       </div>
       <div className="p-4 flex flex-col gap-3">
         {session.transcript.map((msg: TranscriptMessage, i: number) => (
           <div key={i} className="rounded-lg p-3" style={{
-            background: msg.role === 'assistant' ? 'var(--bg-card)' : msg.role === 'system' ? 'var(--accent-teal)08' : 'var(--bg-hover)',
+            background: msg.role === 'assistant' ? 'var(--bg-2)' : msg.role === 'system' ? 'rgba(0,229,255,0.03)' : 'var(--bg-3)',
             borderLeft: `3px solid ${msg.role === 'assistant' ? 'var(--accent-teal)' : msg.role === 'system' ? 'var(--accent-gold)' : 'var(--accent-green)'}`,
           }}>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{
                 color: msg.role === 'assistant' ? 'var(--accent-teal)' : msg.role === 'system' ? 'var(--accent-gold)' : 'var(--accent-green)',
               }}>
-                {msg.role === 'assistant' ? `${session.agentEmoji} ${session.agent}` : msg.role === 'system' ? '⚙️ System' : '👤 Operator'}
+                {msg.role === 'assistant' ? session.agent : msg.role === 'system' ? 'System' : 'Operator'}
               </span>
               <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{msg.timestamp}</span>
             </div>
@@ -189,6 +189,24 @@ function MockTranscriptPanel({ session, onClose }: { session: Session; onClose: 
         ))}
       </div>
     </motion.div>
+  )
+}
+
+/* Session card component */
+function SessionCard({ children, onClick, isActive }: { children: React.ReactNode; onClick: () => void; isActive?: boolean }) {
+  return (
+    <div
+      onClick={onClick}
+      className="rounded-xl p-5 cursor-pointer transition-all"
+      style={{
+        background: 'var(--bg-2)',
+        border: '1px solid var(--border-divider)',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = isActive ? 'var(--accent-green)' : '#333')}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-divider)')}
+    >
+      {children}
+    </div>
   )
 }
 
@@ -246,7 +264,6 @@ export default function TaskManager() {
     setShowCronModal(false)
   }
 
-  // Load live sessions
   useEffect(() => {
     const load = async () => {
       const { data, error } = await fetchSessions()
@@ -254,7 +271,6 @@ export default function TaskManager() {
         setLiveSessions(data.sessions)
         setLiveError(false)
       } else if (data && Array.isArray(data)) {
-        // Backwards compat
         setLiveSessions(data as unknown as ApiSession[])
         setLiveError(false)
       } else {
@@ -265,118 +281,104 @@ export default function TaskManager() {
     load()
   }, [refreshCount])
 
-  // SSE live updates + fallback polling
   useEffect(() => {
     if (!isLive) return
-
     const es = createEventSource((data) => {
       if (data.type === 'session:update' && data.sessions) {
         setLiveSessions(data.sessions as ApiSession[])
         setLiveError(false)
       }
-    }, () => {
-      // SSE failed, fall back to polling
-    })
-
+    }, () => {})
     const interval = setInterval(doRefresh, 10000)
-    return () => {
-      es.close()
-      clearInterval(interval)
-    }
+    return () => { es.close(); clearInterval(interval) }
   }, [isLive, doRefresh])
 
   if (loading) return <PageSkeleton />
 
-  // Stats from live data
   const liveActive = liveSessions.filter(s => s.isActive).length
   const liveIdle = liveSessions.filter(s => !s.isActive).length
   const liveTotalTokens = liveSessions.reduce((sum, s) => sum + s.totalTokens, 0)
   const liveTotalCost = liveSessions.reduce((sum, s) => sum + s.totalCost, 0)
-
-  // Use live or mock depending on availability
   const hasLiveData = liveSessions.length > 0
   const showLive = dataSource === 'live' && hasLiveData
 
   const statusColor = (s: Session['statusType']) =>
-    s === 'active' ? 'var(--accent-green)' : s === 'idle' ? '#FFC107' : 'var(--accent-red)'
+    s === 'active' ? 'var(--accent-green)' : s === 'idle' ? '#EAB308' : 'var(--accent-red)'
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'sessions', label: 'Active Sessions' },
+    { key: 'cron', label: 'Cron Jobs' },
+    { key: 'overnight', label: 'Overnight Log' },
+    { key: 'costs', label: 'Cost Breakdown' },
+  ]
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full pulse-dot inline-block" style={{ background: 'var(--accent-green)' }}></span>
-            <h1 className="text-2xl md:text-3xl font-bold">Task Manager</h1>
-          </div>
-          <p className="text-sm mt-1 ml-6" style={{ color: 'var(--text-secondary)' }}>Last refreshed: {new Date().toLocaleTimeString()}</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Data source toggle */}
-          <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border-divider)' }}>
-            <button
-              onClick={() => setDataSource('live')}
-              className="px-3 py-1 text-xs font-medium cursor-pointer transition-colors"
-              style={{
-                background: dataSource === 'live' ? 'var(--accent-teal)22' : 'var(--bg-hover)',
-                color: dataSource === 'live' ? 'var(--accent-teal)' : 'var(--text-secondary)',
-                border: 'none',
-              }}
-            >
-              🔌 Live {!hasLiveData && '(N/A)'}
-            </button>
-            <button
-              onClick={() => setDataSource('mock')}
-              className="px-3 py-1 text-xs font-medium cursor-pointer transition-colors"
-              style={{
-                background: dataSource === 'mock' ? 'var(--accent-gold)22' : 'var(--bg-hover)',
-                color: dataSource === 'mock' ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                border: 'none',
-              }}
-            >
-              📋 Demo
-            </button>
-          </div>
-
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="page-container">
+      <PageHeader title="Task Manager" subtitle={`Last refreshed: ${new Date().toLocaleTimeString()}`}>
+        {/* Data source toggle */}
+        <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border-divider)' }}>
           <button
-            onClick={() => setIsLive(!isLive)}
-            className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-md"
-            style={{ background: 'none', border: 'none' }}
+            onClick={() => setDataSource('live')}
+            className="px-3 py-1.5 text-xs font-medium cursor-pointer"
+            style={{
+              background: dataSource === 'live' ? 'rgba(0,229,255,0.1)' : 'var(--bg-3)',
+              color: dataSource === 'live' ? 'var(--accent-teal)' : 'var(--text-secondary)',
+              border: 'none',
+            }}
           >
-            <span className={`w-2.5 h-2.5 rounded-full inline-block ${isLive ? 'pulse-dot' : ''}`} style={{ background: isLive ? 'var(--accent-green)' : 'var(--text-secondary)' }}></span>
-            <span className="text-sm font-medium" style={{ color: isLive ? 'var(--accent-green)' : 'var(--text-secondary)' }}>{isLive ? 'Live' : 'Paused'}</span>
+            Live {!hasLiveData && '(N/A)'}
           </button>
-          <button onClick={doRefresh} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-active)] transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
-            Refresh
+          <button
+            onClick={() => setDataSource('mock')}
+            className="px-3 py-1.5 text-xs font-medium cursor-pointer"
+            style={{
+              background: dataSource === 'mock' ? 'rgba(255,215,0,0.1)' : 'var(--bg-3)',
+              color: dataSource === 'mock' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              border: 'none',
+            }}
+          >
+            Demo
           </button>
         </div>
-      </div>
+
+        <button
+          onClick={() => setIsLive(!isLive)}
+          className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-md"
+          style={{ background: 'none', border: 'none' }}
+        >
+          <span className={`w-2 h-2 rounded-full inline-block ${isLive ? 'pulse-dot' : ''}`} style={{ background: isLive ? 'var(--accent-green)' : 'var(--text-secondary)' }} />
+          <span className="text-xs font-medium" style={{ color: isLive ? 'var(--accent-green)' : 'var(--text-secondary)' }}>{isLive ? 'Live' : 'Paused'}</span>
+        </button>
+        <button onClick={doRefresh} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-4)] transition-colors" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
+          Refresh
+        </button>
+      </PageHeader>
 
       {/* Live data error banner */}
       {liveError && dataSource === 'live' && (
-        <div className="rounded-lg p-3 mb-4 flex items-center gap-2" style={{ background: 'var(--accent-red)11', border: '1px solid var(--accent-red)33' }}>
+        <div className="rounded-lg p-3 mb-4 flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}>
           <span style={{ color: 'var(--accent-red)' }}>⚠</span>
           <span className="text-xs" style={{ color: 'var(--accent-red)' }}>Could not fetch live data. Switch to Demo mode or check the API.</span>
         </div>
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
         {showLive ? (
           <>
-            <StatCard label="Active" value={liveActive} icon="🟢" />
-            <StatCard label="Idle" value={liveIdle} icon="💤" />
-            <StatCard label="Total Sessions" value={liveSessions.length} icon="📊" />
-            <StatCard label="Tokens Used" value={formatTokens(liveTotalTokens)} icon="🔤" />
-            <StatCard label="Total Cost" value={formatCost(liveTotalCost)} color="var(--accent-red)" icon="💰" />
+            <StatCard label="Active" value={liveActive} />
+            <StatCard label="Idle" value={liveIdle} />
+            <StatCard label="Total Sessions" value={liveSessions.length} />
+            <StatCard label="Tokens Used" value={formatTokens(liveTotalTokens)} />
+            <StatCard label="Total Cost" value={formatCost(liveTotalCost)} color="var(--accent-red)" />
           </>
         ) : (
           <>
-            <StatCard label="Active" value={mockSessions.filter(s => s.statusType === 'active').length} icon="🟢" />
-            <StatCard label="Idle" value={mockSessions.filter(s => s.statusType === 'idle').length} icon="💤" />
-            <StatCard label="Total Sessions" value={50} icon="📊" />
-            <StatCard label="Tokens Used" value="7.6M" icon="🔤" />
-            <StatCard label="Total Cost" value="$62.96" color="var(--accent-red)" icon="💰" />
+            <StatCard label="Active" value={mockSessions.filter(s => s.statusType === 'active').length} />
+            <StatCard label="Idle" value={mockSessions.filter(s => s.statusType === 'idle').length} />
+            <StatCard label="Total Sessions" value={50} />
+            <StatCard label="Tokens Used" value="7.6M" />
+            <StatCard label="Total Cost" value="$62.96" color="var(--accent-red)" />
           </>
         )}
       </div>
@@ -384,20 +386,15 @@ export default function TaskManager() {
       {/* Model Fleet */}
       <ModelFleetGrid liveSessions={liveSessions} />
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {([['sessions', '🔥 Active Sessions'], ['cron', 'Cron Jobs'], ['overnight', 'Overnight Log'], ['costs', 'Cost Breakdown']] as const).map(([key, label]) => (
+      {/* Underline Tabs */}
+      <div className="tab-bar">
+        {TABS.map(t => (
           <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all"
-            style={{
-              background: tab === key ? 'var(--accent-teal)22' : 'transparent',
-              color: tab === key ? 'var(--accent-teal)' : 'var(--text-secondary)',
-              border: tab === key ? '1px solid var(--accent-teal)44' : '1px solid transparent',
-            }}
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`tab-item ${tab === t.key ? 'active' : ''}`}
           >
-            {label}
+            {t.label}
           </button>
         ))}
       </div>
@@ -405,181 +402,120 @@ export default function TaskManager() {
       {/* Tab Content */}
       <AnimatePresence mode="wait">
         {tab === 'sessions' && showLive && (
-          <motion.div key="live-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+          <motion.div key="live-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
             {liveSessions.slice(0, 20).map(s => {
               const display = apiToDisplaySession(s)
               return (
-                <div
-                  key={s.id}
-                  onClick={() => setSelectedLiveSessionId(s.id)}
-                  className="rounded-xl p-4 md:p-5 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
-                >
-                  {/* Desktop: card layout */}
-                  <div className="hidden md:block">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className={`w-3 h-3 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#FFC107' }}></span>
-                        <div className="text-base font-semibold truncate">🐕 {display.title}</div>
+                <SessionCard key={s.id} onClick={() => setSelectedLiveSessionId(s.id)} isActive={s.isActive}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#EAB308' }} />
+                      <div className="text-base font-semibold truncate">{display.title}</div>
+                    </div>
+                    <div className="flex items-center gap-5 shrink-0 ml-4">
+                      <div className="text-right">
+                        <div className="text-micro uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>TOKENS</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</div>
                       </div>
-                      <div className="flex items-center gap-4 shrink-0 ml-4">
-                        <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>TOKENS</div>
-                          <div className="text-sm font-medium" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>COST</div>
-                          <div className="text-sm font-medium" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</div>
-                        </div>
+                      <div className="text-right">
+                        <div className="text-micro uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>COST</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-6 mb-2">
-                      <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: display.modelColor + '22', color: display.modelColor }}>{display.model}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.status}</span>
-                    </div>
-                    <div className="flex items-center justify-between ml-6">
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
-                      {s.isActive && (
-                        <button
-                          onClick={(e) => killSession(s.id, e)}
-                          className="text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
-                          style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
-                        >
-                          Kill
-                        </button>
-                      )}
-                    </div>
                   </div>
-                  {/* Mobile: stacked card */}
-                  <div className="md:hidden">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.isActive ? 'pulse-dot' : ''}`} style={{ background: s.isActive ? 'var(--accent-green)' : '#FFC107' }}></span>
-                      <div className="text-sm font-medium truncate flex-1">🐕 {display.title}</div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.status}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: display.modelColor + '22', color: display.modelColor }}>{display.model}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs flex-wrap">
-                      <span style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</span>
-                      <span style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
-                      {s.isActive && (
-                        <button
-                          onClick={(e) => killSession(s.id, e)}
-                          className="text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80 ml-auto"
-                          style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
-                        >
-                          Kill
-                        </button>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2 ml-[22px] mb-2">
+                    <span className="badge" style={{ background: display.modelColor + '18', color: display.modelColor }}>{display.model}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.status}</span>
                   </div>
-                </div>
+                  <div className="flex items-center justify-between ml-[22px]">
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
+                    {s.isActive && (
+                      <button
+                        onClick={(e) => killSession(s.id, e)}
+                        className="text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--accent-red)', border: '1px solid rgba(239,68,68,0.2)' }}
+                      >
+                        Kill
+                      </button>
+                    )}
+                  </div>
+                </SessionCard>
               )
             })}
           </motion.div>
         )}
 
         {tab === 'sessions' && !showLive && (
-          <motion.div key="mock-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+          <motion.div key="mock-sessions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
             {mockSessions.map(s => (
-              <div
-                key={s.id}
-                onClick={() => setSelectedMockSession(s)}
-                className="rounded-xl p-4 md:p-5 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
-              >
-                {/* Desktop card */}
-                <div className="hidden md:block">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className={`w-3 h-3 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }}></span>
-                      <div className="text-base font-semibold truncate">{s.agentEmoji} {s.title}</div>
+              <SessionCard key={s.id} onClick={() => setSelectedMockSession(s)}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }} />
+                    <div className="text-base font-semibold truncate">{s.agentEmoji} {s.title}</div>
+                  </div>
+                  <div className="flex items-center gap-5 shrink-0 ml-4">
+                    <div className="text-right">
+                      <div className="text-micro uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>TOKENS</div>
+                      <div className="text-sm font-medium" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</div>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0 ml-4">
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>TOKENS</div>
-                        <div className="text-sm font-medium" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>COST</div>
-                        <div className="text-sm font-medium" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</div>
-                      </div>
+                    <div className="text-right">
+                      <div className="text-micro uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-secondary)' }}>COST</div>
+                      <div className="text-sm font-medium" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-6 mb-2">
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: s.modelColor + '22', color: s.modelColor }}>{s.model}</span>
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{s.status}</span>
-                  </div>
-                  <div className="ml-6">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
-                  </div>
                 </div>
-                {/* Mobile stacked */}
-                <div className="md:hidden">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-3 h-3 rounded-full shrink-0 ${s.statusType === 'active' ? 'pulse-dot' : ''}`} style={{ background: statusColor(s.statusType) }}></span>
-                    <div className="text-base font-semibold truncate flex-1">{s.agentEmoji} {s.title}</div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: s.modelColor + '22', color: s.modelColor }}>{s.model}</span>
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{s.status}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{s.tokens}</span>
-                    <span style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{s.cost}</span>
-                    <span className="ml-auto text-xs" style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
-                  </div>
+                <div className="flex items-center gap-2 ml-[22px] mb-2">
+                  <span className="badge" style={{ background: s.modelColor + '18', color: s.modelColor }}>{s.model}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.status}</span>
                 </div>
-              </div>
+                <div className="ml-[22px]">
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.time}</span>
+                </div>
+              </SessionCard>
             ))}
           </motion.div>
         )}
 
         {tab === 'cron' && (
           <motion.div key="cron" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="flex justify-end mb-3">
-              <button onClick={() => setShowCronModal(true)} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>+ New Cron Job</button>
+            <div className="flex justify-end mb-4">
+              <button onClick={() => setShowCronModal(true)} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80" style={{ background: 'rgba(0,229,255,0.1)', color: 'var(--accent-teal)', border: '1px solid rgba(0,229,255,0.2)' }}>+ New Cron Job</button>
             </div>
             <div className="flex flex-col gap-2">
               {cronList.map(j => (
-                <div key={j.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${j.status === 'active' ? 'pulse-dot' : ''}`} style={{ background: j.status === 'active' ? 'var(--accent-green)' : j.status === 'paused' ? '#FFC107' : 'var(--accent-red)' }}></span>
+                <div key={j.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${j.status === 'active' ? 'pulse-dot' : ''}`} style={{ background: j.status === 'active' ? 'var(--accent-green)' : j.status === 'paused' ? '#EAB308' : 'var(--accent-red)' }} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{j.agentEmoji} {j.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="px-1 py-0.5 rounded mr-1" style={{ background: j.schedule.includes('Weekly') || j.schedule.includes('Mon') ? 'var(--accent-purple)18' : 'var(--accent-teal)18', color: j.schedule.includes('Weekly') || j.schedule.includes('Mon') ? 'var(--accent-purple)' : 'var(--accent-teal)' }}>
-                        {j.schedule.includes('Weekly') || j.schedule.includes('Mon') || j.schedule.includes('Fri') ? '📅 weekly' : '⏰ scheduled'}
-                      </span>
+                    <div className="text-sm font-medium">{j.name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {j.schedule} · Last: {j.lastRun} · Next: {j.nextRun}
                     </div>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: j.modelColor + '22', color: j.modelColor }}>{j.model}</span>
+                  <span className="badge shrink-0" style={{ background: j.modelColor + '18', color: j.modelColor }}>{j.model}</span>
                   <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{j.tokens}</span>
                   <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{j.cost}</span>
                   <button onClick={() => toggleCronPause(j.id)} className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 cursor-pointer hover:opacity-80" style={{
-                    background: j.status === 'active' ? 'var(--accent-green)22' : '#FFC10722',
-                    color: j.status === 'active' ? 'var(--accent-green)' : '#FFC107',
+                    background: j.status === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(234,179,8,0.1)',
+                    color: j.status === 'active' ? 'var(--accent-green)' : '#EAB308',
                     border: 'none',
                   }}>{j.status === 'active' ? '⏸ Pause' : '▶ Resume'}</button>
-                  <button onClick={() => deleteCron(j.id)} className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80" style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: 'none' }}>✕</button>
+                  <button onClick={() => deleteCron(j.id)} className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--accent-red)', border: 'none' }}>✕</button>
                 </div>
               ))}
             </div>
 
-            {/* Create Cron Modal */}
             <AnimatePresence>
               {showCronModal && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
-                  <motion.form initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onSubmit={handleCreateCron} className="rounded-lg p-6 w-[400px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                  <motion.form initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onSubmit={handleCreateCron} className="rounded-xl p-6 w-[400px]" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                     <h3 className="text-sm font-semibold mb-4">Create Cron Job</h3>
                     <div className="flex flex-col gap-3">
-                      <input name="name" placeholder="Job name" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
-                      <input name="schedule" placeholder="Schedule (e.g. Every 30 min, Daily 08:00 UTC)" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                      <input name="name" placeholder="Job name" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                      <input name="schedule" placeholder="Schedule (e.g. Every 30 min, Daily 08:00 UTC)" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
                       <div className="flex gap-2 justify-end">
-                        <button type="button" onClick={() => setShowCronModal(false)} className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none' }}>Cancel</button>
-                        <button type="submit" className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>Create</button>
+                        <button type="button" onClick={() => setShowCronModal(false)} className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: 'none' }}>Cancel</button>
+                        <button type="submit" className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'rgba(0,229,255,0.1)', color: 'var(--accent-teal)', border: '1px solid rgba(0,229,255,0.2)' }}>Create</button>
                       </div>
                     </div>
                   </motion.form>
@@ -591,20 +527,18 @@ export default function TaskManager() {
 
         {tab === 'overnight' && (
           <motion.div key="overnight" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="relative pl-6">
-            {/* Timeline line */}
-            <div className="absolute left-[18px] top-0 bottom-0 w-px" style={{ background: 'var(--border-divider)' }}></div>
+            <div className="absolute left-[18px] top-0 bottom-0 w-px" style={{ background: 'var(--border-divider)' }} />
             {overnightLog.map((entry, i) => {
-              const catColor = entry.type === 'success' ? 'var(--accent-green)' : entry.type === 'warning' ? '#FFC107' : 'var(--accent-teal)'
+              const catColor = entry.type === 'success' ? 'var(--accent-green)' : entry.type === 'warning' ? '#EAB308' : 'var(--accent-teal)'
               const catLabel = entry.type === 'success' ? 'completed' : entry.type === 'warning' ? 'error' : 'info'
               return (
                 <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg text-sm mb-1 relative">
-                  {/* Timeline dot */}
-                  <span className="absolute left-[-6px] top-4 w-3 h-3 rounded-full border-2 border-black z-10" style={{ background: catColor }}></span>
+                  <span className="absolute left-[-6px] top-4 w-3 h-3 rounded-full border-2 border-black z-10" style={{ background: catColor }} />
                   <span className="text-xs shrink-0 w-16 text-right" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.time}</span>
-                  <div className="flex-1 rounded-lg p-2" style={{ background: 'var(--bg-card)' }}>
+                  <div className="flex-1 rounded-lg p-2" style={{ background: 'var(--bg-2)' }}>
                     <div className="flex items-center gap-2">
                       <span style={{ color: 'var(--text-primary)' }}>{entry.event}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full ml-auto shrink-0" style={{ background: catColor + '22', color: catColor }}>{catLabel}</span>
+                      <span className="badge ml-auto shrink-0" style={{ background: catColor + '15', color: catColor }}>{catLabel}</span>
                     </div>
                   </div>
                 </div>
@@ -612,6 +546,7 @@ export default function TaskManager() {
             })}
           </motion.div>
         )}
+
         {tab === 'costs' && (
           <motion.div key="costs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <CostBreakdownView />

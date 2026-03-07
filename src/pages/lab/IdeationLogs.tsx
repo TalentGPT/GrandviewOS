@@ -87,7 +87,7 @@ export default function IdeationLogs() {
           <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Topic</label>
           <select value={filterTopic} onChange={e => setFilterTopic(e.target.value)}
             className="px-3 py-1.5 rounded text-xs cursor-pointer"
-            style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
+            style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
             <option value="">All Topics</option>
             {allTopics.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -96,7 +96,7 @@ export default function IdeationLogs() {
           <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Agent</label>
           <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)}
             className="px-3 py-1.5 rounded text-xs cursor-pointer"
-            style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
+            style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}>
             <option value="">All Agents</option>
             {allAgents.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
@@ -112,7 +112,7 @@ export default function IdeationLogs() {
               <div
                 onClick={() => setExpanded(p => ({ ...p, [entry.id]: !p[entry.id] }))}
                 className="rounded-lg p-4 cursor-pointer hover:border-[var(--accent-green)] transition-colors relative"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                 {/* Timeline dot */}
                 <div className="absolute -left-[31px] top-5 w-3 h-3 rounded-full" style={{ background: 'var(--accent-green)', border: '2px solid var(--bg-primary)' }} />
 
@@ -126,7 +126,7 @@ export default function IdeationLogs() {
 
                 <div className="flex gap-1 mb-2">
                   {entry.participants.map(p => (
-                    <span key={p.name} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)' }}>
+                    <span key={p.name} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)' }}>
                       {p.emoji} {p.name}
                     </span>
                   ))}

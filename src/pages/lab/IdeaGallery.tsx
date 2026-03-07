@@ -72,13 +72,13 @@ export default function IdeaGallery() {
       <div className="flex gap-2 mb-4 flex-wrap">
         <button onClick={() => setFilterTag('')}
           className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer"
-          style={{ background: !filterTag ? 'var(--accent-green)22' : 'var(--bg-hover)', color: !filterTag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
+          style={{ background: !filterTag ? 'var(--accent-green)22' : 'var(--bg-3)', color: !filterTag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
           All
         </button>
         {ALL_TAGS.map(tag => (
           <button key={tag} onClick={() => setFilterTag(tag === filterTag ? '' : tag)}
             className="px-2.5 py-1 rounded-full text-[10px] font-medium cursor-pointer"
-            style={{ background: filterTag === tag ? 'var(--accent-green)22' : 'var(--bg-hover)', color: filterTag === tag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
+            style={{ background: filterTag === tag ? 'var(--accent-green)22' : 'var(--bg-3)', color: filterTag === tag ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
             {tag}
           </button>
         ))}
@@ -88,11 +88,11 @@ export default function IdeaGallery() {
       <AnimatePresence>
         {showAdd && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-4">
-            <div className="rounded-lg p-4 flex flex-col gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-green)33' }}>
+            <div className="rounded-lg p-4 flex flex-col gap-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-green)33' }}>
               <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Idea title..."
-                className="px-3 py-2 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                className="px-3 py-2 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description..." rows={3}
-                className="px-3 py-2 rounded text-sm focus:outline-none resize-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                className="px-3 py-2 rounded text-sm focus:outline-none resize-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               <button onClick={addIdea} className="self-end px-4 py-1.5 rounded text-xs font-medium cursor-pointer"
                 style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Add Idea</button>
             </div>
@@ -106,7 +106,7 @@ export default function IdeaGallery() {
           <motion.div key={idea.id} layout
             onClick={() => setSelectedIdea(idea)}
             className="rounded-lg p-4 cursor-pointer hover:border-[var(--accent-green)] transition-colors"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
             <div className="flex items-start justify-between mb-2">
               <div className="text-sm font-semibold">{idea.title}</div>
               <button onClick={e => { e.stopPropagation(); vote(idea.id) }}
@@ -119,7 +119,7 @@ export default function IdeaGallery() {
             <div className="flex items-center justify-between">
               <div className="flex gap-1">
                 {idea.tags.map(t => (
-                  <span key={t} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>{t}</span>
+                  <span key={t} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>{t}</span>
                 ))}
               </div>
               <div className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>
@@ -141,7 +141,7 @@ export default function IdeaGallery() {
             onClick={() => setSelectedIdea(null)}>
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
               className="rounded-xl p-6 max-w-lg w-full"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">{selectedIdea.title}</h2>

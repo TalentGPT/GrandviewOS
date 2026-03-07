@@ -30,7 +30,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="text-center rounded-lg p-8" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-red)33' }}>
+          <div className="text-center rounded-lg p-8" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-red)33' }}>
             <div className="text-3xl mb-3">⚠️</div>
             <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--accent-red)' }}>Something went wrong</h2>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>

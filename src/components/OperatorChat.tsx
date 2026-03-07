@@ -47,10 +47,10 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           className="fixed top-0 right-0 h-full w-full md:w-[400px] z-50 flex flex-col border-l shadow-2xl"
-          style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
+          style={{ background: 'var(--bg-1)', borderColor: 'var(--border-divider)' }}
         >
           {/* Header */}
-          <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+          <div className="p-4 border-b flex items-center justify-between shrink-0" style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
             <div className="flex items-center gap-2">
               <span className="text-lg">🐕</span>
               <div>
@@ -61,7 +61,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
+            <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-sm hover:bg-[var(--bg-3)]" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}>✕</button>
           </div>
 
           {/* Messages */}
@@ -69,7 +69,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
             {messages.map(msg => (
               <div key={msg.id} className={`flex ${msg.from === 'operator' ? 'justify-end' : 'justify-start'}`}>
                 <div className="max-w-[85%] rounded-lg p-3" style={{
-                  background: msg.from === 'operator' ? 'var(--accent-teal)18' : 'var(--bg-card)',
+                  background: msg.from === 'operator' ? 'var(--accent-teal)18' : 'var(--bg-2)',
                   border: `1px solid ${msg.from === 'operator' ? 'var(--accent-teal)33' : 'var(--border-divider)'}`,
                 }}>
                   <div className="flex items-center gap-2 mb-1">
@@ -85,7 +85,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t shrink-0" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-card)' }}>
+          <div className="p-3 border-t shrink-0" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-2)' }}>
             <div className="flex gap-2">
               <input
                 value={input}
@@ -93,7 +93,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                 onKeyDown={e => { if (e.key === 'Enter') sendMessage() }}
                 placeholder="Message Muddy..."
                 className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
-                style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
+                style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
               />
               <button
                 onClick={sendMessage}

@@ -100,7 +100,7 @@ export default function DailyBriefs() {
               <button
                 key={b.date}
                 onClick={() => setSelectedDate(b.date)}
-                className="w-full text-left px-3 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                className="w-full text-left px-3 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
                 style={{
                   background: selectedDate === b.date ? 'var(--accent-purple)11' : 'transparent',
                   color: selectedDate === b.date ? 'var(--accent-purple)' : 'var(--text-secondary)',
@@ -117,24 +117,24 @@ export default function DailyBriefs() {
         {/* Brief detail */}
         {selected && (
           <div className="flex-1">
-            <div className="rounded-lg p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            <div className="rounded-lg p-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
               <h2 className="text-lg font-semibold mb-1">Brief — {selected.date}</h2>
               <div className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>Auto-generated from session data</div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-hover)' }}>
+                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-3)' }}>
                   <div className="text-2xl font-bold" style={{ color: 'var(--accent-purple)', fontFamily: 'var(--font-mono)' }}>{selected.agentsActive}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Agents Active</div>
                 </div>
-                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-hover)' }}>
+                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-3)' }}>
                   <div className="text-2xl font-bold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{selected.sessionsRun}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Sessions Run</div>
                 </div>
-                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-hover)' }}>
+                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-3)' }}>
                   <div className="text-2xl font-bold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{formatTokens(selected.tokensUsed)}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Tokens Used</div>
                 </div>
-                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-hover)' }}>
+                <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-3)' }}>
                   <div className="text-2xl font-bold" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{formatCost(selected.cost)}</div>
                   <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Cost</div>
                 </div>
@@ -143,7 +143,7 @@ export default function DailyBriefs() {
               <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-purple)' }}>Key Events</h3>
               <div className="flex flex-col gap-2">
                 {selected.events.map((evt, i) => (
-                  <div key={i} className="flex items-start gap-2 p-3 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+                  <div key={i} className="flex items-start gap-2 p-3 rounded-lg" style={{ background: 'var(--bg-3)' }}>
                     <span className="text-xs mt-0.5" style={{ color: 'var(--accent-green)' }}>●</span>
                     <span className="text-sm">{evt}</span>
                   </div>

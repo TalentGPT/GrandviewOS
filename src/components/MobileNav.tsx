@@ -48,7 +48,7 @@ export default function MobileNav({ onChatToggle }: Props) {
     <>
       {/* Top bar with hamburger */}
       <nav className="flex items-center justify-between px-4 py-3 border-b md:hidden"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+        style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         <NavLink to="/" className="flex items-center gap-2 no-underline">
           <span className="text-lg font-bold" style={{ color: 'var(--accent-teal)' }}>⬡</span>
           <span className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>GrandviewOS</span>
@@ -62,7 +62,7 @@ export default function MobileNav({ onChatToggle }: Props) {
           <button
             onClick={() => setOpen(!open)}
             className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-            style={{ background: 'var(--bg-hover)', border: 'none', color: 'var(--text-primary)' }}
+            style={{ background: 'var(--bg-3)', border: 'none', color: 'var(--text-primary)' }}
           >
             {open ? '✕' : '☰'}
           </button>
@@ -86,13 +86,13 @@ export default function MobileNav({ onChatToggle }: Props) {
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed top-0 right-0 h-full w-72 z-50 overflow-y-auto border-l md:hidden"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-divider)' }}
+              style={{ background: 'var(--bg-1)', borderColor: 'var(--border-divider)' }}
             >
               <div className="p-4">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Navigation</span>
                   <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-md flex items-center justify-center"
-                    style={{ background: 'var(--bg-hover)', border: 'none', color: 'var(--text-secondary)' }}>✕</button>
+                    style={{ background: 'var(--bg-3)', border: 'none', color: 'var(--text-secondary)' }}>✕</button>
                 </div>
 
                 {modules.map(mod => (
@@ -131,7 +131,7 @@ export default function MobileNav({ onChatToggle }: Props) {
       </AnimatePresence>
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around py-2 border-t md:hidden"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+        style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         {[
           { emoji: '📊', label: 'Tasks', path: '/ops/task-manager' },
           { emoji: '👥', label: 'Org', path: '/ops/org-chart' },

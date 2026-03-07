@@ -21,7 +21,7 @@ export default function PersistentAudioBar({ visible, speakerName = 'Muddy', spe
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className="fixed bottom-0 left-0 right-0 z-30 flex items-center gap-3 md:gap-4 px-4 md:px-6 py-2.5 border-t"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)', borderTop: '2px solid var(--border-page)' }}
+      style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)', borderTop: '2px solid var(--border-page)' }}
     >
       {/* Breadcrumb */}
       <div className="hidden md:flex items-center gap-1.5 shrink-0 mr-2">

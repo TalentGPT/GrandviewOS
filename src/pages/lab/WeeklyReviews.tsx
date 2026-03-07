@@ -107,7 +107,7 @@ export default function WeeklyReviews() {
           <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>WEEKS</div>
           {reviews.map(r => (
             <button key={r.id} onClick={() => setSelected(r)}
-              className="w-full text-left px-3 py-2 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+              className="w-full text-left px-3 py-2 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
               style={{
                 background: selected?.id === r.id ? 'var(--accent-green)11' : 'transparent',
                 color: selected?.id === r.id ? 'var(--accent-green)' : 'var(--text-secondary)',
@@ -122,14 +122,14 @@ export default function WeeklyReviews() {
         {/* Review detail */}
         {selected && (
           <div className="flex-1 space-y-4">
-            <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
               <h2 className="text-base font-semibold mb-1">Week {selected.week}</h2>
               <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{selected.startDate} — {selected.endDate}</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Highlights */}
-              <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-green)22' }}>
+              <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-green)22' }}>
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-green)' }}>✅ Highlights</h3>
                 {selected.highlights.map((h, i) => (
                   <div key={i} className="flex items-start gap-2 mb-2">
@@ -139,7 +139,7 @@ export default function WeeklyReviews() {
                 ))}
               </div>
               {/* Lowlights */}
-              <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-red)22' }}>
+              <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-red)22' }}>
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-red)' }}>⚠️ Lowlights</h3>
                 {selected.lowlights.map((l, i) => (
                   <div key={i} className="flex items-start gap-2 mb-2">
@@ -151,7 +151,7 @@ export default function WeeklyReviews() {
             </div>
 
             {/* Agent performance */}
-            <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
               <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-green)' }}>Agent Performance</h3>
               <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
                 <thead>
