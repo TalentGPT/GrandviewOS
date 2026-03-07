@@ -8,6 +8,7 @@ export default defineConfig({
   server: {
     port: 7100,
     host: '0.0.0.0',
+    allowedHosts: 'all',
   },
   build: {
     rollupOptions: {
