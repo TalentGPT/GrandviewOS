@@ -219,20 +219,24 @@ export function formatTokens(tokens: number): string {
 
 // ---- OpenClaw Connection ----
 
-export async function connectOpenClaw(url: string, token: string): Promise<ApiResult<{ ok: boolean; health?: any }>> {
-  return apiFetch('/api/openclaw/connect', { method: 'POST', body: JSON.stringify({ url, token }) })
+export async function connectOpenClaw(url: string, token: string): Promise<FetchResult<{ ok: boolean; health?: any }>> {
+  return apiFetch('/openclaw/connect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, token }),
+  })
 }
 
-export async function syncOpenClaw(): Promise<ApiResult<{ ok: boolean; synced?: number }>> {
-  return apiFetch('/api/openclaw/sync', { method: 'POST' })
+export async function syncOpenClaw(): Promise<FetchResult<{ ok: boolean; synced?: number }>> {
+  return apiFetch('/openclaw/sync', { method: 'POST' })
 }
 
-export async function fetchLiveSessions(): Promise<ApiResult<any[]>> {
-  return apiFetch('/api/openclaw/sessions')
+export async function fetchLiveSessions(): Promise<FetchResult<any[]>> {
+  return apiFetch('/openclaw/sessions')
 }
 
-export async function fetchLiveCronJobs(): Promise<ApiResult<any[]>> {
-  return apiFetch('/api/openclaw/cron-jobs')
+export async function fetchLiveCronJobs(): Promise<FetchResult<any[]>> {
+  return apiFetch('/openclaw/cron-jobs')
 }
 
 export function getModelColor(model: string): string {

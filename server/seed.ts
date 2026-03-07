@@ -119,26 +119,6 @@ async function main() {
   }
   console.log(`✅ ${integrations.length} integrations seeded`)
 
-  // Sample sessions
-  const models = ['claude-opus-4-6', 'claude-sonnet-4-6', 'codex-5.3', 'gemini-flash']
-  for (let i = 0; i < 10; i++) {
-    await prisma.session.create({
-      data: {
-        tenantId: tenant.id,
-        title: `Sample Session ${i + 1}`,
-        model: models[i % models.length],
-        provider: 'anthropic',
-        messageCount: Math.floor(Math.random() * 20) + 5,
-        totalTokens: Math.floor(Math.random() * 50000) + 5000,
-        totalCost: Math.random() * 2,
-        isActive: i < 2,
-        startedAt: new Date(Date.now() - Math.random() * 7 * 86400000),
-        lastActivity: new Date(Date.now() - Math.random() * 86400000),
-      },
-    })
-  }
-  console.log('✅ 10 sample sessions seeded')
-
   // Sample standup
   await prisma.standup.create({
     data: {
