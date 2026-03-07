@@ -3,11 +3,17 @@
  * Runs on VPS, exposes OpenClaw filesystem data as REST API
  * GrandviewOS on Replit connects to this
  */
+import { config } from 'dotenv'
+import { resolve } from 'path'
+config({ path: resolve(import.meta.dirname || '.', '../.env') })
+
 import express from 'express'
 import cors from 'cors'
 import bridgeRouter from './services/openclaw-bridge.js'
 
 const app = express()
+import 'dotenv/config'
+
 const PORT = parseInt(process.env.BRIDGE_PORT || '7101')
 const BRIDGE_TOKEN = process.env.BRIDGE_TOKEN || 'gv-bridge-2026'
 
