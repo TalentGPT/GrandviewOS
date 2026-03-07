@@ -6,6 +6,7 @@ const tabs = [
   { label: 'Standup', path: '/standup', color: '#FF9800' },
   { label: 'Workspaces', path: '/workspaces', color: '#FF9800' },
   { label: 'Docs', path: '/docs', color: '#00BCD4' },
+  { label: 'Settings', path: '/settings', color: '#8b949e' },
 ]
 
 export default function TopNavBar() {

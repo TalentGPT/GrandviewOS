@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import TopNavBar from './components/TopNavBar'
 import LeftSidebar from './components/LeftSidebar'
+import StatusBar from './components/StatusBar'
 import { ToastProvider } from './components/Toast'
 import TaskManager from './pages/TaskManager'
 import OrgChart from './pages/OrgChart'
 import Standup from './pages/Standup'
 import Workspaces from './pages/Workspaces'
 import Docs from './pages/Docs'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -34,9 +36,11 @@ function App() {
                 <Route path="/standup" element={<Standup />} />
                 <Route path="/workspaces" element={<Workspaces />} />
                 <Route path="/docs" element={<Docs />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </main>
           </div>
+          <StatusBar />
         </div>
       </ToastProvider>
     </BrowserRouter>
