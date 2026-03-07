@@ -60,3 +60,7 @@ export const updateLlmProvider = (id: string, data: Partial<LlmProvider>) =>
 export const fetchAgentPermissions = () => apiFetch<AgentPermissions[]>('/agent-permissions')
 export const updateAgentPermissions = (agentId: string, data: Partial<AgentPermissions>) =>
   apiFetch<AgentPermissions>(`/agent-permissions/${agentId}`, { method: 'PATCH', ...jsonBody(data) })
+
+// Re-export agents fetch for convenience
+import type { ApiAgent } from '../types/api'
+export const fetchAgents = () => apiFetch<ApiAgent[]>('/agents')

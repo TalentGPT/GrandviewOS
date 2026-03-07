@@ -14,6 +14,7 @@ const modules: { label: string; prefix: string; color: string; tabs: TabDef[] }[
       { label: 'Standup', path: '/ops/standup' },
       { label: 'Workspaces', path: '/ops/workspaces' },
       { label: 'Docs', path: '/ops/docs' },
+      { label: 'Integrations', path: '/ops/integrations' },
       { label: 'Settings', path: '/ops/settings' },
     ],
   },

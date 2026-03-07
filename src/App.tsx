@@ -26,6 +26,14 @@ const DailyBriefs = lazy(() => import('./pages/brain/DailyBriefs'))
 const Automations = lazy(() => import('./pages/brain/Automations'))
 const ProjectTracking = lazy(() => import('./pages/brain/ProjectTracking'))
 
+// Code-split: Integrations module
+const IntegrationsLayout = lazy(() => import('./pages/integrations/IntegrationsLayout'))
+const IntegrationsOverview = lazy(() => import('./pages/integrations/IntegrationsOverview'))
+const SecretsManager = lazy(() => import('./pages/integrations/SecretsManager'))
+const McpServers = lazy(() => import('./pages/integrations/McpServers'))
+const LlmProviders = lazy(() => import('./pages/integrations/LlmProviders'))
+const AgentPermissions = lazy(() => import('./pages/integrations/AgentPermissions'))
+
 // Code-split: Lab module
 const IdeaGallery = lazy(() => import('./pages/lab/IdeaGallery'))
 const PrototypeFleet = lazy(() => import('./pages/lab/PrototypeFleet'))
@@ -48,6 +56,11 @@ function getBreadcrumb(pathname: string): string {
     '/ops/standup': 'Standup',
     '/ops/workspaces': 'Workspaces',
     '/ops/docs': 'Docs',
+    '/ops/integrations': 'Integrations',
+    '/ops/integrations/secrets': 'Secrets Manager',
+    '/ops/integrations/mcp': 'MCP Servers',
+    '/ops/integrations/llm': 'LLM Providers',
+    '/ops/integrations/permissions': 'Agent Permissions',
     '/ops/settings': 'Settings',
     '/brain/memory': 'Memory Viewer',
     '/brain/briefs': 'Daily Briefs',
@@ -105,6 +118,13 @@ function App() {
                   <Route path="/ops/standup" element={<Standup />} />
                   <Route path="/ops/workspaces" element={<Workspaces />} />
                   <Route path="/ops/docs" element={<Docs />} />
+                  <Route path="/ops/integrations" element={<LazyPage><IntegrationsLayout /></LazyPage>}>
+                    <Route index element={<IntegrationsOverview />} />
+                    <Route path="secrets" element={<SecretsManager />} />
+                    <Route path="mcp" element={<McpServers />} />
+                    <Route path="llm" element={<LlmProviders />} />
+                    <Route path="permissions" element={<AgentPermissions />} />
+                  </Route>
                   <Route path="/ops/settings" element={<Settings />} />
                   {/* Brain module (lazy) */}
                   <Route path="/brain" element={<Navigate to="/brain/memory" replace />} />
