@@ -66,6 +66,44 @@ export class OpenClawConnector {
     }
   }
 
+  async put<T>(path: string, body: any): Promise<T | null> {
+    if (!this.url) return null
+    try {
+      const res = await fetch(`${this.url}${path}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'X-Bridge-Token': this.token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) return null
+      return await res.json() as T
+    } catch {
+      return null
+    }
+  }
+
+  async del<T>(path: string): Promise<T | null> {
+    if (!this.url) return null
+    try {
+      const res = await fetch(`${this.url}${path}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'X-Bridge-Token': this.token,
+        },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) return null
+      return await res.json() as T
+    } catch {
+      return null
+    }
+  }
+
   async getHealth(): Promise<any> {
     return this.fetch('/api/system/health') ?? { gatewayRunning: false }
   }

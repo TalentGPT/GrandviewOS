@@ -388,18 +388,21 @@ router.post('/trello/sync', async (req, res) => {
   }
 })
 
-async function syncTrelloBoard(boardId: string): Promise<Array<{ list: string; count: number; cards: Array<{ title: string; labels: string[] }> }>> {
+async function syncTrelloBoard(boardId: string): Promise<Array<{ list: string; listId: string; count: number; cards: Array<{ id: string; title: string; labels: string[]; due: string | null }> }>> {
   const url = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&cards=open&card_fields=name,labels,due,dateLastActivity`
   const resp = await fetch(url, { signal: AbortSignal.timeout(30000) })
   if (!resp.ok) throw new Error(`Trello API error: ${resp.status}`)
-  const lists = await resp.json() as Array<{ name: string; cards: Array<{ name: string; labels: Array<{ name: string }> }> }>
+  const lists = await resp.json() as Array<{ id: string; name: string; cards: Array<{ id: string; name: string; labels: Array<{ name: string }>; due: string | null }> }>
 
   return lists.map(l => ({
     list: l.name,
+    listId: l.id,
     count: l.cards.length,
     cards: l.cards.map(c => ({
+      id: c.id,
       title: c.name,
       labels: c.labels.map(lb => lb.name).filter(Boolean),
+      due: c.due || null,
     })),
   }))
 }
@@ -420,6 +423,122 @@ async function saveTrelloStateMd(boardName: string, syncTime: string, lists: Arr
   }
   await writeFile(join(MEMORY_DIR, 'trello-state.md'), md)
 }
+
+// --- Trello CRUD endpoints ---
+
+// Create card
+router.post('/trello/cards', async (req, res) => {
+  try {
+    const { listId, name, desc, due, labels } = req.body
+    if (!listId || !name) { res.status(400).json({ error: 'listId and name required' }); return }
+    const params = new URLSearchParams({ idList: listId, name, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+    if (desc) params.set('desc', desc)
+    if (due) params.set('due', due)
+    const resp = await fetch(`https://api.trello.com/1/cards?${params}`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Get card details
+router.get('/trello/cards/:cardId', async (req, res) => {
+  try {
+    const url = `https://api.trello.com/1/cards/${req.params.cardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,desc,due,labels,idList,closed&actions=commentCard&actions_limit=10`
+    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Update card
+router.put('/trello/cards/:cardId', async (req, res) => {
+  try {
+    const params = new URLSearchParams({ key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+    const { name, desc, due, idList } = req.body
+    if (name !== undefined) params.set('name', name)
+    if (desc !== undefined) params.set('desc', desc)
+    if (due !== undefined) params.set('due', due)
+    if (idList !== undefined) params.set('idList', idList)
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Move card
+router.put('/trello/cards/:cardId/move', async (req, res) => {
+  try {
+    const { listId } = req.body
+    if (!listId) { res.status(400).json({ error: 'listId required' }); return }
+    const params = new URLSearchParams({ idList: listId, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Archive card
+router.put('/trello/cards/:cardId/archive', async (req, res) => {
+  try {
+    const params = new URLSearchParams({ closed: 'true', key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Delete card
+router.delete('/trello/cards/:cardId', async (req, res) => {
+  try {
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}`, { method: 'DELETE', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json({ ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Create list
+router.post('/trello/lists', async (req, res) => {
+  try {
+    const { boardId, name } = req.body
+    if (!boardId || !name) { res.status(400).json({ error: 'boardId and name required' }); return }
+    const params = new URLSearchParams({ name, idBoard: boardId, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+    const resp = await fetch(`https://api.trello.com/1/lists?${params}`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Add label to card
+router.post('/trello/cards/:cardId/labels', async (req, res) => {
+  try {
+    const { labelId } = req.body
+    if (!labelId) { res.status(400).json({ error: 'labelId required' }); return }
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}/idLabels?value=${labelId}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Add comment to card
+router.post('/trello/cards/:cardId/comments', async (req, res) => {
+  try {
+    const { text } = req.body
+    if (!text) { res.status(400).json({ error: 'text required' }); return }
+    const resp = await fetch(`https://api.trello.com/1/cards/${req.params.cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}`, { method: 'POST', signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+// Get board lists (for move-to dropdown)
+router.get('/trello/boards/:boardId/lists', async (req, res) => {
+  try {
+    const url = `https://api.trello.com/1/boards/${req.params.boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name`
+    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    if (!resp.ok) { res.status(resp.status).json({ error: 'Trello API error' }); return }
+    res.json(await resp.json())
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
 
 // --- Projects (parse trello-state.md) ---
 

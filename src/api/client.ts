@@ -319,12 +319,15 @@ export async function fetchAutomations(): Promise<FetchResult<{ automations: Aut
 // ---- Projects (Trello) ----
 
 export interface TrelloCard {
+  id?: string
   title: string
   labels: string[]
+  due?: string | null
 }
 
 export interface TrelloList {
   list: string
+  listId?: string
   count: number
   cards: TrelloCard[]
 }
@@ -372,6 +375,43 @@ export async function connectTrelloBoard(boardUrl?: string, boardId?: string): P
 
 export async function syncTrelloBoard(): Promise<FetchResult<{ ok: boolean; board: TrelloBoard }>> {
   return apiFetch<{ ok: boolean; board: TrelloBoard }>('/openclaw/trello/sync', { method: 'POST' })
+}
+
+// Trello CRUD
+export async function createTrelloCard(listId: string, name: string, desc?: string): Promise<FetchResult<any>> {
+  return apiFetch<any>('/openclaw/trello/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listId, name, desc }) })
+}
+
+export async function updateTrelloCard(cardId: string, updates: { name?: string; desc?: string; due?: string; idList?: string }): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) })
+}
+
+export async function moveTrelloCard(cardId: string, listId: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}/move`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listId }) })
+}
+
+export async function archiveTrelloCard(cardId: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}/archive`, { method: 'PUT' })
+}
+
+export async function deleteTrelloCard(cardId: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}`, { method: 'DELETE' })
+}
+
+export async function createTrelloList(boardId: string, name: string): Promise<FetchResult<any>> {
+  return apiFetch<any>('/openclaw/trello/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boardId, name }) })
+}
+
+export async function addTrelloComment(cardId: string, text: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
+}
+
+export async function getTrelloCardDetails(cardId: string): Promise<FetchResult<any>> {
+  return apiFetch<any>(`/openclaw/trello/cards/${encodeURIComponent(cardId)}`)
+}
+
+export async function getTrelloBoardLists(boardId: string): Promise<FetchResult<Array<{ id: string; name: string }>>> {
+  return apiFetch<Array<{ id: string; name: string }>>(`/openclaw/trello/boards/${encodeURIComponent(boardId)}/lists`)
 }
 
 // ---- OpenClaw Connection ----
