@@ -46,7 +46,10 @@ router.get('/config', async (req, res) => {
 // GET /api/cost/breakdown
 router.get('/cost/breakdown', async (req, res) => {
   try {
-    const sessions = await prisma.session.findMany({ where: { tenantId: req.tenantId! } })
+    const sessions = await prisma.session.findMany({
+      where: { tenantId: req.tenantId! },
+      include: { agent: { select: { name: true, slug: true } } },
+    })
     const byModel: Record<string, { cost: number; tokens: number; sessions: number }> = {}
     const byAgent: Record<string, { cost: number; tokens: number; sessions: number }> = {}
     let totalCost = 0, totalTokens = 0
@@ -58,11 +61,11 @@ router.get('/cost/breakdown', async (req, res) => {
       byModel[model].tokens += s.totalTokens
       byModel[model].sessions++
 
-      const agent = 'main'
-      if (!byAgent[agent]) byAgent[agent] = { cost: 0, tokens: 0, sessions: 0 }
-      byAgent[agent].cost += s.totalCost
-      byAgent[agent].tokens += s.totalTokens
-      byAgent[agent].sessions++
+      const agentName = (s as any).agent?.name || 'Unassigned'
+      if (!byAgent[agentName]) byAgent[agentName] = { cost: 0, tokens: 0, sessions: 0 }
+      byAgent[agentName].cost += s.totalCost
+      byAgent[agentName].tokens += s.totalTokens
+      byAgent[agentName].sessions++
 
       totalCost += s.totalCost
       totalTokens += s.totalTokens

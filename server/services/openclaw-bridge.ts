@@ -61,9 +61,21 @@ function extractSessionMeta(lines: any[], filePath: string) {
   const firstTimestamp = sessionLine?.timestamp || lines[0]?.timestamp
   const lastTimestamp = lastMessage?.timestamp || lines[lines.length - 1]?.timestamp
 
+  // Extract title from first user message
+  let title = `Session ${id.slice(0, 8)}`
+  const firstUserMsg = messages.find(l => l.message?.role === 'user')
+  if (firstUserMsg) {
+    const content = firstUserMsg.message?.content
+    let text = ''
+    if (typeof content === 'string') text = content
+    else if (Array.isArray(content)) text = content.map((c: any) => c.text || '').join('')
+    text = text.trim().replace(/\n/g, ' ')
+    if (text.length > 0) title = text.slice(0, 60) + (text.length > 60 ? '…' : '')
+  }
+
   return {
     id,
-    title: `Session ${id.slice(0, 8)}`,
+    title,
     model: modelLine?.modelId || 'unknown',
     provider: modelLine?.provider || 'unknown',
     messageCount: messages.length,
@@ -168,6 +180,38 @@ router.get('/system/health', async (_req, res) => {
     })
   } catch (err) {
     res.status(500).json({ error: String(err) })
+  }
+})
+
+// List workspace files for an agent
+router.get('/agents/:slug/files', async (req, res) => {
+  try {
+    const workspaceDir = join(OPENCLAW_DIR, 'workspace')
+    const files: Array<{ name: string; size: number }> = []
+    try {
+      const entries = await readdir(workspaceDir)
+      for (const entry of entries) {
+        try {
+          const fp = join(workspaceDir, entry)
+          const s = await stat(fp)
+          if (s.isFile()) files.push({ name: entry, size: s.size })
+        } catch { /* skip */ }
+      }
+    } catch { /* dir doesn't exist */ }
+    res.json(files)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// Read workspace file content
+router.get('/agents/:slug/files/:name', async (req, res) => {
+  try {
+    const filePath = join(OPENCLAW_DIR, 'workspace', req.params.name)
+    const content = await readFile(filePath, 'utf-8')
+    res.json({ content })
+  } catch (err) {
+    res.status(404).json({ error: 'File not found' })
   }
 })
 

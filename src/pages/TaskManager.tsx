@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import StatCard from '../components/StatCard'
 import PageHeader from '../components/PageHeader'
 import { PageSkeleton } from '../components/Skeleton'
-import { sessions as mockSessions, cronJobs, overnightLog } from '../data/mockSessions'
-import { fetchSessions, fetchSessionTranscript, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
+import { sessions as mockSessions, overnightLog } from '../data/mockSessions'
+import { fetchSessions, fetchSessionTranscript, fetchLiveCronJobs, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
 import ModelFleetGrid from '../components/ModelFleetGrid'
 import CostBreakdownView from '../components/CostBreakdown'
 import type { ApiSession, SessionMessage } from '../types/api'
@@ -221,7 +221,8 @@ export default function TaskManager() {
   const [liveError, setLiveError] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
   const [showCronModal, setShowCronModal] = useState(false)
-  const [cronList, setCronList] = useState(cronJobs)
+  const [cronList, setCronList] = useState<Array<{ id: string; name: string; schedule: string; lastRun: string; nextRun: string; status: 'active' | 'paused' | 'error'; agent: string; agentEmoji: string; model: string; modelColor: string; tokens: string; cost: string }>>([])
+  const [cronLoading, setCronLoading] = useState(true)
 
   const doRefresh = useCallback(() => setRefreshCount(c => c + 1), [])
 
@@ -263,6 +264,33 @@ export default function TaskManager() {
     setCronList(prev => [...prev, newCron])
     setShowCronModal(false)
   }
+
+  // Load cron jobs from bridge API
+  useEffect(() => {
+    const loadCron = async () => {
+      setCronLoading(true)
+      const { data } = await fetchLiveCronJobs()
+      if (data && Array.isArray(data)) {
+        const mapped = data.map((j: any) => ({
+          id: j.id ?? j.name ?? String(Math.random()),
+          name: j.name ?? 'Unknown',
+          schedule: j.schedule ?? '',
+          lastRun: j.lastRun ?? j.last_run ?? 'Never',
+          nextRun: j.nextRun ?? j.next_run ?? 'Pending',
+          status: (j.status === 'active' || j.status === 'paused' || j.status === 'error' ? j.status : 'active') as 'active' | 'paused' | 'error',
+          agent: j.agent ?? '',
+          agentEmoji: j.agentEmoji ?? '🤖',
+          model: j.model ?? '',
+          modelColor: j.modelColor ?? 'var(--text-secondary)',
+          tokens: j.tokens ?? '0',
+          cost: j.cost ?? '$0.00',
+        }))
+        setCronList(mapped)
+      }
+      setCronLoading(false)
+    }
+    loadCron()
+  }, [refreshCount])
 
   useEffect(() => {
     const load = async () => {
@@ -477,6 +505,11 @@ export default function TaskManager() {
             <div className="flex justify-end mb-4">
               <button onClick={() => setShowCronModal(true)} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80" style={{ background: 'rgba(0,229,255,0.1)', color: 'var(--accent-teal)', border: '1px solid rgba(0,229,255,0.2)' }}>+ New Cron Job</button>
             </div>
+            {cronLoading ? (
+              <div className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>Loading cron jobs...</div>
+            ) : cronList.length === 0 ? (
+              <div className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>No cron jobs found. Connect to OpenClaw bridge to see live cron jobs.</div>
+            ) : null}
             <div className="flex flex-col gap-2">
               {cronList.map(j => (
                 <div key={j.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>

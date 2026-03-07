@@ -82,8 +82,19 @@ router.post('/sync', async (req, res) => {
   try {
     const connector = await getConnector(req.tenantId!)
     const sessions = await connector.getSessions()
+
+    // Load agents for slug matching
+    const agents = await prisma.agent.findMany({ where: { tenantId: req.tenantId! } })
+    const agentsBySlug = new Map(agents.map(a => [a.slug, a.id]))
+
     let synced = 0
     for (const s of sessions) {
+      // Match agent slug to agentId
+      let agentId: string | null = null
+      if (s.agent && s.agent !== 'unknown') {
+        agentId = agentsBySlug.get(s.agent) || null
+      }
+
       await prisma.session.upsert({
         where: { id: s.id },
         create: {
@@ -91,10 +102,12 @@ router.post('/sync', async (req, res) => {
           model: s.model, provider: s.provider, messageCount: s.messageCount,
           totalTokens: s.totalTokens, totalCost: s.totalCost, isActive: s.isActive,
           startedAt: new Date(s.timestamp), lastActivity: new Date(s.lastActivity),
+          ...(agentId ? { agentId } : {}),
         },
         update: {
-          messageCount: s.messageCount, totalTokens: s.totalTokens, totalCost: s.totalCost,
-          isActive: s.isActive, lastActivity: new Date(s.lastActivity),
+          title: s.title, messageCount: s.messageCount, totalTokens: s.totalTokens,
+          totalCost: s.totalCost, isActive: s.isActive, lastActivity: new Date(s.lastActivity),
+          ...(agentId ? { agentId } : {}),
         },
       })
       synced++

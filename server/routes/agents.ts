@@ -29,6 +29,17 @@ router.get('/', async (req, res) => {
         a.memoryMd ? 'MEMORY.md' : null,
         a.heartbeatMd ? 'HEARTBEAT.md' : null,
       ].filter(Boolean) as string[],
+      // Org chart fields
+      slug: a.slug,
+      role: a.role,
+      department: a.department ?? null,
+      division: a.division ?? null,
+      parentId: a.parentId ?? null,
+      primaryModel: a.primaryModel,
+      status: a.status,
+      emoji: a.emoji ?? null,
+      description: a.description ?? null,
+      persona: a.persona ?? null,
     }))
 
     res.json(mapped)

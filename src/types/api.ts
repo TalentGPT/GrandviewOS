@@ -51,6 +51,17 @@ export interface ApiAgent {
   hasMemory: boolean
   soulSnippet: string
   files: string[]
+  // Org chart fields
+  slug?: string
+  role?: string
+  department?: string | null
+  division?: string | null
+  parentId?: string | null
+  primaryModel?: string
+  status?: string
+  emoji?: string | null
+  description?: string | null
+  persona?: string | null
 }
 
 export interface SystemHealth {
