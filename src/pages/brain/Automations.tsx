@@ -168,14 +168,14 @@ export default function Automations() {
               <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{a.description}</div>
             </div>
             <div className="text-right text-xs shrink-0">
-              <div style={{ color: 'var(--text-secondary)' }}>📅 {a.schedule}</div>
+              <div style={{ color: 'var(--text-secondary)' }}>{a.schedule}</div>
               <div className="mt-0.5"><span style={{ color: 'var(--text-secondary)' }}>Last:</span> {a.lastRun}</div>
               <div><span style={{ color: 'var(--text-secondary)' }}>Next:</span> <span style={{ color: 'var(--accent-teal)' }}>{a.nextRun}</span></div>
             </div>
             <div className="flex gap-1 shrink-0">
               <button onClick={() => toggleStatus(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
                 style={{ background: a.status === 'active' ? 'var(--accent-green)22' : '#EAB30822', color: a.status === 'active' ? 'var(--accent-green)' : '#EAB308', border: 'none' }}>
-                {a.status === 'active' ? '⏸ Pause' : '▶ Resume'}
+                {a.status === 'active' ? 'Pause' : 'Resume'}
               </button>
               <button onClick={() => deleteAutomation(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
                 style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: 'none' }}>

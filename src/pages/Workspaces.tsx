@@ -108,7 +108,7 @@ export default function Workspaces() {
         <button onClick={() => setSidebarOpen(!sidebarOpen)}
           className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer"
           style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
-          {sidebarOpen ? '✕ Close' : '📁 Browse'}
+          {sidebarOpen ? 'Close' : 'Browse'}
         </button>
         <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
           {agent?.name} › {selectedFile}
@@ -145,7 +145,7 @@ export default function Workspaces() {
                   className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:bg-[var(--bg-4)] transition-colors disabled:opacity-50 self-start"
                   style={{ background: isEdit ? 'var(--accent-green)22' : 'var(--bg-3)', color: isEdit ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${isEdit ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}
                 >
-                  {saving ? '⏳ Saving...' : isEdit ? '💾 Save' : '✏️ Edit'}
+                  {saving ? 'Saving...' : isEdit ? 'Save' : 'Edit'}
                 </button>
               </div>
 

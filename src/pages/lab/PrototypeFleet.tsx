@@ -30,9 +30,9 @@ const MOCK_PROTOTYPES: Prototype[] = [
 ]
 
 const STATUS_CONFIG: Record<ProtoStatus, { label: string; color: string }> = {
-  'testing': { label: '🧪 Testing', color: 'var(--accent-teal)' },
-  'graduated': { label: '🎓 Graduated', color: 'var(--accent-green)' },
-  'archived': { label: '📦 Archived', color: 'var(--text-secondary)' },
+  'testing': { label: 'Testing', color: 'var(--accent-teal)' },
+  'graduated': { label: 'Graduated', color: 'var(--accent-green)' },
+  'archived': { label: 'Archived', color: 'var(--text-secondary)' },
 }
 
 export default function PrototypeFleet() {
@@ -45,7 +45,7 @@ export default function PrototypeFleet() {
   const graduated = prototypes.filter(p => p.status === 'graduated').length
 
   const launch = (id: string) => {
-    addToast('Prototype session launched! 🚀', 'info')
+    addToast('Prototype session launched', 'info')
     setPrototypes(prev => prev.map(p => p.id === id ? { ...p, sessions: p.sessions + 1 } : p))
   }
 
@@ -97,18 +97,18 @@ export default function PrototypeFleet() {
                     <>
                       <button onClick={() => launch(p.id)} className="px-3 py-1 rounded text-[10px] font-medium cursor-pointer"
                         style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
-                        🚀 Launch
+                        Launch
                       </button>
                       <button onClick={() => updateStatus(p.id, 'graduated')} className="px-3 py-1 rounded text-[10px] font-medium cursor-pointer"
                         style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
-                        🎓 Graduate
+                        Graduate
                       </button>
                     </>
                   )}
                   {p.status !== 'archived' && (
                     <button onClick={() => updateStatus(p.id, 'archived')} className="px-3 py-1 rounded text-[10px] font-medium cursor-pointer"
                       style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
-                      📦 Archive
+                      Archive
                     </button>
                   )}
                 </div>

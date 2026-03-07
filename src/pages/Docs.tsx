@@ -68,7 +68,7 @@ export default function Docs() {
         <button onClick={() => setSidebarOpen(!sidebarOpen)}
           className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer"
           style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
-          {sidebarOpen ? '✕ Close' : '📚 Topics'}
+          {sidebarOpen ? 'Close' : 'Topics'}
         </button>
         <span className="text-sm truncate" style={{ color: 'var(--accent-teal)' }}>{activeDoc}</span>
       </div>
@@ -103,7 +103,7 @@ export default function Docs() {
             className="w-full mt-4 px-3 py-2 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 disabled:opacity-50 transition-opacity"
             style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}
           >
-            {regenerating ? '⏳ Generating...' : '🔄 Regenerate Docs'}
+            {regenerating ? 'Generating...' : 'Regenerate Docs'}
           </button>
         </div>
 

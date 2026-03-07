@@ -1,3 +1,4 @@
+import { handleIntegrationsApi } from './integrations-api'
 import type { Plugin, ViteDevServer } from 'vite'
 import { execFile } from 'child_process'
 import { readdir, readFile, stat, access, writeFile, mkdir, unlink } from 'fs/promises'
@@ -1438,6 +1439,10 @@ export function openclawApiPlugin(): Plugin {
             res.end(JSON.stringify({ ok: true, message: 'Notification endpoint ready' }))
             return
           }
+
+          // ---- INTEGRATIONS / SECRETS / MCP / LLM / PERMISSIONS ----
+          const handled = await handleIntegrationsApi(req, res, url.pathname, req.method ?? 'GET')
+          if (handled) return
 
           res.statusCode = 404
           res.end(JSON.stringify({ error: 'Not found' }))

@@ -87,7 +87,7 @@ export default function CostBreakdownView() {
       {history.length > 1 && (
         <div className="flex gap-4 mb-6">
           <div className="flex-1 rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-            <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>💰 Cost Trend (7 days)</div>
+            <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Cost Trend (7 days)</div>
             <div className="flex items-center gap-3">
               <Sparkline data={costTrend} color="var(--accent-red)" width={180} height={32} />
               <span className="text-lg font-bold" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>

@@ -155,7 +155,7 @@ export default function MemoryViewer() {
           </button>
           <button onClick={() => setView('timeline')} className="flex-1 px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
             style={{ background: view === 'timeline' ? 'var(--accent-teal)22' : 'var(--bg-3)', color: view === 'timeline' ? 'var(--accent-teal)' : 'var(--text-secondary)', border: 'none' }}>
-            📅 Timeline
+            Timeline
           </button>
         </div>
 

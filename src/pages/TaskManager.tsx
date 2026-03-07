@@ -499,7 +499,7 @@ export default function TaskManager() {
                     background: j.status === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(234,179,8,0.1)',
                     color: j.status === 'active' ? 'var(--accent-green)' : '#EAB308',
                     border: 'none',
-                  }}>{j.status === 'active' ? '⏸ Pause' : '▶ Resume'}</button>
+                  }}>{j.status === 'active' ? 'Pause' : 'Resume'}</button>
                   <button onClick={() => deleteCron(j.id)} className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--accent-red)', border: 'none' }}>✕</button>
                 </div>
               ))}

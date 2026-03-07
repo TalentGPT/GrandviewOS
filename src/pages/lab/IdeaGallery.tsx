@@ -40,7 +40,7 @@ export default function IdeaGallery() {
 
   const vote = (id: string) => {
     setIdeas(prev => prev.map(i => i.id === id ? { ...i, votes: i.votes + 1 } : i))
-    addToast('Vote recorded! 👍')
+    addToast('Vote recorded')
   }
 
   const addIdea = () => {
@@ -109,7 +109,7 @@ export default function IdeaGallery() {
               <button onClick={e => { e.stopPropagation(); vote(idea.id) }}
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer shrink-0"
                 style={{ background: 'var(--accent-green)11', color: 'var(--accent-green)', border: '1px solid var(--accent-green)33' }}>
-                👍 {idea.votes}
+                ▲ {idea.votes}
               </button>
             </div>
             <div className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{idea.description}</div>
@@ -157,7 +157,7 @@ export default function IdeaGallery() {
               <button onClick={() => { vote(selectedIdea.id); setSelectedIdea({ ...selectedIdea, votes: selectedIdea.votes + 1 }) }}
                 className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
                 style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>
-                👍 Upvote ({selectedIdea.votes})
+                ▲ Upvote ({selectedIdea.votes})
               </button>
             </motion.div>
           </motion.div>
