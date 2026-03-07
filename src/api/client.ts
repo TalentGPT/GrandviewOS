@@ -217,6 +217,24 @@ export function formatTokens(tokens: number): string {
   return String(tokens)
 }
 
+// ---- OpenClaw Connection ----
+
+export async function connectOpenClaw(url: string, token: string): Promise<ApiResult<{ ok: boolean; health?: any }>> {
+  return apiFetch('/api/openclaw/connect', { method: 'POST', body: JSON.stringify({ url, token }) })
+}
+
+export async function syncOpenClaw(): Promise<ApiResult<{ ok: boolean; synced?: number }>> {
+  return apiFetch('/api/openclaw/sync', { method: 'POST' })
+}
+
+export async function fetchLiveSessions(): Promise<ApiResult<any[]>> {
+  return apiFetch('/api/openclaw/sessions')
+}
+
+export async function fetchLiveCronJobs(): Promise<ApiResult<any[]>> {
+  return apiFetch('/api/openclaw/cron-jobs')
+}
+
 export function getModelColor(model: string): string {
   if (model.includes('opus')) return 'var(--model-opus)'
   if (model.includes('sonnet')) return 'var(--model-sonnet)'

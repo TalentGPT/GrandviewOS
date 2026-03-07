@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
-import { fetchConfig, fetchSystemHealth, fetchAgents } from '../api/client'
+import { fetchConfig, fetchSystemHealth, fetchAgents, connectOpenClaw, syncOpenClaw } from '../api/client'
 import type { SystemHealth, ApiConfig, ApiAgent } from '../types/api'
 
 export default function Settings() {
@@ -10,6 +10,10 @@ export default function Settings() {
   const [agents, setAgents] = useState<ApiAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [bridgeUrl, setBridgeUrl] = useState('http://3.145.179.193:7101')
+  const [bridgeToken, setBridgeToken] = useState('gv-bridge-2026')
+  const [connectStatus, setConnectStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
+  const [syncStatus, setSyncStatus] = useState<string>('')
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +38,72 @@ export default function Settings() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="page-container">
       <PageHeader title="Settings & Configuration" subtitle="System health, model config, and connected channels" />
+
+      {/* OpenClaw Connection */}
+      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
+        <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--accent-teal)' }}>OpenClaw Connection</h2>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text" value={bridgeUrl} onChange={e => setBridgeUrl(e.target.value)}
+              placeholder="Bridge URL (e.g. http://3.145.179.193:7101)"
+              className="flex-1 px-3 py-2 rounded-lg text-sm"
+              style={{ background: 'var(--bg-3)', border: '1px solid var(--border-divider)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+            />
+            <input
+              type="password" value={bridgeToken} onChange={e => setBridgeToken(e.target.value)}
+              placeholder="Bridge Token"
+              className="w-48 px-3 py-2 rounded-lg text-sm"
+              style={{ background: 'var(--bg-3)', border: '1px solid var(--border-divider)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                setConnectStatus('connecting')
+                const res = await connectOpenClaw(bridgeUrl, bridgeToken)
+                if (res.data?.ok) {
+                  setConnectStatus('connected')
+                  // Auto-sync after connect
+                  setSyncStatus('Syncing sessions...')
+                  const syncRes = await syncOpenClaw()
+                  setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : 'Sync failed')
+                } else {
+                  setConnectStatus('error')
+                }
+              }}
+              disabled={connectStatus === 'connecting'}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                background: connectStatus === 'connected' ? 'var(--accent-green)22' : 'var(--accent-teal)22',
+                color: connectStatus === 'connected' ? 'var(--accent-green)' : 'var(--accent-teal)',
+                border: `1px solid ${connectStatus === 'connected' ? 'var(--accent-green)44' : 'var(--accent-teal)44'}`,
+              }}
+            >
+              {connectStatus === 'connecting' ? 'Connecting...' : connectStatus === 'connected' ? 'Connected' : 'Connect'}
+            </button>
+            {connectStatus === 'connected' && (
+              <button
+                onClick={async () => {
+                  setSyncStatus('Syncing...')
+                  const res = await syncOpenClaw()
+                  setSyncStatus(res.data?.ok ? `Synced ${res.data.synced} sessions` : 'Sync failed')
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ background: 'var(--bg-3)', border: '1px solid var(--border-divider)', color: 'var(--text-secondary)' }}
+              >
+                Sync Now
+              </button>
+            )}
+          </div>
+          {connectStatus === 'error' && (
+            <div className="text-xs" style={{ color: 'var(--accent-red)' }}>Failed to connect. Check URL and token.</div>
+          )}
+          {syncStatus && (
+            <div className="text-xs" style={{ color: 'var(--accent-green)' }}>{syncStatus}</div>
+          )}
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-lg p-4 mb-6" style={{ background: 'var(--accent-red)11', border: '1px solid var(--accent-red)33' }}>

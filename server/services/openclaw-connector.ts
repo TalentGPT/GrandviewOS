@@ -33,7 +33,7 @@ export class OpenClawConnector {
       const res = await fetch(`${this.url}${path}`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
-          'X-Muddy-Key': this.token,
+          'X-Bridge-Token': this.token,
         },
         signal: AbortSignal.timeout(10000),
       })
@@ -64,7 +64,7 @@ export class OpenClawConnector {
     try {
       const res = await fetch(`${this.url}/api/sessions/${encodeURIComponent(id)}/kill`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.token}`, 'X-Muddy-Key': this.token },
+        headers: { 'Authorization': `Bearer ${this.token}`, 'X-Bridge-Token': this.token },
         signal: AbortSignal.timeout(10000),
       })
       return await res.json()
