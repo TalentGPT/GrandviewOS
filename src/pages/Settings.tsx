@@ -20,7 +20,7 @@ export default function Settings() {
     const autoConnect = async () => {
       try {
         const res = await connectOpenClaw('http://3.145.179.193:7100', 'gv-bridge-2026')
-        if (res.data?.ok) {
+        if (res.data?.ok || (res.data as any)?.health) {
           setConnectStatus('connected')
           const syncRes = await syncOpenClaw()
           setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : '')
@@ -80,14 +80,16 @@ export default function Settings() {
                   console.log('[Settings] Connecting to', bridgeUrl)
                   const res = await connectOpenClaw(bridgeUrl, bridgeToken)
                   console.log('[Settings] Connect response:', JSON.stringify(res))
-                  if (res.data?.ok) {
+                  // Accept if either the wrapper or raw response indicates success
+                  const ok = res.data?.ok || (res.data as any)?.health
+                  if (ok) {
                     setConnectStatus('connected')
                     setSyncStatus('Syncing sessions...')
                     const syncRes = await syncOpenClaw()
                     console.log('[Settings] Sync response:', JSON.stringify(syncRes))
                     setSyncStatus(syncRes.data?.ok ? `Synced ${syncRes.data.synced} sessions` : 'Sync failed')
                   } else {
-                    console.error('[Settings] Connect failed:', res.error)
+                    console.error('[Settings] Connect failed:', res.error, 'data:', JSON.stringify(res.data))
                     setConnectStatus('error')
                   }
                 } catch (err) {
