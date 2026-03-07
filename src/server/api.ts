@@ -7,24 +7,24 @@ import { homedir } from 'os'
 import { randomBytes } from 'crypto'
 import { pipeline } from 'stream/promises'
 
-const OPENCLAW_DIR = join(homedir(), '.openclaw')
-const SESSIONS_DIR = join(OPENCLAW_DIR, 'agents', 'main', 'sessions')
-const AGENTS_DIR = join(OPENCLAW_DIR, 'agents')
-const CONFIG_FILE = join(OPENCLAW_DIR, 'openclaw.json')
-const WORKSPACE_DIR = join(OPENCLAW_DIR, 'workspace')
-const STANDUPS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'standups')
-const DOCS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'generated-docs')
-const COST_LOG_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'cost-logs')
-const GRANDVIEW_CONFIG_DIR = join(homedir(), '.grandviewos')
-const GRANDVIEW_CONFIG_FILE = join(GRANDVIEW_CONFIG_DIR, 'config.json')
+export const OPENCLAW_DIR = join(homedir(), '.openclaw')
+export const SESSIONS_DIR = join(OPENCLAW_DIR, 'agents', 'main', 'sessions')
+export const AGENTS_DIR = join(OPENCLAW_DIR, 'agents')
+export const CONFIG_FILE = join(OPENCLAW_DIR, 'openclaw.json')
+export const WORKSPACE_DIR = join(OPENCLAW_DIR, 'workspace')
+export const STANDUPS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'standups')
+export const DOCS_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'generated-docs')
+export const COST_LOG_DIR = join(WORKSPACE_DIR, 'grandview-os', 'data', 'cost-logs')
+export const GRANDVIEW_CONFIG_DIR = join(homedir(), '.grandviewos')
+export const GRANDVIEW_CONFIG_FILE = join(GRANDVIEW_CONFIG_DIR, 'config.json')
 
-const MAX_FILE_SIZE = 1024 * 1024 // 1MB
+export const MAX_FILE_SIZE = 1024 * 1024 // 1MB
 
 // ---- AUTHENTICATION ----
 
 let cachedApiKey: string | null = null
 
-async function getApiKey(): Promise<string> {
+export async function getApiKey(): Promise<string> {
   if (cachedApiKey) return cachedApiKey
 
   // 1. Check environment variable
@@ -55,7 +55,7 @@ async function getApiKey(): Promise<string> {
   return cachedApiKey
 }
 
-function checkAuth(req: import('http').IncomingMessage, apiKey: string): boolean {
+export function checkAuth(req: import('http').IncomingMessage, apiKey: string): boolean {
   // Check header
   const headerKey = req.headers['x-muddy-key'] as string | undefined
   if (headerKey === apiKey) return true
@@ -85,7 +85,7 @@ const rateLimitBuckets: Record<string, RateLimitConfig> = {
 
 const rateLimitStore = new Map<string, number[]>()
 
-function checkRateLimit(ip: string, bucket: string): boolean {
+export function checkRateLimit(ip: string, bucket: string): boolean {
   const config = rateLimitBuckets[bucket]
   if (!config) return true
 
@@ -121,11 +121,11 @@ setInterval(() => {
 const SAFE_ID_RE = /^[a-zA-Z0-9_-]+$/
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9_.-]+$/
 
-function validateAgentId(id: string): boolean {
+export function validateAgentId(id: string): boolean {
   return SAFE_ID_RE.test(id) && id.length <= 64
 }
 
-function validateFileName(name: string): boolean {
+export function validateFileName(name: string): boolean {
   return SAFE_FILENAME_RE.test(name) && !name.includes('..') && name.length <= 255
 }
 
@@ -202,7 +202,7 @@ interface ParsedSession {
   }>
 }
 
-async function fileExists(path: string): Promise<boolean> {
+export async function fileExists(path: string): Promise<boolean> {
   try {
     await access(path)
     return true
@@ -333,7 +333,7 @@ async function parseSessionFile(filePath: string, includeMessages = false): Prom
   }
 }
 
-async function getSessions(limit = 50, offset = 0): Promise<{ sessions: ParsedSession[]; total: number }> {
+export async function getSessions(limit = 50, offset = 0): Promise<{ sessions: ParsedSession[]; total: number }> {
   try {
     const files = await readdir(SESSIONS_DIR)
     const jsonlFiles = files
@@ -357,7 +357,7 @@ async function getSessions(limit = 50, offset = 0): Promise<{ sessions: ParsedSe
   }
 }
 
-async function getSessionTranscript(sessionId: string): Promise<ParsedSession | null> {
+export async function getSessionTranscript(sessionId: string): Promise<ParsedSession | null> {
   try {
     const files = await readdir(SESSIONS_DIR)
     const match = files.find(f => f.startsWith(sessionId) && f.endsWith('.jsonl') && !f.includes('.deleted'))
@@ -368,7 +368,7 @@ async function getSessionTranscript(sessionId: string): Promise<ParsedSession | 
   }
 }
 
-async function getAgents(): Promise<Array<{
+export async function getAgents(): Promise<Array<{
   id: string; name: string; workspace: string; hasSoul: boolean;
   hasIdentity: boolean; hasMemory: boolean; soulSnippet: string; files: string[]
 }>> {
@@ -433,7 +433,7 @@ function runCommand(cmd: string): Promise<string> {
   })
 }
 
-async function getSystemHealth(): Promise<{
+export async function getSystemHealth(): Promise<{
   gatewayRunning: boolean; gatewayPid: number | null; gatewayPort: number | null;
   totalSessions: number; activeSessions: number; version: string; uptime: string
 }> {
@@ -470,7 +470,7 @@ async function getSystemHealth(): Promise<{
   }
 }
 
-async function getConfig(): Promise<{
+export async function getConfig(): Promise<{
   model: { primary: string; fallbacks: string[] }; workspace: string;
   channels: Record<string, { enabled: boolean }>; agentCount: number; maxConcurrent: number
 }> {
@@ -499,7 +499,7 @@ async function getConfig(): Promise<{
   }
 }
 
-async function getWorkspaceFile(agentId: string, fileName: string): Promise<string | null> {
+export async function getWorkspaceFile(agentId: string, fileName: string): Promise<string | null> {
   if (!validateAgentId(agentId) || !validateFileName(fileName)) return null
 
   const agentDir = join(AGENTS_DIR, agentId, 'agent')
@@ -520,7 +520,7 @@ async function getWorkspaceFile(agentId: string, fileName: string): Promise<stri
   return null
 }
 
-async function saveWorkspaceFile(agentId: string, fileName: string, content: string): Promise<boolean> {
+export async function saveWorkspaceFile(agentId: string, fileName: string, content: string): Promise<boolean> {
   if (!validateAgentId(agentId) || !validateFileName(fileName)) return false
   if (Buffer.byteLength(content, 'utf-8') > MAX_FILE_SIZE) return false
 
@@ -539,7 +539,7 @@ async function saveWorkspaceFile(agentId: string, fileName: string, content: str
   return true
 }
 
-async function getAgentFiles(agentId: string): Promise<Array<{ name: string; size: number }>> {
+export async function getAgentFiles(agentId: string): Promise<Array<{ name: string; size: number }>> {
   if (!validateAgentId(agentId)) return []
   const agentPath = join(AGENTS_DIR, agentId, 'agent')
   try {
@@ -671,7 +671,7 @@ async function concatenateAudioFiles(files: string[], outputPath: string): Promi
   })
 }
 
-async function runStandup(standupId: string): Promise<StandupData> {
+export async function runStandup(standupId: string): Promise<StandupData> {
   await ensureDir(STANDUPS_DIR)
   const standupDir = join(STANDUPS_DIR, standupId)
   await ensureDir(standupDir)
@@ -739,7 +739,7 @@ async function runStandup(standupId: string): Promise<StandupData> {
   return standupData
 }
 
-async function listStandups(): Promise<StandupData[]> {
+export async function listStandups(): Promise<StandupData[]> {
   try {
     await ensureDir(STANDUPS_DIR)
     const dirs = await readdir(STANDUPS_DIR)
@@ -759,7 +759,7 @@ async function listStandups(): Promise<StandupData[]> {
 
 // ---- DOCS GENERATION ----
 
-async function generateDocs(): Promise<Record<string, string>> {
+export async function generateDocs(): Promise<Record<string, string>> {
   const docs: Record<string, string> = {}
   const agents = await getAgents()
   const { sessions } = await getSessions()
@@ -790,7 +790,7 @@ async function generateDocs(): Promise<Record<string, string>> {
   return docs
 }
 
-async function loadGeneratedDocs(): Promise<Record<string, string>> {
+export async function loadGeneratedDocs(): Promise<Record<string, string>> {
   try {
     if (!await fileExists(DOCS_DIR)) return {}
     const files = await readdir(DOCS_DIR)
@@ -817,7 +817,7 @@ interface DailyCostEntry {
   byAgent: Record<string, { cost: number; tokens: number; sessions: number }>
 }
 
-async function getCostBreakdown(): Promise<{
+export async function getCostBreakdown(): Promise<{
   byModel: Record<string, { cost: number; tokens: number; sessions: number }>
   byAgent: Record<string, { cost: number; tokens: number; sessions: number }>
   total: { cost: number; tokens: number; sessions: number }
@@ -848,7 +848,7 @@ async function getCostBreakdown(): Promise<{
   return { byModel, byAgent, total: { cost: totalCost, tokens: totalTokens, sessions: sessions.length } }
 }
 
-async function logDailyCost(): Promise<DailyCostEntry> {
+export async function logDailyCost(): Promise<DailyCostEntry> {
   await ensureDir(COST_LOG_DIR)
   const today = new Date().toISOString().split('T')[0]
   const breakdown = await getCostBreakdown()
@@ -865,7 +865,7 @@ async function logDailyCost(): Promise<DailyCostEntry> {
   return entry
 }
 
-async function getCostHistory(days: number = 7): Promise<DailyCostEntry[]> {
+export async function getCostHistory(days: number = 7): Promise<DailyCostEntry[]> {
   await ensureDir(COST_LOG_DIR)
   const entries: DailyCostEntry[] = []
   const now = new Date()
@@ -967,7 +967,7 @@ function parseBody(req: import('http').IncomingMessage, maxSize: number = MAX_FI
 
 // ---- CRON JOB HELPERS ----
 
-async function listCronJobs(): Promise<Array<{ id: string; name: string; schedule: string; status: string }>> {
+export async function listCronJobs(): Promise<Array<{ id: string; name: string; schedule: string; status: string }>> {
   try {
     const result = await new Promise<string>((res) => {
       execFile('openclaw', ['cron', 'list', '--json'], { timeout: 10000 }, (err, stdout) => {

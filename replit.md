@@ -54,6 +54,8 @@ npm run build  # Production build to dist/
 
 ## Deployment
 
-Configured as a static site deployment:
-- Build: `npm run build`
-- Public dir: `dist`
+Configured as autoscale deployment with full backend:
+- Build: `npm run build` (TypeScript check + Vite build to dist/)
+- Run: `npm run start` (Express server via tsx serving API + static files)
+- Production server: `server.ts` - Express app that serves both the API endpoints and the built frontend from `dist/`
+- The backend API logic is shared between the Vite dev plugin and the production Express server via exports from `src/server/api.ts`
