@@ -129,15 +129,35 @@ router.get('/cost/history', async (req, res) => {
 router.get('/briefs', async (req, res) => {
   try {
     const dateParam = (req.query.date as string) ?? new Date().toISOString().split('T')[0]
-    const sessions = await prisma.session.findMany({ where: { tenantId: req.tenantId! } })
-    const daySessions = sessions.filter(s => s.startedAt.toISOString().startsWith(dateParam))
+    const dayStart = new Date(dateParam + 'T00:00:00Z')
+    const dayEnd = new Date(dateParam + 'T23:59:59.999Z')
+    const daySessions = await prisma.session.findMany({
+      where: {
+        tenantId: req.tenantId!,
+        startedAt: { gte: dayStart, lte: dayEnd },
+      },
+    })
+    // Count unique models as proxy for "agents active"
+    const models = new Set(daySessions.map(s => s.model).filter(Boolean))
+    const events: string[] = []
+    // Add session titles as events
+    for (const s of daySessions.slice(0, 10)) {
+      if (s.title && s.title !== 'Untitled') events.push(s.title)
+    }
+    // Add summary events
+    const totalCost = daySessions.reduce((s, x) => s + x.totalCost, 0)
+    if (daySessions.length > 0 && events.length === 0) {
+      events.push(`${daySessions.length} session(s) processed`)
+    }
+    if (totalCost > 10) events.push(`High spend day: $${totalCost.toFixed(2)}`)
+
     res.json([{
       date: dateParam,
-      agentsActive: 1,
+      agentsActive: Math.max(models.size, 1),
       sessionsRun: daySessions.length,
       tokensUsed: daySessions.reduce((s, x) => s + x.totalTokens, 0),
-      cost: daySessions.reduce((s, x) => s + x.totalCost, 0),
-      events: daySessions.slice(0, 5).map(s => s.title || `Session ${s.id.slice(0, 8)}`),
+      cost: totalCost,
+      events,
     }])
   } catch (err) {
     res.status(500).json({ error: String(err) })

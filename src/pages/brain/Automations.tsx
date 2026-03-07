@@ -1,190 +1,111 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import StatCard from '../../components/StatCard'
 import PageHeader from '../../components/PageHeader'
-import { useToast } from '../../components/Toast'
+import { PageSkeleton } from '../../components/Skeleton'
+import { fetchAutomations, type AutomationItem } from '../../api/client'
 
-interface Automation {
-  id: string
-  name: string
-  type: 'cron' | 'heartbeat' | 'trigger'
-  schedule: string
-  agent: string
-  agentEmoji: string
-  status: 'active' | 'paused' | 'error'
-  lastRun: string
-  nextRun: string
-  description: string
-}
-
-const MOCK_AUTOMATIONS: Automation[] = [
-  { id: 'a1', name: 'Heartbeat Check', type: 'heartbeat', schedule: 'Every 30 min', agent: 'Muddy', agentEmoji: '🐕', status: 'active', lastRun: '07:30 UTC', nextRun: '08:00 UTC', description: 'Check all agent health and cost metrics' },
-  { id: 'a2', name: 'Community Pulse', type: 'cron', schedule: 'Every 2 hours', agent: 'Clay', agentEmoji: '🦞', status: 'active', lastRun: '06:00 UTC', nextRun: '08:00 UTC', description: 'Analyze Discord community activity and sentiment' },
-  { id: 'a3', name: 'Daily Standup', type: 'cron', schedule: 'Daily 08:00 UTC', agent: 'Muddy', agentEmoji: '🐕', status: 'active', lastRun: 'Yesterday', nextRun: '08:00 UTC', description: 'Run executive standup with all department heads' },
-  { id: 'a4', name: 'Weekly Newsletter', type: 'cron', schedule: 'Mon 09:00 UTC', agent: 'Scribe', agentEmoji: '✍️', status: 'active', lastRun: '3 days ago', nextRun: 'Mon 09:00', description: 'Generate and send weekly newsletter' },
-  { id: 'a5', name: 'Security Scan', type: 'cron', schedule: 'Daily 03:00 UTC', agent: 'Nova', agentEmoji: '🛡️', status: 'active', lastRun: '03:00 UTC', nextRun: 'Tomorrow 03:00', description: 'Full security audit and dependency check' },
-  { id: 'a6', name: 'SEO Report', type: 'cron', schedule: 'Weekly Fri', agent: 'Funnel', agentEmoji: '📈', status: 'paused', lastRun: '5 days ago', nextRun: 'Fri 10:00', description: 'Generate SEO keyword report and analysis' },
-  { id: 'a7', name: 'Dependency Audit', type: 'cron', schedule: 'Daily 04:00 UTC', agent: 'Nova', agentEmoji: '🛡️', status: 'active', lastRun: '04:00 UTC', nextRun: 'Tomorrow 04:00', description: 'Check npm dependencies for vulnerabilities' },
-  { id: 'a8', name: 'Cost Alert', type: 'trigger', schedule: 'On spend > $50/day', agent: 'Muddy', agentEmoji: '🐕', status: 'active', lastRun: 'Never', nextRun: 'On trigger', description: 'Alert CEO when daily cost exceeds $50' },
-]
-
-// Generate timeline hours
-function generateTimeline(): Array<{ hour: string; automations: string[] }> {
-  const timeline: Array<{ hour: string; automations: string[] }> = []
-  for (let h = 0; h < 24; h++) {
-    const hourStr = `${h.toString().padStart(2, '0')}:00`
-    const running: string[] = []
-    if (h % 2 === 0) running.push('Community Pulse')
-    if ([0, 6, 12, 18].includes(h)) running.push('Heartbeat Check')
-    if (h === 3) running.push('Security Scan')
-    if (h === 4) running.push('Dependency Audit')
-    if (h === 8) running.push('Daily Standup')
-    timeline.push({ hour: hourStr, automations: running })
+function formatRelativeTime(isoStr: string | null): string {
+  if (!isoStr) return 'Never'
+  const diff = Date.now() - new Date(isoStr).getTime()
+  if (diff < 0) {
+    // Future
+    const absDiff = -diff
+    if (absDiff < 3600000) return `in ${Math.round(absDiff / 60000)}m`
+    if (absDiff < 86400000) return `in ${Math.round(absDiff / 3600000)}h`
+    return `in ${Math.round(absDiff / 86400000)}d`
   }
-  return timeline
+  if (diff < 60000) return 'just now'
+  if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.round(diff / 3600000)}h ago`
+  return `${Math.round(diff / 86400000)}d ago`
 }
 
 export default function Automations() {
-  const { addToast } = useToast()
-  const [automations, setAutomations] = useState(MOCK_AUTOMATIONS)
-  const [showTimeline, setShowTimeline] = useState(false)
-  const [showAdd, setShowAdd] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newSchedule, setNewSchedule] = useState('')
-  const timeline = generateTimeline()
+  const [automations, setAutomations] = useState<AutomationItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const active = automations.filter(a => a.status === 'active').length
-  const paused = automations.filter(a => a.status === 'paused').length
-
-  const toggleStatus = (id: string) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, status: a.status === 'active' ? 'paused' as const : 'active' as const } : a))
-    addToast('Automation status updated')
-  }
-
-  const deleteAutomation = (id: string) => {
-    setAutomations(prev => prev.filter(a => a.id !== id))
-    addToast('Automation deleted')
-  }
-
-  const addAutomation = () => {
-    if (!newName.trim() || !newSchedule.trim()) return
-    const newAuto: Automation = {
-      id: `a${Date.now()}`, name: newName, type: 'cron', schedule: newSchedule,
-      agent: 'Muddy', agentEmoji: '🐕', status: 'active', lastRun: 'Never', nextRun: 'Pending',
-      description: 'Custom automation rule',
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await fetchAutomations()
+      if (data?.automations) {
+        setAutomations(data.automations)
+      }
+      setLoading(false)
     }
-    setAutomations(prev => [...prev, newAuto])
-    setNewName('')
-    setNewSchedule('')
-    setShowAdd(false)
-    addToast('Automation added')
-  }
+    load()
+  }, [])
+
+  if (loading) return <PageSkeleton />
+
+  const enabled = automations.filter(a => a.enabled).length
+  const errored = automations.filter(a => a.lastStatus === 'error').length
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
-      <PageHeader title="Automations" subtitle="View and manage automated workflows and triggers">
-        <button onClick={() => setShowTimeline(!showTimeline)}
-          className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: showTimeline ? 'var(--accent-teal)22' : 'var(--bg-3)', color: showTimeline ? 'var(--accent-teal)' : 'var(--text-secondary)', border: `1px solid ${showTimeline ? 'var(--accent-teal)44' : 'var(--border-divider)'}` }}>
-          Timeline
-        </button>
-        <button onClick={() => setShowAdd(!showAdd)}
-          className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>
-          + Add Rule
-        </button>
-      </PageHeader>
+      <PageHeader title="Automations" subtitle="OpenClaw cron jobs and scheduled tasks" />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
         <StatCard label="Total" value={automations.length} />
-        <StatCard label="Active" value={active} color="var(--accent-green)" />
-        <StatCard label="Paused" value={paused} color="#EAB308" />
-        <StatCard label="Cron Jobs" value={automations.filter(a => a.type === 'cron').length} />
-        <StatCard label="Triggers" value={automations.filter(a => a.type === 'trigger').length} />
+        <StatCard label="Enabled" value={enabled} color="var(--accent-green)" />
+        <StatCard label="Disabled" value={automations.length - enabled} color="var(--text-secondary)" />
+        <StatCard label="Errored" value={errored} color="var(--accent-red)" />
       </div>
 
-      {/* Add form */}
-      <AnimatePresence>
-        {showAdd && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-4">
-            <div className="rounded-lg p-4 flex gap-3 items-end" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-purple)33' }}>
-              <div className="flex-1">
-                <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Name</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Automation name..."
-                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+      {automations.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3 opacity-20">⚡</div>
+          <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No automations found. Connect OpenClaw to see cron jobs.</div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {automations.map(a => (
+            <motion.div key={a.id} layout className="rounded-lg p-4 flex items-center gap-4"
+              style={{ background: 'var(--bg-2)', border: `1px solid ${a.enabled ? (a.lastStatus === 'error' ? 'var(--accent-red)22' : 'var(--accent-green)22') : 'var(--border-divider)'}` }}>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{
+                background: !a.enabled ? 'var(--text-secondary)' : a.lastStatus === 'error' ? 'var(--accent-red)' : 'var(--accent-green)'
+              }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold">{a.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)' }}>
+                    {a.scheduleKind}
+                  </span>
+                  {!a.enabled && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>
+                      disabled
+                    </span>
+                  )}
+                  {a.lastStatus === 'error' && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)' }}>
+                      error ×{a.consecutiveErrors}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>{a.description}</div>
+                {a.lastError && (
+                  <div className="text-[10px] mt-1 truncate" style={{ color: 'var(--accent-red)' }}>{a.lastError}</div>
+                )}
               </div>
-              <div className="flex-1">
-                <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Schedule</label>
-                <input value={newSchedule} onChange={e => setNewSchedule(e.target.value)} placeholder="Every 30 min, Daily 08:00..."
-                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+              <div className="text-right text-xs shrink-0">
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <code className="text-[11px]" style={{ fontFamily: 'var(--font-mono)' }}>{a.schedule}</code>
+                </div>
+                <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{a.timezone}</div>
+                <div className="mt-1">
+                  <span style={{ color: 'var(--text-secondary)' }}>Last: </span>
+                  <span>{formatRelativeTime(a.lastRun)}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Next: </span>
+                  <span style={{ color: 'var(--accent-teal)' }}>{formatRelativeTime(a.nextRun)}</span>
+                </div>
               </div>
-              <button onClick={addAutomation} className="px-4 py-1.5 rounded text-xs font-medium cursor-pointer"
-                style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Save</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Timeline view */}
-      <AnimatePresence>
-        {showTimeline && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-6">
-            <div className="rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-              <div className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>24-HOUR TIMELINE</div>
-              <div className="flex gap-0.5 items-end h-20">
-                {timeline.map(t => {
-                  const hasAuto = t.automations.length > 0
-                  return (
-                    <div key={t.hour} className="flex-1 flex flex-col items-center gap-1" title={hasAuto ? t.automations.join(', ') : 'No automations'}>
-                      <div className="w-full rounded-sm transition-colors"
-                        style={{ height: hasAuto ? `${Math.min(t.automations.length * 20 + 10, 60)}px` : '4px', background: hasAuto ? 'var(--accent-purple)' : 'var(--bg-3)' }} />
-                      <span className="text-[8px]" style={{ color: 'var(--text-secondary)' }}>{t.hour.slice(0, 2)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Automation list */}
-      <div className="flex flex-col gap-3">
-        {automations.map(a => (
-          <motion.div key={a.id} layout className="rounded-lg p-4 flex items-center gap-4"
-            style={{ background: 'var(--bg-2)', border: `1px solid ${a.status === 'active' ? 'var(--accent-green)22' : a.status === 'paused' ? '#EAB30822' : 'var(--accent-red)22'}` }}>
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.status === 'active' ? 'var(--accent-green)' : a.status === 'paused' ? '#EAB308' : 'var(--accent-red)' }} />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{a.name}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ background: a.type === 'cron' ? 'var(--accent-teal)22' : a.type === 'heartbeat' ? 'var(--accent-purple)22' : 'var(--accent-orange)22',
-                    color: a.type === 'cron' ? 'var(--accent-teal)' : a.type === 'heartbeat' ? 'var(--accent-purple)' : 'var(--accent-orange)' }}>
-                  {a.type}
-                </span>
-              </div>
-              <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{a.description}</div>
-            </div>
-            <div className="text-right text-xs shrink-0">
-              <div style={{ color: 'var(--text-secondary)' }}>{a.schedule}</div>
-              <div className="mt-0.5"><span style={{ color: 'var(--text-secondary)' }}>Last:</span> {a.lastRun}</div>
-              <div><span style={{ color: 'var(--text-secondary)' }}>Next:</span> <span style={{ color: 'var(--accent-teal)' }}>{a.nextRun}</span></div>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={() => toggleStatus(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-                style={{ background: a.status === 'active' ? 'var(--accent-green)22' : '#EAB30822', color: a.status === 'active' ? 'var(--accent-green)' : '#EAB308', border: 'none' }}>
-                {a.status === 'active' ? 'Pause' : 'Resume'}
-              </button>
-              <button onClick={() => deleteAutomation(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-                style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: 'none' }}>
-                ✕
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   )
 }

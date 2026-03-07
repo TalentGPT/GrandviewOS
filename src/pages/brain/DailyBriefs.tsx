@@ -3,40 +3,7 @@ import { motion } from 'framer-motion'
 import StatCard from '../../components/StatCard'
 import PageHeader from '../../components/PageHeader'
 import { PageSkeleton } from '../../components/Skeleton'
-import { formatCost, formatTokens } from '../../api/client'
-
-interface Brief {
-  date: string
-  agentsActive: number
-  sessionsRun: number
-  tokensUsed: number
-  cost: number
-  events: string[]
-}
-
-function generateMockBriefs(): Brief[] {
-  const briefs: Brief[] = []
-  const now = new Date()
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const dateStr = d.toISOString().split('T')[0]
-    briefs.push({
-      date: dateStr,
-      agentsActive: 15 + Math.floor(Math.random() * 8),
-      sessionsRun: 20 + Math.floor(Math.random() * 30),
-      tokensUsed: 500000 + Math.floor(Math.random() * 2000000),
-      cost: 5 + Math.random() * 25,
-      events: [
-        ['Security scan completed — 0 critical issues', 'Newsletter draft generated', 'Partnership proposal sent to TechCorp'],
-        ['Sprint review completed', 'Auth middleware patch deployed', 'XSS vulnerability patched'],
-        ['SDK documentation 80% complete', 'Community grew by 18 members', 'First micro-sponsorship closed'],
-        ['Cost optimization review', 'New agent Sentinel scaffolded', 'Overnight log analysis'],
-      ][i % 4],
-    })
-  }
-  return briefs
-}
+import { formatCost, formatTokens, fetchBriefs, type Brief } from '../../api/client'
 
 export default function DailyBriefs() {
   const [briefs, setBriefs] = useState<Brief[]>([])
@@ -45,24 +12,24 @@ export default function DailyBriefs() {
 
   useEffect(() => {
     const load = async () => {
-      // Try live API
-      try {
-        const today = new Date().toISOString().split('T')[0]
-        const res = await fetch(`/api/briefs?date=${today}`)
-        if (res.ok) {
-          const data = await res.json() as Brief[]
-          if (data.length > 0) {
-            setBriefs(data)
-            setSelectedDate(data[0].date)
-            setLoading(false)
-            return
-          }
+      const allBriefs: Brief[] = []
+      const now = new Date()
+
+      // Fetch briefs for last 14 days
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(now)
+        d.setDate(d.getDate() - i)
+        const dateStr = d.toISOString().split('T')[0]
+        const { data } = await fetchBriefs(dateStr)
+        if (data && data.length > 0) {
+          allBriefs.push(...data)
         }
-      } catch { /* ignore */ }
-      // Fallback to mock
-      const mock = generateMockBriefs()
-      setBriefs(mock)
-      setSelectedDate(mock[0].date)
+      }
+
+      if (allBriefs.length > 0) {
+        setBriefs(allBriefs)
+        setSelectedDate(allBriefs[0].date)
+      }
       setLoading(false)
     }
     load()
@@ -138,14 +105,25 @@ export default function DailyBriefs() {
 
               <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-purple)' }}>Key Events</h3>
               <div className="flex flex-col gap-2">
-                {selected.events.map((evt, i) => (
+                {selected.events.length > 0 ? selected.events.map((evt, i) => (
                   <div key={i} className="flex items-start gap-2 p-3 rounded-lg" style={{ background: 'var(--bg-3)' }}>
                     <span className="text-xs mt-0.5" style={{ color: 'var(--accent-green)' }}>●</span>
                     <span className="text-sm">{evt}</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-sm p-3 rounded-lg" style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)' }}>
+                    No notable events recorded
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+        )}
+
+        {briefs.length === 0 && (
+          <div className="flex-1 text-center py-12">
+            <div className="text-4xl mb-3 opacity-20">📋</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>No brief data available yet</div>
           </div>
         )}
       </div>
