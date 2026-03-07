@@ -405,6 +405,21 @@ export function openclawApiPlugin(): Plugin {
             return
           }
 
+          const killMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/kill$/)
+          if (killMatch && req.method === 'POST') {
+            // Attempt to kill session by removing lock file
+            try {
+              const files = await readdir(SESSIONS_DIR)
+              const lockFile = files.find(f => f.startsWith(killMatch[1]) && f.endsWith('.jsonl.lock'))
+              if (lockFile) {
+                const { unlink } = await import('fs/promises')
+                await unlink(join(SESSIONS_DIR, lockFile))
+              }
+            } catch { /* ignore */ }
+            res.end(JSON.stringify({ ok: true }))
+            return
+          }
+
           if (url.pathname === '/api/agents') {
             const agents = await getAgents()
             res.end(JSON.stringify(agents))

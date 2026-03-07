@@ -1,20 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import StatCard from '../components/StatCard'
 import { PageSkeleton } from '../components/Skeleton'
 import { sessions as mockSessions, cronJobs, overnightLog } from '../data/mockSessions'
 import { fetchSessions, fetchSessionTranscript, formatCost, formatTokens, getModelColor, getModelShortName } from '../api/client'
+import ModelFleetGrid from '../components/ModelFleetGrid'
 import type { ApiSession, SessionMessage } from '../types/api'
 import type { Session, TranscriptMessage } from '../data/mockSessions'
-
-const models = [
-  { name: 'Claude Opus 4.6', desc: 'Primary research & orchestration', icon: '🔴', status: 'Active', cost: '$28.40', tokens: '3.2M', sessions: 22, color: 'var(--model-opus)' },
-  { name: 'Claude Opus 4.5 Antigravity', desc: 'Secondary complex tasks', icon: '🔴', status: 'Active', cost: '$12.10', tokens: '1.8M', sessions: 8, color: 'var(--model-opus)' },
-  { name: 'Gemini 3 Pro Preview', desc: 'Video & heavy context', icon: '🔵', status: 'Active', cost: '$8.20', tokens: '1.1M', sessions: 7, color: 'var(--model-gemini-pro)' },
-  { name: 'GPT-5.3-Codex', desc: 'Backend code & QA audit', icon: '🟤', status: 'Active', cost: '$6.80', tokens: '0.8M', sessions: 5, color: 'var(--model-codex)' },
-  { name: 'Gemini 3 Flash', desc: 'Community & growth — fast context', icon: '⚡', status: 'Active', cost: '$4.50', tokens: '0.5M', sessions: 4, color: 'var(--model-gemini-flash)' },
-  { name: 'Nano Banana Pro', desc: 'Creative & graphics generation', icon: '🍌', status: 'Standby', cost: '$2.96', tokens: '0.2M', sessions: 4, color: 'var(--model-nano)' },
-]
 
 type Tab = 'sessions' | 'cron' | 'overnight'
 type DataSource = 'live' | 'mock'
@@ -209,8 +201,49 @@ export default function TaskManager() {
   const [liveSessions, setLiveSessions] = useState<ApiSession[]>([])
   const [liveError, setLiveError] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
+  const [showCronModal, setShowCronModal] = useState(false)
+  const [cronList, setCronList] = useState(cronJobs)
 
   const doRefresh = useCallback(() => setRefreshCount(c => c + 1), [])
+
+  const killSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('Kill this session?')) return
+    try {
+      await fetch(`/api/sessions/${sessionId}/kill`, { method: 'POST' })
+      doRefresh()
+    } catch { /* ignore */ }
+  }
+
+  const deleteCron = (id: string) => {
+    if (!confirm('Delete this cron job?')) return
+    setCronList(prev => prev.filter(c => c.id !== id))
+  }
+
+  const toggleCronPause = (id: string) => {
+    setCronList(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'paused' as const : 'active' as const } : c))
+  }
+
+  const handleCreateCron = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const newCron = {
+      id: `c${Date.now()}`,
+      name: (fd.get('name') as string) || 'New Job',
+      schedule: (fd.get('schedule') as string) || 'Daily',
+      lastRun: 'Never',
+      nextRun: 'Pending',
+      status: 'active' as const,
+      agent: 'Muddy',
+      agentEmoji: '🐕',
+      model: 'Opus 4.6',
+      modelColor: 'var(--model-opus)',
+      tokens: '0',
+      cost: '$0.00',
+    }
+    setCronList(prev => [...prev, newCron])
+    setShowCronModal(false)
+  }
 
   // Load live sessions
   useEffect(() => {
@@ -325,31 +358,7 @@ export default function TaskManager() {
       </div>
 
       {/* Model Fleet */}
-      <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Model Fleet</h2>
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        {models.map(m => (
-          <div key={m.name} className="rounded-lg p-4 hover:border-[var(--accent-teal)] transition-colors cursor-default" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{m.icon}</span>
-                <div>
-                  <div className="text-sm font-semibold">{m.name}</div>
-                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{m.desc}</div>
-                </div>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
-                background: m.status === 'Active' ? 'var(--accent-green)22' : 'var(--bg-hover)',
-                color: m.status === 'Active' ? 'var(--accent-green)' : 'var(--text-secondary)',
-              }}>{m.status}</span>
-            </div>
-            <div className="flex gap-4 mt-3 text-xs" style={{ fontFamily: 'var(--font-mono)' }}>
-              <span style={{ color: 'var(--accent-red)' }}>{m.cost}</span>
-              <span style={{ color: 'var(--accent-teal)' }}>{m.tokens}</span>
-              <span style={{ color: 'var(--text-secondary)' }}>{m.sessions} sessions</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ModelFleetGrid liveSessions={liveSessions} />
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4">
@@ -391,6 +400,15 @@ export default function TaskManager() {
                   <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{display.tokens}</span>
                   <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{display.cost}</span>
                   <span className="text-xs shrink-0" style={{ color: 'var(--text-secondary)' }}>{display.time}</span>
+                  {s.isActive && (
+                    <button
+                      onClick={(e) => killSession(s.id, e)}
+                      className="text-[10px] px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80 shrink-0"
+                      style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: '1px solid var(--accent-red)33' }}
+                    >
+                      Kill
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -421,37 +439,78 @@ export default function TaskManager() {
         )}
 
         {tab === 'cron' && (
-          <motion.div key="cron" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
-            {cronJobs.map(j => (
-              <div key={j.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${j.status === 'active' ? 'pulse-dot' : ''}`} style={{ background: j.status === 'active' ? 'var(--accent-green)' : j.status === 'paused' ? '#FFC107' : 'var(--accent-red)' }}></span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium">{j.agentEmoji} {j.name}</div>
-                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{j.schedule} · Last: {j.lastRun} · Next: {j.nextRun}</div>
+          <motion.div key="cron" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <div className="flex justify-end mb-3">
+              <button onClick={() => setShowCronModal(true)} className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>+ New Cron Job</button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {cronList.map(j => (
+                <div key={j.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${j.status === 'active' ? 'pulse-dot' : ''}`} style={{ background: j.status === 'active' ? 'var(--accent-green)' : j.status === 'paused' ? '#FFC107' : 'var(--accent-red)' }}></span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{j.agentEmoji} {j.name}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="px-1 py-0.5 rounded mr-1" style={{ background: j.schedule.includes('Weekly') || j.schedule.includes('Mon') ? 'var(--accent-purple)18' : 'var(--accent-teal)18', color: j.schedule.includes('Weekly') || j.schedule.includes('Mon') ? 'var(--accent-purple)' : 'var(--accent-teal)' }}>
+                        {j.schedule.includes('Weekly') || j.schedule.includes('Mon') || j.schedule.includes('Fri') ? '📅 weekly' : '⏰ scheduled'}
+                      </span>
+                      {j.schedule} · Last: {j.lastRun} · Next: {j.nextRun}
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: j.modelColor + '22', color: j.modelColor }}>{j.model}</span>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{j.tokens}</span>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{j.cost}</span>
+                  <button onClick={() => toggleCronPause(j.id)} className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 cursor-pointer hover:opacity-80" style={{
+                    background: j.status === 'active' ? 'var(--accent-green)22' : '#FFC10722',
+                    color: j.status === 'active' ? 'var(--accent-green)' : '#FFC107',
+                    border: 'none',
+                  }}>{j.status === 'active' ? '⏸ Pause' : '▶ Resume'}</button>
+                  <button onClick={() => deleteCron(j.id)} className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80" style={{ background: 'var(--accent-red)22', color: 'var(--accent-red)', border: 'none' }}>✕</button>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: j.modelColor + '22', color: j.modelColor }}>{j.model}</span>
-                <span className="text-xs shrink-0" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>{j.tokens}</span>
-                <span className="text-xs shrink-0" style={{ color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{j.cost}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{
-                  background: j.status === 'active' ? 'var(--accent-green)22' : j.status === 'paused' ? '#FFC10722' : 'var(--accent-red)22',
-                  color: j.status === 'active' ? 'var(--accent-green)' : j.status === 'paused' ? '#FFC107' : 'var(--accent-red)',
-                }}>{j.status}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Create Cron Modal */}
+            <AnimatePresence>
+              {showCronModal && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+                  <motion.form initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onSubmit={handleCreateCron} className="rounded-lg p-6 w-[400px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                    <h3 className="text-sm font-semibold mb-4">Create Cron Job</h3>
+                    <div className="flex flex-col gap-3">
+                      <input name="name" placeholder="Job name" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                      <input name="schedule" placeholder="Schedule (e.g. Every 30 min, Daily 08:00 UTC)" required className="px-3 py-2 rounded-lg text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                      <div className="flex gap-2 justify-end">
+                        <button type="button" onClick={() => setShowCronModal(false)} className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none' }}>Cancel</button>
+                        <button type="submit" className="px-3 py-1.5 rounded-md text-xs cursor-pointer" style={{ background: 'var(--accent-teal)22', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal)44' }}>Create</button>
+                      </div>
+                    </div>
+                  </motion.form>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
 
         {tab === 'overnight' && (
-          <motion.div key="overnight" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-1.5">
-            {overnightLog.map((entry, i) => (
-              <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg text-sm" style={{ background: 'var(--bg-card)' }}>
-                <span className="text-xs shrink-0 w-16 text-right" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.time}</span>
-                <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{
-                  background: entry.type === 'success' ? 'var(--accent-green)' : entry.type === 'warning' ? '#FFC107' : 'var(--accent-teal)',
-                }}></span>
-                <span style={{ color: 'var(--text-primary)' }}>{entry.event}</span>
-              </div>
-            ))}
+          <motion.div key="overnight" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="relative pl-6">
+            {/* Timeline line */}
+            <div className="absolute left-[18px] top-0 bottom-0 w-px" style={{ background: 'var(--border-divider)' }}></div>
+            {overnightLog.map((entry, i) => {
+              const catColor = entry.type === 'success' ? 'var(--accent-green)' : entry.type === 'warning' ? '#FFC107' : 'var(--accent-teal)'
+              const catLabel = entry.type === 'success' ? 'completed' : entry.type === 'warning' ? 'error' : 'info'
+              return (
+                <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg text-sm mb-1 relative">
+                  {/* Timeline dot */}
+                  <span className="absolute left-[-6px] top-4 w-3 h-3 rounded-full border-2 border-black z-10" style={{ background: catColor }}></span>
+                  <span className="text-xs shrink-0 w-16 text-right" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.time}</span>
+                  <div className="flex-1 rounded-lg p-2" style={{ background: 'var(--bg-card)' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: 'var(--text-primary)' }}>{entry.event}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full ml-auto shrink-0" style={{ background: catColor + '22', color: catColor }}>{catLabel}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </motion.div>
         )}
       </AnimatePresence>

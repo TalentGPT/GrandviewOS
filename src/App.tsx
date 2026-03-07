@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import TopNavBar from './components/TopNavBar'
 import LeftSidebar from './components/LeftSidebar'
 import StatusBar from './components/StatusBar'
+import OperatorChat from './components/OperatorChat'
 import { ToastProvider } from './components/Toast'
 import TaskManager from './pages/TaskManager'
 import OrgChart from './pages/OrgChart'
@@ -11,6 +13,8 @@ import Docs from './pages/Docs'
 import Settings from './pages/Settings'
 
 function App() {
+  const [chatOpen, setChatOpen] = useState(false)
+
   return (
     <BrowserRouter>
       <ToastProvider>
@@ -27,7 +31,7 @@ function App() {
         <div className="desktop-only flex flex-col min-h-screen">
           <TopNavBar />
           <div className="flex flex-1 overflow-hidden">
-            <LeftSidebar />
+            <LeftSidebar onChatToggle={() => setChatOpen(o => !o)} />
             <main className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--bg-primary)' }}>
               <Routes>
                 <Route path="/" element={<Navigate to="/task-manager" replace />} />
@@ -41,6 +45,7 @@ function App() {
             </main>
           </div>
           <StatusBar />
+          <OperatorChat isOpen={chatOpen} onClose={() => setChatOpen(false)} />
         </div>
       </ToastProvider>
     </BrowserRouter>
