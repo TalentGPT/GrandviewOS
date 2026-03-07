@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@import "@tailwindcss/typography";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-card: #111111;
+  --bg-card-hover: #1A1A1A;
+  --bg-hover: #1E1E1E;
+  --bg-active: #252525;
+  --border-page: #FFD700;
+  --border-divider: #2A2A2A;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --accent-teal: #00E5FF;
+  --accent-teal-dim: #00BCD4;
+  --accent-gold: #FFD700;
+  --accent-orange: #FF9800;
+  --accent-green: #4CAF50;
+  --accent-red: #FF4444;
+  --accent-purple: #bc8cff;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+  --radius: 8px;
+  --pill-radius: 16px;
+  /* Model badge colors */
+  --model-opus: #E53935;
+  --model-codex: #D32F2F;
+  --model-sonnet: #43A047;
+  --model-haiku: #7B1FA2;
+  --model-gemini-flash: #00BCD4;
+  --model-gemini-pro: #00ACC1;
+  --model-nano: #827717;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-divider); border-radius: 3px; }
+
+/* Gold page border */
+#root {
+  border: 2px solid var(--border-page);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pulsing green dot */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), 0 0 30px rgba(255, 215, 0, 0.1);
+}
+.glow-teal {
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4), 0 0 30px rgba(0, 229, 255, 0.1);
+}
+
+/* Mobile warning */
+@media (max-width: 1023px) {
+  .desktop-only { display: none !important; }
+  .mobile-warning { display: flex !important; }
+}
+@media (min-width: 1024px) {
+  .mobile-warning { display: none !important; }
+}
