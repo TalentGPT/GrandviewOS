@@ -297,6 +297,11 @@ export default function ProjectTracking() {
     setExpandedLists(expanded)
   }, [])
 
+  const loadBoardLists = useCallback(async (boardId: string) => {
+    const res = await getTrelloBoardLists(boardId)
+    if (res.data) setBoardLists(res.data)
+  }, [])
+
   useEffect(() => {
     const load = async () => {
       // Load config and boards in parallel
@@ -327,11 +332,6 @@ export default function ProjectTracking() {
     }
     load()
   }, [autoExpandLists, loadBoardLists])
-
-  const loadBoardLists = useCallback(async (boardId: string) => {
-    const res = await getTrelloBoardLists(boardId)
-    if (res.data) setBoardLists(res.data)
-  }, [])
 
   const refreshBoard = useCallback(async () => {
     const res = await syncTrelloBoard()
