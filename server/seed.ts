@@ -57,7 +57,18 @@ async function main() {
   for (const a of agents) {
     await prisma.agent.upsert({
       where: { tenantId_slug: { tenantId: tenant.id, slug: a.slug } },
-      update: {},
+      update: {
+        name: a.name,
+        emoji: a.emoji,
+        role: a.role,
+        persona: a.persona,
+        department: a.department,
+        division: a.division,
+        primaryModel: a.primaryModel,
+        parentId: a.parentId,
+        description: a.description,
+        status: (a as any).status || 'active',
+      },
       create: {
         tenantId: tenant.id,
         slug: a.slug,
