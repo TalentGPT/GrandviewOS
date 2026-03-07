@@ -11,9 +11,9 @@ interface ChatMessage {
 const MOCK_MESSAGES: ChatMessage[] = [
   { id: '1', from: 'coo', text: "Good morning! All 21 agents are healthy. Overnight: Nova completed security scan (0 critical), Clay handled 3 community questions. Cost since midnight: $4.82.", time: '07:00' },
   { id: '2', from: 'operator', text: "What's the status on the partnership proposals?", time: '08:15' },
-  { id: '3', from: 'coo', text: "Ray Lane sent proposals to TechCorp and AIFlow yesterday. DataStream proposal is 80% drafted — expected by end of day. TechCorp responded positively, requesting a follow-up call this week.", time: '08:15' },
-  { id: '4', from: 'operator', text: 'Great. Have Gary prepare a co-marketing plan for TechCorp.', time: '08:16' },
-  { id: '5', from: 'coo', text: "On it. I'll delegate to Gary immediately. He already has co-marketing templates ready from last week — should have the TechCorp-specific plan by tomorrow morning. I'll update you at next standup.", time: '08:16' },
+  { id: '3', from: 'coo', text: "Marc Benioff sent proposals to TechCorp and AIFlow yesterday. DataStream proposal is 80% drafted — expected by end of day. TechCorp responded positively, requesting a follow-up call this week.", time: '08:15' },
+  { id: '4', from: 'operator', text: 'Great. Have Steve Jobs prepare a co-marketing plan for TechCorp.', time: '08:16' },
+  { id: '5', from: 'coo', text: "On it. I'll delegate to Steve Jobs immediately. He already has co-marketing templates ready from last week — should have the TechCorp-specific plan by tomorrow morning. I'll update you at next standup.", time: '08:16' },
 ]
 
 export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

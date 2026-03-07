@@ -28,8 +28,8 @@ async function main() {
   const agents = [
     { slug: 'ray-dalio', name: 'Ray Dalio', emoji: '📊', role: 'coo', persona: 'COO', department: 'operations', primaryModel: 'claude-opus-4-6', description: 'Chief Operating Philosopher. Designs systems where the best ideas win regardless of hierarchy. Runs company as idea meritocracy powered by data and radical transparency.' },
     { slug: 'elon', name: 'Elon', emoji: '🚀', role: 'department_head', persona: 'CTO', department: 'engineering', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio' },
-    { slug: 'gary', name: 'Gary', emoji: '📣', role: 'department_head', persona: 'CMO', department: 'marketing', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio' },
-    { slug: 'ray-lane', name: 'Ray Lane', emoji: '💰', role: 'department_head', persona: 'CRO', department: 'revenue', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Revenue Officer. Helped turn Oracle into the dominant enterprise software company of the 1990s. Built Oracle\'s global enterprise sales machine. Often cited as one of the greatest enterprise software operators ever.' },
+    { slug: 'steve-jobs', name: 'Steve Jobs', emoji: '🍎', role: 'department_head', persona: 'CMO', department: 'marketing', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Storyteller. Makes the product emotionally irresistible. Turns products into cultural movements. "Marketing is the art of making people believe a product will change their lives."' },
+    { slug: 'marc-benioff', name: 'Marc Benioff', emoji: '☁️', role: 'department_head', persona: 'CRO', department: 'revenue', primaryModel: 'claude-opus-4-6', parentId: 'ray-dalio', description: 'Chief Category Builder. Dominates markets by defining them. Created cloud CRM category at Salesforce. Revenue grew from startup to $30B+. "Define the category, build the platform, and let the ecosystem multiply your revenue."' },
     // Engineering
     { slug: 'nova', name: 'Nova', emoji: '🛡️', role: 'specialist', department: 'engineering', division: 'Backend & Security', primaryModel: 'codex-5.3', parentId: 'elon' },
     { slug: 'atlas', name: 'Atlas', emoji: '🏗️', role: 'specialist', department: 'engineering', division: 'Backend & Security', primaryModel: 'codex-5.3', parentId: 'elon' },
@@ -39,18 +39,18 @@ async function main() {
     { slug: 'sentinel', name: 'Sentinel', emoji: '📡', role: 'specialist', department: 'engineering', division: 'DevOps & Infra', primaryModel: 'gemini-flash', parentId: 'elon', status: 'scaffolded' },
     { slug: 'tester', name: 'Tester', emoji: '🧪', role: 'specialist', department: 'engineering', division: 'QA & Testing', primaryModel: 'codex-5.3', parentId: 'elon' },
     // Marketing
-    { slug: 'scribe', name: 'Scribe', emoji: '✍️', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'claude-opus-4-6', parentId: 'gary' },
-    { slug: 'viral', name: 'Viral', emoji: '📱', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'gemini-flash', parentId: 'gary' },
-    { slug: 'clay', name: 'Clay', emoji: '🦞', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'gemini-flash', parentId: 'gary' },
-    { slug: 'funnel', name: 'Funnel', emoji: '📈', role: 'specialist', department: 'marketing', division: 'Growth & Analytics', primaryModel: 'gemini-pro', parentId: 'gary' },
-    { slug: 'lens', name: 'Lens', emoji: '🔍', role: 'specialist', department: 'marketing', division: 'Growth & Analytics', primaryModel: 'gemini-pro', parentId: 'gary' },
-    { slug: 'canvas', name: 'Canvas', emoji: '🎭', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'gary' },
-    { slug: 'motion', name: 'Motion', emoji: '🎬', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'gary' },
+    { slug: 'scribe', name: 'Scribe', emoji: '✍️', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'claude-opus-4-6', parentId: 'steve-jobs' },
+    { slug: 'viral', name: 'Viral', emoji: '📱', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'gemini-flash', parentId: 'steve-jobs' },
+    { slug: 'clay', name: 'Clay', emoji: '🦞', role: 'specialist', department: 'marketing', division: 'Content & Social', primaryModel: 'gemini-flash', parentId: 'steve-jobs' },
+    { slug: 'funnel', name: 'Funnel', emoji: '📈', role: 'specialist', department: 'marketing', division: 'Growth & Analytics', primaryModel: 'gemini-pro', parentId: 'steve-jobs' },
+    { slug: 'lens', name: 'Lens', emoji: '🔍', role: 'specialist', department: 'marketing', division: 'Growth & Analytics', primaryModel: 'gemini-pro', parentId: 'steve-jobs' },
+    { slug: 'canvas', name: 'Canvas', emoji: '🎭', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'steve-jobs' },
+    { slug: 'motion', name: 'Motion', emoji: '🎬', role: 'specialist', department: 'marketing', division: 'Design & Creative', primaryModel: 'nano-banana-pro', parentId: 'steve-jobs' },
     // Revenue
-    { slug: 'deal', name: 'Deal', emoji: '🤝', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-6', parentId: 'ray-lane' },
-    { slug: 'scout', name: 'Scout', emoji: '🔭', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-5', parentId: 'ray-lane' },
-    { slug: 'closer', name: 'Closer', emoji: '💼', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-opus-4-6', parentId: 'ray-lane' },
-    { slug: 'outreach', name: 'Outreach', emoji: '📧', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-sonnet-4-5', parentId: 'ray-lane' },
+    { slug: 'deal', name: 'Deal', emoji: '🤝', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-6', parentId: 'marc-benioff' },
+    { slug: 'scout', name: 'Scout', emoji: '🔭', role: 'specialist', department: 'revenue', division: 'Partnerships', primaryModel: 'claude-opus-4-5', parentId: 'marc-benioff' },
+    { slug: 'closer', name: 'Closer', emoji: '💼', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-opus-4-6', parentId: 'marc-benioff' },
+    { slug: 'outreach', name: 'Outreach', emoji: '📧', role: 'specialist', department: 'revenue', division: 'Sales & Outreach', primaryModel: 'claude-sonnet-4-5', parentId: 'marc-benioff' },
   ]
 
   for (const a of agents) {
@@ -127,20 +127,20 @@ async function main() {
       participants: [
         { name: 'Ray Dalio', emoji: '📊', role: 'COO', voice: 'en-US-GuyNeural' },
         { name: 'Elon', emoji: '🚀', role: 'CTO', voice: 'en-US-ChristopherNeural' },
-        { name: 'Gary', emoji: '📣', role: 'CMO', voice: 'en-US-JasonNeural' },
-        { name: 'Ray Lane', emoji: '💰', role: 'CRO', voice: 'en-GB-RyanNeural' },
+        { name: 'Steve Jobs', emoji: '🍎', role: 'CMO', voice: 'en-US-JasonNeural' },
+        { name: 'Marc Benioff', emoji: '☁️', role: 'CRO', voice: 'en-GB-RyanNeural' },
       ],
       transcript: [
         { speaker: 'Ray Dalio', text: 'Good morning team. Status updates please.' },
         { speaker: 'Elon', text: 'Engineering shipped 3 PRs. Pipeline green.' },
-        { speaker: 'Gary', text: 'Newsletter open rate 34%. Community growing.' },
-        { speaker: 'Ray Lane', text: 'TechCorp deal in final review.' },
+        { speaker: 'Steve Jobs', text: 'Newsletter open rate 34%. Community growing.' },
+        { speaker: 'Marc Benioff', text: 'TechCorp deal in final review.' },
         { speaker: 'Ray Dalio', text: 'Great work. Action items compiled.' },
       ],
       actionItems: [
         { text: 'Ship cost breakdown view', assignee: 'Elon', done: false },
-        { text: 'Complete TechCorp case study', assignee: 'Gary', done: false },
-        { text: 'Close TechCorp deal', assignee: 'Ray Lane', done: true },
+        { text: 'Complete TechCorp case study', assignee: 'Steve Jobs', done: false },
+        { text: 'Close TechCorp deal', assignee: 'Marc Benioff', done: true },
       ],
       status: 'completed',
       completedAt: new Date(),

@@ -93,7 +93,7 @@ The org chart visualizes the entire agent hierarchy with interactive expand/coll
         📊 COO (Ray Dalio)
         ┌────┼────┐
    🚀 CTO  📣 CMO  💰 CRO
-   (Elon)  (Gary)  (Ray Lane)
+   (Elon)  (Steve Jobs)  (Marc Benioff)
      │       │       │
    7 agents 7 agents 4 agents
 \`\`\`
@@ -151,8 +151,8 @@ Each agent has a dedicated workspace with identity, memory, and tools.
 │       ├── 2026-03-07.md
 │       └── 2026-03-06.md
 ├── elon/            # CTO
-├── gary/            # CMO
-├── ray-lane/          # CRO
+├── steve-jobs/            # CMO
+├── marc-benioff/          # CRO
 └── ...              # Specialists
 \`\`\`
 

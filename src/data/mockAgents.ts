@@ -31,8 +31,8 @@ export const cooAgent: Agent = {
 
 export const departmentHeads: Agent[] = [
   { id: 'elon', name: 'Elon', emoji: '🚀', role: 'Engineering Lead', title: 'CTO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'engineering' },
-  { id: 'gary', name: 'Gary', emoji: '📣', role: 'Marketing Lead', title: 'CMO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'marketing' },
-  { id: 'ray-lane', name: 'Ray Lane', emoji: '💰', role: 'Revenue Lead', title: 'CRO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'revenue' },
+  { id: 'steve-jobs', name: 'Steve Jobs', emoji: '🍎', role: 'Marketing Lead', title: 'CMO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'marketing' },
+  { id: 'marc-benioff', name: 'Marc Benioff', emoji: '☁️', role: 'Revenue Lead', title: 'CRO', status: 'active', model: 'Opus 4.6', modelColor: 'var(--model-opus)', department: 'revenue' },
 ]
 
 export const divisions: Record<string, Division[]> = {

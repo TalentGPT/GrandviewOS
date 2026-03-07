@@ -82,7 +82,7 @@ export const sessions: Session[] = [
     agent: 'Ray Dalio', agentEmoji: '📊',
     transcript: [
       { role: 'system', content: 'Daily standup preparation initiated.', timestamp: '07:45:00' },
-      { role: 'assistant', content: 'Gathering status from all department heads...\n\n**Engineering (Elon):** 2 PRs merged, security patch deployed\n**Marketing (Gary):** Newsletter 80% complete, social metrics up\n**Revenue (Ray Lane):** 3 partner responses received, proposals in draft', timestamp: '07:45:30' },
+      { role: 'assistant', content: 'Gathering status from all department heads...\n\n**Engineering (Elon):** 2 PRs merged, security patch deployed\n**Marketing (Steve Jobs):** Newsletter 80% complete, social metrics up\n**Revenue (Marc Benioff):** 3 partner responses received, proposals in draft', timestamp: '07:45:30' },
     ],
   },
   {

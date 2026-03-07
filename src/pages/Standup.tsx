@@ -10,8 +10,8 @@ import type { StandupMeeting } from '../data/mockStandups'
 const SPEAKER_COLORS: Record<string, { color: string; role: string }> = {
   'Ray Dalio': { color: 'var(--accent-teal)', role: 'COO' },
   'Elon': { color: '#E53935', role: 'CTO' },
-  'Gary': { color: '#FF9800', role: 'CMO' },
-  'Ray Lane': { color: '#7B1FA2', role: 'CRO' },
+  'Steve Jobs': { color: '#FF9800', role: 'CMO' },
+  'Marc Benioff': { color: '#7B1FA2', role: 'CRO' },
 }
 
 function LiveAudioPlayer({ standupId }: { standupId: string }) {

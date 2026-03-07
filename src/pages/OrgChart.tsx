@@ -115,7 +115,7 @@ export default function OrgChart() {
   const deptHeads = departments.map(dept => {
     const head = activeAgents.find(a => a.department === dept && (
       a.role?.toLowerCase().includes('lead') || a.role?.toLowerCase().includes('chief') ||
-      a.role?.toLowerCase().includes('head') || a.id === 'elon' || a.id === 'gary' || a.id === 'ray-lane'
+      a.role?.toLowerCase().includes('head') || a.id === 'elon' || a.id === 'steve-jobs' || a.id === 'marc-benioff'
     ))
     return { dept, head: head || null }
   }).filter(d => d.head)

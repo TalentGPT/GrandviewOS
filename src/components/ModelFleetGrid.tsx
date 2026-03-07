@@ -9,7 +9,7 @@ interface ModelInfo {
 }
 
 const MODEL_FLEET: ModelInfo[] = [
-  { name: 'Claude Opus 4.6', desc: 'Primary research & orchestration', color: 'var(--model-opus)', agents: ['Ray Dalio', 'Elon', 'Gary', 'Ray Lane', 'Scribe', 'Pixel', 'Deal', 'Closer'], primary: true },
+  { name: 'Claude Opus 4.6', desc: 'Primary research & orchestration', color: 'var(--model-opus)', agents: ['Ray Dalio', 'Elon', 'Gary', 'Marc Benioff', 'Scribe', 'Pixel', 'Deal', 'Closer'], primary: true },
   { name: 'Claude Opus 4.5', desc: 'Secondary complex tasks', color: 'var(--model-opus)', agents: ['Scout'] },
   { name: 'GPT-5.3-Codex', desc: 'Backend code & QA audit', color: 'var(--model-codex)', agents: ['Nova', 'Atlas', 'Docker', 'Tester'] },
   { name: 'Claude Sonnet 4.5', desc: 'Balanced tasks & frontend', color: 'var(--model-sonnet)', agents: ['Frame', 'Outreach'] },
