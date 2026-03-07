@@ -80,16 +80,16 @@ export default function Automations() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Automations</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Automations</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>View and manage automated workflows and triggers</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowTimeline(!showTimeline)}
             className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-            style={{ background: showTimeline ? 'var(--accent-purple)22' : 'var(--bg-hover)', color: showTimeline ? 'var(--accent-purple)' : 'var(--text-secondary)', border: `1px solid ${showTimeline ? 'var(--accent-purple)44' : 'var(--border-divider)'}` }}>
+            style={{ background: showTimeline ? 'var(--accent-purple)22' : 'var(--bg-3)', color: showTimeline ? 'var(--accent-purple)' : 'var(--text-secondary)', border: `1px solid ${showTimeline ? 'var(--accent-purple)44' : 'var(--border-divider)'}` }}>
             📅 Timeline
           </button>
           <button onClick={() => setShowAdd(!showAdd)}
@@ -103,7 +103,7 @@ export default function Automations() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total" value={automations.length} icon="⚡" />
         <StatCard label="Active" value={active} color="var(--accent-green)" icon="🟢" />
-        <StatCard label="Paused" value={paused} color="#FFC107" icon="⏸️" />
+        <StatCard label="Paused" value={paused} color="#EAB308" icon="⏸️" />
         <StatCard label="Cron Jobs" value={automations.filter(a => a.type === 'cron').length} icon="🔄" />
         <StatCard label="Triggers" value={automations.filter(a => a.type === 'trigger').length} icon="🎯" />
       </div>
@@ -113,16 +113,16 @@ export default function Automations() {
         {showAdd && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4">
-            <div className="rounded-lg p-4 flex gap-3 items-end" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-purple)33' }}>
+            <div className="rounded-lg p-4 flex gap-3 items-end" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-purple)33' }}>
               <div className="flex-1">
                 <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Name</label>
                 <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Automation name..."
-                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               </div>
               <div className="flex-1">
                 <label className="text-[10px] block mb-1" style={{ color: 'var(--text-secondary)' }}>Schedule</label>
                 <input value={newSchedule} onChange={e => setNewSchedule(e.target.value)} placeholder="Every 30 min, Daily 08:00..."
-                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                  className="w-full px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               </div>
               <button onClick={addAutomation} className="px-4 py-1.5 rounded text-xs font-medium cursor-pointer"
                 style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Save</button>
@@ -136,7 +136,7 @@ export default function Automations() {
         {showTimeline && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-6">
-            <div className="rounded-lg p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
               <div className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>24-HOUR TIMELINE</div>
               <div className="flex gap-0.5 items-end h-20">
                 {timeline.map(t => {
@@ -144,7 +144,7 @@ export default function Automations() {
                   return (
                     <div key={t.hour} className="flex-1 flex flex-col items-center gap-1" title={hasAuto ? t.automations.join(', ') : 'No automations'}>
                       <div className="w-full rounded-sm transition-colors"
-                        style={{ height: hasAuto ? `${Math.min(t.automations.length * 20 + 10, 60)}px` : '4px', background: hasAuto ? 'var(--accent-purple)' : 'var(--bg-hover)' }} />
+                        style={{ height: hasAuto ? `${Math.min(t.automations.length * 20 + 10, 60)}px` : '4px', background: hasAuto ? 'var(--accent-purple)' : 'var(--bg-3)' }} />
                       <span className="text-[8px]" style={{ color: 'var(--text-secondary)' }}>{t.hour.slice(0, 2)}</span>
                     </div>
                   )
@@ -159,7 +159,7 @@ export default function Automations() {
       <div className="flex flex-col gap-3">
         {automations.map(a => (
           <motion.div key={a.id} layout className="rounded-lg p-4 flex items-center gap-4"
-            style={{ background: 'var(--bg-card)', border: `1px solid ${a.status === 'active' ? 'var(--accent-green)22' : a.status === 'paused' ? '#FFC10722' : 'var(--accent-red)22'}` }}>
+            style={{ background: 'var(--bg-2)', border: `1px solid ${a.status === 'active' ? 'var(--accent-green)22' : a.status === 'paused' ? '#EAB30822' : 'var(--accent-red)22'}` }}>
             <span className="text-xl">{a.agentEmoji}</span>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ export default function Automations() {
             </div>
             <div className="flex gap-1 shrink-0">
               <button onClick={() => toggleStatus(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-                style={{ background: a.status === 'active' ? 'var(--accent-green)22' : '#FFC10722', color: a.status === 'active' ? 'var(--accent-green)' : '#FFC107', border: 'none' }}>
+                style={{ background: a.status === 'active' ? 'var(--accent-green)22' : '#EAB30822', color: a.status === 'active' ? 'var(--accent-green)' : '#EAB308', border: 'none' }}>
                 {a.status === 'active' ? '⏸ Pause' : '▶ Resume'}
               </button>
               <button onClick={() => deleteAutomation(a.id)} className="px-2 py-1 rounded text-[10px] font-medium cursor-pointer"

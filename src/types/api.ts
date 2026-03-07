@@ -39,6 +39,7 @@ export interface ApiSession {
   isActive: boolean
   messages: SessionMessage[]
   title: string
+  lastMessage?: string
 }
 
 export interface ApiAgent {

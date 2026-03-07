@@ -29,7 +29,7 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-      <div className="w-full max-w-md p-8 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <div className="w-full max-w-md p-8 rounded-xl" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🐕</div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>GrandviewOS</h1>

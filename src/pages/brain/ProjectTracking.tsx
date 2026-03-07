@@ -75,10 +75,10 @@ export default function ProjectTracking() {
   if (loading) return <PageSkeleton />
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Project Tracking</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Project Tracking</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Track progress across multi-agent projects</p>
         </div>
         <button onClick={() => setShowAdd(!showAdd)}
@@ -92,10 +92,10 @@ export default function ProjectTracking() {
         {showAdd && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4">
-            <div className="rounded-lg p-4 flex gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-purple)33' }}>
+            <div className="rounded-lg p-4 flex gap-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-purple)33' }}>
               <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Project title..."
                 onKeyDown={e => { if (e.key === 'Enter') addProject() }}
-                className="flex-1 px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
+                className="flex-1 px-3 py-1.5 rounded text-sm focus:outline-none" style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }} />
               <button onClick={addProject} className="px-4 py-1.5 rounded text-xs font-medium cursor-pointer"
                 style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Add</button>
             </div>
@@ -113,16 +113,16 @@ export default function ProjectTracking() {
                 <span className="text-sm font-semibold" style={{ color: col.color }}>{col.label}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: col.color + '22', color: col.color }}>{colProjects.length}</span>
               </div>
-              <div className="flex flex-col gap-2 min-h-[200px] rounded-lg p-2" style={{ background: 'var(--bg-secondary)', border: `1px solid ${col.color}22` }}>
+              <div className="flex flex-col gap-2 min-h-[200px] rounded-lg p-2" style={{ background: 'var(--bg-1)', border: `1px solid ${col.color}22` }}>
                 {colProjects.map(p => (
                   <motion.div key={p.id} layout
                     className="rounded-lg p-3 cursor-default"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                     <div className="text-sm font-medium mb-1">{p.title}</div>
                     {p.description && <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>{p.description}</div>}
                     <div className="flex gap-1 mb-2">
                       {p.agents.map(a => (
-                        <span key={a.name} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)' }}>
+                        <span key={a.name} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-3)' }}>
                           {a.emoji} {a.name}
                         </span>
                       ))}

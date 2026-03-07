@@ -31,7 +31,7 @@ function LiveAudioPlayer({ standupId }: { standupId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+    <div className="flex items-center gap-3 p-3 rounded-lg mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
       <audio
         ref={audioRef}
         src={getStandupAudioUrl(standupId)}
@@ -76,7 +76,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
 
   return (
     <>
-      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         <div className="flex items-center justify-between">
           <div>
             <div className="text-base font-semibold">{standup.title}</div>
@@ -104,7 +104,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
       {standup.status === 'complete' && <LiveAudioPlayer standupId={standup.id} />}
 
       {standup.status === 'running' && (
-        <div className="flex items-center justify-center p-8 rounded-lg mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-teal)33' }}>
+        <div className="flex items-center justify-center p-8 rounded-lg mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--accent-teal)33' }}>
           <div className="text-center">
             <div className="text-2xl mb-2 animate-pulse">🎙️</div>
             <div className="text-sm font-medium" style={{ color: 'var(--accent-teal)' }}>Standup in progress...</div>
@@ -124,7 +124,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               className="p-4 rounded-lg"
-              style={{ background: 'var(--bg-card)', borderLeft: `3px solid ${info.color}` }}
+              style={{ background: 'var(--bg-2)', borderLeft: `3px solid ${info.color}` }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span>{info.emoji}</span>
@@ -138,7 +138,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
 
       {/* Action Items */}
       {standup.actionItems.length > 0 && (
-        <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+        <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold">Action Items</h3>
             <span className="text-xs" style={{ color: allDone ? 'var(--accent-green)' : 'var(--accent-teal)' }}>
@@ -149,7 +149,7 @@ function LiveMeetingView({ standup }: { standup: StandupResponse }) {
             {items.map((item, i) => {
               const info = SPEAKER_COLORS[item.assignee] ?? { color: 'var(--text-secondary)', emoji: '🤖' }
               return (
-                <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors">
+                <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-3)] transition-colors">
                   <input type="checkbox" checked={item.done} onChange={() => toggleItem(i)} className="accent-[var(--accent-green)] cursor-pointer" />
                   <span className={item.done ? 'line-through opacity-50' : ''}>{item.text}</span>
                   <span className="ml-auto text-sm" title={item.assignee}>{info.emoji}</span>
@@ -176,7 +176,7 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
 
   return (
     <>
-      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         <div className="text-base font-semibold mb-1">{standup.title}</div>
         <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>📅 {standup.date} — {standup.time}</div>
         <div className="flex gap-2">
@@ -191,7 +191,7 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
       <div className="flex flex-col gap-4 mb-6">
         {standup.conversation.map((msg, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="p-4 rounded-lg" style={{ background: 'var(--bg-card)', borderLeft: `3px solid ${msg.speaker.color}` }}>
+            className="p-4 rounded-lg" style={{ background: 'var(--bg-2)', borderLeft: `3px solid ${msg.speaker.color}` }}>
             <div className="flex items-center gap-2 mb-2">
               <span>{msg.speaker.emoji}</span>
               <span className="font-semibold text-sm">{msg.speaker.name}</span>
@@ -201,7 +201,7 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
         ))}
       </div>
 
-      <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Deliverables Checklist</h3>
           <span className="text-xs" style={{ color: allDone ? 'var(--accent-green)' : 'var(--accent-teal)' }}>
@@ -210,7 +210,7 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
         </div>
         <div className="flex flex-col gap-2">
           {items.map((item, i) => (
-            <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)]">
+            <label key={i} className="flex items-center gap-3 text-sm cursor-pointer p-1.5 rounded hover:bg-[var(--bg-3)]">
               <input type="checkbox" checked={item.done} onChange={() => toggleItem(i)} className="accent-[var(--accent-green)] cursor-pointer" />
               <span className={item.done ? 'line-through opacity-50' : ''}>{item.text}</span>
               <span className="ml-auto text-sm" title={item.assignee.name}>{item.assignee.emoji}</span>
@@ -280,28 +280,31 @@ export default function Standup() {
   const showLive = dataSource === 'live' && liveStandups.length > 0
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div>
-          <h1 className="text-xl font-semibold">Executive Standup</h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kick off meetings with the chiefs and review past transcripts</p>
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full pulse-dot shrink-0" style={{ background: 'var(--accent-green)' }} />
+            <h1 className="text-h1">Executive Standup</h1>
+          </div>
+          <p className="text-small mt-1 ml-[22px]" style={{ color: 'var(--text-secondary)' }}>Kick off meetings with the chiefs and review past transcripts</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {/* Data source toggle */}
           <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border-divider)' }}>
             <button onClick={() => setDataSource('live')} className="px-3 py-1 text-xs font-medium cursor-pointer transition-colors"
-              style={{ background: dataSource === 'live' ? 'var(--accent-teal)22' : 'var(--bg-hover)', color: dataSource === 'live' ? 'var(--accent-teal)' : 'var(--text-secondary)', border: 'none' }}>
+              style={{ background: dataSource === 'live' ? 'var(--accent-teal)22' : 'var(--bg-3)', color: dataSource === 'live' ? 'var(--accent-teal)' : 'var(--text-secondary)', border: 'none' }}>
               🔌 Live {liveStandups.length === 0 && '(N/A)'}
             </button>
             <button onClick={() => setDataSource('mock')} className="px-3 py-1 text-xs font-medium cursor-pointer transition-colors"
-              style={{ background: dataSource === 'mock' ? 'var(--accent-gold)22' : 'var(--bg-hover)', color: dataSource === 'mock' ? 'var(--accent-gold)' : 'var(--text-secondary)', border: 'none' }}>
+              style={{ background: dataSource === 'mock' ? 'var(--accent-gold)22' : 'var(--bg-3)', color: dataSource === 'mock' ? 'var(--accent-gold)' : 'var(--text-secondary)', border: 'none' }}>
               📋 Demo
             </button>
           </div>
 
           <button onClick={() => setShowArchive(!showArchive)}
             className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80"
-            style={{ background: showArchive ? 'var(--accent-green)22' : 'var(--bg-hover)', color: showArchive ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${showArchive ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}>
+            style={{ background: showArchive ? 'var(--accent-green)22' : 'var(--bg-3)', color: showArchive ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${showArchive ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}>
             {showArchive ? '← Back' : '📂 Archive'}
           </button>
           <button onClick={handleTriggerStandup} disabled={triggering}
@@ -319,8 +322,8 @@ export default function Standup() {
             <div className="flex flex-col gap-3">
               {showLive && liveStandups.map(s => (
                 <div key={s.id} onClick={() => { setSelectedLiveStandup(s); setShowArchive(false); setDataSource('live') }}
-                  className="rounded-lg p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                  className="rounded-lg p-4 cursor-pointer hover:bg-[var(--bg-3)] transition-colors"
+                  style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-semibold">{s.title}</div>
@@ -337,8 +340,8 @@ export default function Standup() {
               ))}
               {mockStandups.map(s => (
                 <div key={s.id} onClick={() => { setSelectedMockStandup(s); setShowArchive(false); setDataSource('mock') }}
-                  className="rounded-lg p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+                  className="rounded-lg p-4 cursor-pointer hover:bg-[var(--bg-3)] transition-colors"
+                  style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-semibold">{s.title} <span className="text-[10px]" style={{ color: 'var(--accent-gold)' }}>(demo)</span></div>

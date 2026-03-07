@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const icons = [
@@ -14,30 +15,48 @@ interface Props {
 export default function LeftSidebar({ onChatToggle }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
 
   return (
     <div
-      className="flex flex-col items-center gap-3 py-4 px-2 border-r shrink-0"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)', width: 56 }}
+      className="hidden lg:flex flex-col items-center gap-2 py-4 shrink-0"
+      style={{ width: 'var(--sidebar-width)', background: 'var(--bg-1)', borderRight: '1px solid var(--border-divider)' }}
     >
-      {icons.map(icon => {
+      {icons.map((icon, idx) => {
         const isActive = icon.path && location.pathname === icon.path
         return (
-          <button
-            key={icon.label}
-            title={icon.label}
-            onClick={() => {
-              if (icon.action === 'chat' && onChatToggle) onChatToggle()
-              else if (icon.path) navigate(icon.path)
-            }}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-base hover:scale-110 transition-transform cursor-pointer"
-            style={{
-              background: isActive ? 'var(--accent-teal)22' : icon.action === 'chat' ? 'var(--accent-green)22' : 'var(--bg-hover)',
-              border: icon.action === 'chat' ? '1px solid var(--accent-green)44' : 'none',
-            }}
-          >
-            {icon.emoji}
-          </button>
+          <div key={icon.label} className="relative">
+            <button
+              title={icon.label}
+              onClick={() => {
+                if (icon.action === 'chat' && onChatToggle) onChatToggle()
+                else if (icon.path) navigate(icon.path)
+              }}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-sm cursor-pointer transition-all"
+              style={{
+                background: isActive ? 'var(--accent-teal)15' : 'transparent',
+                border: 'none',
+                color: isActive ? 'var(--accent-teal)' : 'var(--text-secondary)',
+              }}
+            >
+              {icon.emoji}
+            </button>
+            {/* Tooltip */}
+            {hoveredIdx === idx && (
+              <div
+                className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap z-50"
+                style={{
+                  background: 'var(--bg-4)',
+                  color: 'var(--text-primary)',
+                  boxShadow: 'var(--shadow-md)',
+                }}
+              >
+                {icon.label}
+              </div>
+            )}
+          </div>
         )
       })}
     </div>

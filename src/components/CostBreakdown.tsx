@@ -8,7 +8,7 @@ function CostBar({ label, value, maxValue, color }: { label: string; value: numb
   return (
     <div className="flex items-center gap-3 mb-2">
       <span className="text-xs w-32 truncate" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-      <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+      <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: 'var(--bg-3)' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -86,7 +86,7 @@ export default function CostBreakdownView() {
       {/* Trend sparklines */}
       {history.length > 1 && (
         <div className="flex gap-4 mb-6">
-          <div className="flex-1 rounded-lg p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
             <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>💰 Cost Trend (7 days)</div>
             <div className="flex items-center gap-3">
               <Sparkline data={costTrend} color="var(--accent-red)" width={180} height={32} />
@@ -95,7 +95,7 @@ export default function CostBreakdownView() {
               </span>
             </div>
           </div>
-          <div className="flex-1 rounded-lg p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
             <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>🔤 Token Trend (7 days)</div>
             <div className="flex items-center gap-3">
               <Sparkline data={tokenTrend} color="var(--accent-teal)" width={180} height={32} />
@@ -130,7 +130,7 @@ export default function CostBreakdownView() {
       </div>
 
       {/* Bars */}
-      <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+      <div className="rounded-lg p-5" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
         {view === 'model' ? (
           <>
             <div className="text-xs font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>COST BY MODEL</div>

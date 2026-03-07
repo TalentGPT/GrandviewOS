@@ -64,10 +64,10 @@ export default function Docs() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="-m-4 md:-m-6">
       {/* Mobile doc picker */}
-      <div className="md:hidden p-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-card)' }}>
+      <div className="md:hidden p-4 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-divider)', background: 'var(--bg-2)' }}>
         <button onClick={() => setSidebarOpen(!sidebarOpen)}
           className="px-3 py-2 rounded-md text-xs font-medium cursor-pointer"
-          style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
+          style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
           {sidebarOpen ? '✕ Close' : '📚 Topics'}
         </button>
         <span className="text-sm truncate" style={{ color: 'var(--accent-teal)' }}>{activeDoc}</span>
@@ -76,7 +76,7 @@ export default function Docs() {
       <div className="flex" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {/* Sidebar */}
         <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-56 shrink-0 overflow-y-auto border-r p-4`}
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+          style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-semibold tracking-wider" style={{ color: 'var(--text-secondary)' }}>DOCUMENTATION</div>
             {isGenerated && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)' }}>Live</span>}
@@ -85,7 +85,7 @@ export default function Docs() {
             <button
               key={item}
               onClick={() => handleNav(item)}
-              className="w-full text-left px-2 py-2 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+              className="w-full text-left px-2 py-2 rounded-md text-sm mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
               style={{
                 background: activeDoc === item ? 'var(--accent-teal)11' : 'transparent',
                 color: activeDoc === item ? 'var(--accent-teal)' : 'var(--text-secondary)',

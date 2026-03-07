@@ -118,13 +118,13 @@ export default function MemoryViewer() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col md:flex-row gap-0 md:h-[calc(100vh-96px)] -m-4 md:-m-6">
       {/* Left sidebar: agents + files */}
-      <div className="w-full md:w-60 shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)' }}>
+      <div className="w-full md:w-60 shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r p-4" style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
         <div className="text-[10px] font-semibold tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>AGENTS</div>
         {agents.map(a => (
           <button
             key={a.id}
             onClick={() => setSelectedAgent(a.id)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
             style={{
               background: selectedAgent === a.id ? 'var(--accent-purple)11' : 'transparent',
               color: selectedAgent === a.id ? 'var(--accent-purple)' : 'var(--text-primary)',
@@ -144,17 +144,17 @@ export default function MemoryViewer() {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search memory..."
           className="w-full px-2 py-1.5 rounded-md text-xs mb-3 focus:outline-none focus:ring-1 focus:ring-[var(--accent-purple)]"
-          style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
+          style={{ background: 'var(--bg-3)', color: 'var(--text-primary)', border: '1px solid var(--border-divider)' }}
         />
 
         {/* View toggle */}
         <div className="flex gap-1 mb-3">
           <button onClick={() => setView('files')} className="flex-1 px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-            style={{ background: view === 'files' ? 'var(--accent-purple)22' : 'var(--bg-hover)', color: view === 'files' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
+            style={{ background: view === 'files' ? 'var(--accent-purple)22' : 'var(--bg-3)', color: view === 'files' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
             📄 Files
           </button>
           <button onClick={() => setView('timeline')} className="flex-1 px-2 py-1 rounded text-[10px] font-medium cursor-pointer"
-            style={{ background: view === 'timeline' ? 'var(--accent-purple)22' : 'var(--bg-hover)', color: view === 'timeline' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
+            style={{ background: view === 'timeline' ? 'var(--accent-purple)22' : 'var(--bg-3)', color: view === 'timeline' ? 'var(--accent-purple)' : 'var(--text-secondary)', border: 'none' }}>
             📅 Timeline
           </button>
         </div>
@@ -164,7 +164,7 @@ export default function MemoryViewer() {
             <button
               key={f.path}
               onClick={() => setSelectedFile(f)}
-              className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs text-left mb-1 cursor-pointer transition-colors hover:bg-[var(--bg-3)]"
               style={{
                 background: selectedFile?.path === f.path ? 'var(--accent-purple)11' : 'transparent',
                 color: selectedFile?.path === f.path ? 'var(--accent-purple)' : 'var(--text-primary)',
@@ -207,7 +207,7 @@ export default function MemoryViewer() {
                 🔍 Showing results for &quot;{search}&quot;
               </div>
             )}
-            <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-divider)' }}>
+            <div className="prose prose-invert max-w-none rounded-lg p-5 workspace-markdown" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedFile.content}</ReactMarkdown>
             </div>
           </>

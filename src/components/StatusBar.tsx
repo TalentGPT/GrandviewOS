@@ -52,7 +52,7 @@ export default function StatusBar() {
   return (
     <div
       className="flex items-center gap-4 px-4 py-1.5 text-[10px] border-t"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border-divider)', color: 'var(--text-secondary)' }}
+      style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)', color: 'var(--text-secondary)' }}
     >
       {/* Gateway status */}
       <div className="flex items-center gap-1.5">

@@ -54,10 +54,10 @@ export default function PrototypeFleet() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Prototype Fleet</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Prototype Fleet</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Experimental agent configurations and prototypes</p>
         </div>
       </div>
@@ -74,7 +74,7 @@ export default function PrototypeFleet() {
         {(['', 'testing', 'graduated', 'archived'] as const).map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className="px-3 py-1 rounded-full text-xs font-medium cursor-pointer"
-            style={{ background: filter === s ? 'var(--accent-green)22' : 'var(--bg-hover)', color: filter === s ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
+            style={{ background: filter === s ? 'var(--accent-green)22' : 'var(--bg-3)', color: filter === s ? 'var(--accent-green)' : 'var(--text-secondary)', border: 'none' }}>
             {s ? STATUS_CONFIG[s].label : 'All'}
           </button>
         ))}
@@ -86,7 +86,7 @@ export default function PrototypeFleet() {
           const sc = STATUS_CONFIG[p.status]
           return (
             <motion.div key={p.id} layout className="rounded-lg p-5"
-              style={{ background: 'var(--bg-card)', border: `1px solid ${sc.color}22` }}>
+              style={{ background: 'var(--bg-2)', border: `1px solid ${sc.color}22` }}>
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ export default function PrototypeFleet() {
                   )}
                   {p.status !== 'archived' && (
                     <button onClick={() => updateStatus(p.id, 'archived')} className="px-3 py-1 rounded text-[10px] font-medium cursor-pointer"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
+                      style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}>
                       📦 Archive
                     </button>
                   )}
