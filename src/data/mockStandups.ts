@@ -39,7 +39,7 @@ export const standups: StandupMeeting[] = [
     title: 'Partnership & Sponsorship Strategy',
     date: 'March 7, 2026',
     time: '08:00 UTC',
-    participants: [rayDalio, steveJobs, elon, rayLane],
+    participants: [rayDalio, steveJobs, elon, marcBenioff],
     audioSegments: 23,
     audioDuration: '24s',
     conversation: [
@@ -67,7 +67,7 @@ export const standups: StandupMeeting[] = [
     title: 'Weekly Engineering Review',
     date: 'March 6, 2026',
     time: '08:00 UTC',
-    participants: [rayDalio, elon, steveJobs, rayLane],
+    participants: [rayDalio, elon, steveJobs, marcBenioff],
     audioSegments: 18,
     audioDuration: '19s',
     conversation: [
