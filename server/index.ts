@@ -1,4 +1,14 @@
 import 'dotenv/config'
+
+// Startup env check — warn about missing keys so debugging is instant
+const REQUIRED_KEYS = ['DATABASE_URL', 'JWT_SECRET', 'ENCRYPTION_KEY']
+const OPTIONAL_KEYS = ['ANTHROPIC_API_KEY', 'ELEVENLABS_API_KEY']
+const missing = REQUIRED_KEYS.filter(k => !process.env[k])
+const missingOpt = OPTIONAL_KEYS.filter(k => !process.env[k])
+if (missing.length) console.warn(`⚠️  Missing required env vars: ${missing.join(', ')} — server may not work`)
+if (missingOpt.length) console.warn(`ℹ️  Missing optional env vars: ${missingOpt.join(', ')} — AI features disabled`)
+else console.log('✅ All env vars present')
+
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'

@@ -748,11 +748,21 @@ router.post('/agents/:slug/chat', async (req, res) => {
   // Add user message
   history.push({ role: 'user', content: message, timestamp: new Date().toISOString() })
 
+  // Inject live Trello board state if available
+  let trelloSection = ''
+  try {
+    const trelloFile = join(MEMORY_DIR, 'trello-state.md')
+    const trelloContent = await readFile(trelloFile, 'utf-8')
+    if (trelloContent.trim()) {
+      trelloSection = `\n\n## Live Trello Board State\n${trelloContent.slice(0, 2000)}`
+    }
+  } catch { /* trello-state.md not available */ }
+
   const systemPrompt = `${agent.persona}
 
 You are chatting with Joe Hawn, CEO of Grandview Tek. Be concise, direct, and action-oriented. No filler. Lead with your recommendation or response. When delegating, be specific about which agent you assign and what exactly you tell them.
 
-Company context: Grandview Tek is an IT services/staffing company targeting $15M+ revenue. You are one of 22 AI agents in the GrandviewOS platform. The hierarchy is: CEO (Joe Hawn) → COO (Ray Dalio) → CTO (Elon) / CMO (Steve Jobs) / CRO (Marc Benioff) → specialists.`
+Company context: Grandview Tek is an IT services/staffing company targeting $15M+ revenue. You are one of 22 AI agents in the GrandviewOS platform. The hierarchy is: CEO (Joe Hawn) → COO (Ray Dalio) → CTO (Elon) / CMO (Steve Jobs) / CRO (Marc Benioff) → specialists.${trelloSection}`
 
   // Build messages for Anthropic API (max last 20 turns)
   const apiMessages = history.slice(-20).map(m => ({
