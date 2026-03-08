@@ -465,24 +465,6 @@ export async function fetchLiveCronJobs(): Promise<FetchResult<any[]>> {
   return apiFetch('/openclaw/cron-jobs')
 }
 
-// ---- Agent Chat ----
-
-export async function sendAgentMessage(slug: string, message: string): Promise<FetchResult<{ response: string; sessionId: string }>> {
-  return apiFetch<{ response: string; sessionId: string }>(`/agents/${encodeURIComponent(slug)}/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
-  })
-}
-
-export async function fetchAgentHistory(slug: string): Promise<FetchResult<Array<{ role: string; content: string; timestamp: string }>>> {
-  return apiFetch<Array<{ role: string; content: string; timestamp: string }>>(`/agents/${encodeURIComponent(slug)}/history`)
-}
-
-export async function fetchAgentSessions(): Promise<FetchResult<Array<{ slug: string; sessionId: string; active: boolean; lastActivity: string }>>> {
-  return apiFetch<Array<{ slug: string; sessionId: string; active: boolean; lastActivity: string }>>('/agents/sessions')
-}
-
 export function getModelColor(model: string): string {
   if (model.includes('opus')) return 'var(--model-opus)'
   if (model.includes('sonnet')) return 'var(--model-sonnet)'
