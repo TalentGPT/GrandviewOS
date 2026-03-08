@@ -915,6 +915,299 @@ const AGENT_PERSONAS: Record<string, { name: string; role: string; model: string
   'outreach':     { name: 'Outreach', role: 'Outreach', model: 'claude-sonnet-4-6', emoji: '📧', persona: 'You are Outreach, Sales Outreach agent at Grandview Tek. Master of the first impression. Every message is crafted to open a door. You report to Marc Benioff (CRO).' },
 }
 
+// ============================================================
+// TRELLO TOOLS FOR AGENT CHAT
+// ============================================================
+
+const TRELLO_TOOLS = [
+  {
+    name: 'trello_get_board',
+    description: 'Get the current Trello board state: all lists and their cards. Use this to understand what tasks exist, what lists are available, and where cards are.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'trello_create_card',
+    description: 'Create a new card in a Trello list. Use list_name to specify where to put it (e.g. "AGENT TASKS", "IDS This Week", "Inbox"). Returns the card URL.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        list_name: { type: 'string', description: 'Name of the list to add the card to (e.g. "AGENT TASKS", "IDS This Week")' },
+        name: { type: 'string', description: 'Card title' },
+        desc: { type: 'string', description: 'Card description (optional)' },
+        due: { type: 'string', description: 'Due date in ISO format e.g. 2026-03-10T17:00:00Z (optional)' },
+      },
+      required: ['list_name', 'name'],
+    },
+  },
+  {
+    name: 'trello_move_card',
+    description: 'Move a card to a different list. Useful for progressing cards through workflow stages.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        card_name: { type: 'string', description: 'Name (or partial name) of the card to move' },
+        to_list_name: { type: 'string', description: 'Name of the destination list' },
+      },
+      required: ['card_name', 'to_list_name'],
+    },
+  },
+  {
+    name: 'trello_update_card',
+    description: 'Update a card\'s name, description, or due date.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        card_name: { type: 'string', description: 'Name (or partial name) of the card to update' },
+        new_name: { type: 'string', description: 'New card title (optional)' },
+        desc: { type: 'string', description: 'New description (optional)' },
+        due: { type: 'string', description: 'New due date in ISO format (optional)' },
+      },
+      required: ['card_name'],
+    },
+  },
+  {
+    name: 'trello_complete_card',
+    description: 'Archive (complete/close) a card. Use when a task is done.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        card_name: { type: 'string', description: 'Name (or partial name) of the card to archive' },
+      },
+      required: ['card_name'],
+    },
+  },
+  {
+    name: 'trello_add_comment',
+    description: 'Add a comment to a Trello card. Use for status updates, notes, or agent actions.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        card_name: { type: 'string', description: 'Name (or partial name) of the card to comment on' },
+        comment: { type: 'string', description: 'The comment text to add' },
+      },
+      required: ['card_name', 'comment'],
+    },
+  },
+  {
+    name: 'trello_get_lists',
+    description: 'Get all list names and IDs on the board. Use when you need to know what lists exist before creating or moving cards.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+] as const
+
+// Cache of resolved full board ID
+let _fullBoardId: string | null = null
+
+async function getFullBoardId(): Promise<string | null> {
+  if (_fullBoardId) return _fullBoardId
+  try {
+    const cfg = JSON.parse(await readFile(TRELLO_CONFIG_FILE, 'utf-8'))
+    const boardId = cfg.boardId
+    if (!boardId) return null
+    const res = await fetch(`https://api.trello.com/1/boards/${boardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=id`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const d = await res.json() as { id: string }
+    _fullBoardId = d.id
+    return _fullBoardId
+  } catch { return null }
+}
+
+async function getBoardLists(): Promise<Array<{ id: string; name: string }>> {
+  const boardId = await getFullBoardId()
+  if (!boardId) return []
+  const res = await fetch(`https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,id`, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) return []
+  return res.json() as Promise<Array<{ id: string; name: string }>>
+}
+
+async function getBoardCards(): Promise<Array<{ id: string; name: string; idList: string; desc: string; due: string | null; url: string }>> {
+  const boardId = await getFullBoardId()
+  if (!boardId) return []
+  const res = await fetch(`https://api.trello.com/1/boards/${boardId}/cards?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,idList,desc,due,url&filter=open`, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) return []
+  return res.json() as Promise<Array<{ id: string; name: string; idList: string; desc: string; due: string | null; url: string }>>
+}
+
+function findListByName(lists: Array<{ id: string; name: string }>, name: string): { id: string; name: string } | undefined {
+  const lower = name.toLowerCase()
+  return lists.find(l => l.name.toLowerCase().includes(lower) || lower.includes(l.name.toLowerCase().split(' ')[0].toLowerCase()))
+}
+
+function findCardByName(cards: Array<{ id: string; name: string; idList: string; desc: string; due: string | null; url: string }>, name: string): typeof cards[0] | undefined {
+  const lower = name.toLowerCase()
+  return cards.find(c => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase().substring(0, 20)))
+}
+
+async function executeTrelloTool(toolName: string, input: Record<string, string>): Promise<string> {
+  if (!TRELLO_KEY || !TRELLO_TOKEN_VAL) return 'Error: Trello API keys not configured'
+
+  try {
+    if (toolName === 'trello_get_lists') {
+      const lists = await getBoardLists()
+      if (!lists.length) return 'No lists found or board not configured'
+      return `Board lists:\n${lists.map(l => `- ${l.name} (id: ${l.id})`).join('\n')}`
+    }
+
+    if (toolName === 'trello_get_board') {
+      const [lists, cards] = await Promise.all([getBoardLists(), getBoardCards()])
+      if (!lists.length) return 'Board not configured or no lists found'
+      const listMap = Object.fromEntries(lists.map(l => [l.id, l.name]))
+      const grouped = lists.map(l => {
+        const listCards = cards.filter(c => c.idList === l.id)
+        return `**${l.name}** (${listCards.length} cards)\n${listCards.slice(0, 10).map(c => `  - ${c.name}${c.due ? ` [due: ${new Date(c.due).toLocaleDateString()}]` : ''}`).join('\n')}`
+      })
+      return grouped.join('\n\n')
+    }
+
+    if (toolName === 'trello_create_card') {
+      const lists = await getBoardLists()
+      const list = findListByName(lists, input.list_name)
+      if (!list) return `List "${input.list_name}" not found. Available: ${lists.map(l => l.name).join(', ')}`
+      const params = new URLSearchParams({ idList: list.id, name: input.name, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+      if (input.desc) params.set('desc', input.desc)
+      if (input.due) params.set('due', input.due)
+      const res = await fetch(`https://api.trello.com/1/cards?${params}`, { method: 'POST', signal: AbortSignal.timeout(10000) })
+      if (!res.ok) return `Failed to create card: ${res.status} ${await res.text()}`
+      const card = await res.json() as { id: string; name: string; url: string }
+      return `✅ Card created: "${card.name}" in "${list.name}" — ${card.url}`
+    }
+
+    if (toolName === 'trello_move_card') {
+      const [lists, cards] = await Promise.all([getBoardLists(), getBoardCards()])
+      const card = findCardByName(cards, input.card_name)
+      if (!card) return `Card "${input.card_name}" not found on board`
+      const list = findListByName(lists, input.to_list_name)
+      if (!list) return `List "${input.to_list_name}" not found. Available: ${lists.map(l => l.name).join(', ')}`
+      const params = new URLSearchParams({ idList: list.id, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+      const res = await fetch(`https://api.trello.com/1/cards/${card.id}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(10000) })
+      if (!res.ok) return `Failed to move card: ${res.status}`
+      return `✅ Moved "${card.name}" → "${list.name}"`
+    }
+
+    if (toolName === 'trello_update_card') {
+      const cards = await getBoardCards()
+      const card = findCardByName(cards, input.card_name)
+      if (!card) return `Card "${input.card_name}" not found on board`
+      const params = new URLSearchParams({ key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+      if (input.new_name) params.set('name', input.new_name)
+      if (input.desc) params.set('desc', input.desc)
+      if (input.due) params.set('due', input.due)
+      const res = await fetch(`https://api.trello.com/1/cards/${card.id}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(10000) })
+      if (!res.ok) return `Failed to update card: ${res.status}`
+      return `✅ Updated card "${card.name}"`
+    }
+
+    if (toolName === 'trello_complete_card') {
+      const cards = await getBoardCards()
+      const card = findCardByName(cards, input.card_name)
+      if (!card) return `Card "${input.card_name}" not found on board`
+      const params = new URLSearchParams({ closed: 'true', key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+      const res = await fetch(`https://api.trello.com/1/cards/${card.id}?${params}`, { method: 'PUT', signal: AbortSignal.timeout(10000) })
+      if (!res.ok) return `Failed to archive card: ${res.status}`
+      return `✅ Archived (completed) card "${card.name}"`
+    }
+
+    if (toolName === 'trello_add_comment') {
+      const cards = await getBoardCards()
+      const card = findCardByName(cards, input.card_name)
+      if (!card) return `Card "${input.card_name}" not found on board`
+      const params = new URLSearchParams({ text: input.comment, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL })
+      const res = await fetch(`https://api.trello.com/1/cards/${card.id}/actions/comments?${params}`, { method: 'POST', signal: AbortSignal.timeout(10000) })
+      if (!res.ok) return `Failed to add comment: ${res.status}`
+      return `✅ Comment added to "${card.name}"`
+    }
+
+    return `Unknown tool: ${toolName}`
+  } catch (e) {
+    return `Tool error: ${String(e)}`
+  }
+}
+
+// Agentic loop: call Anthropic, handle tool_use, iterate until text response
+async function runAgentWithTools(
+  systemPrompt: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: any }>,
+  model: string,
+  maxTokens = 1024,
+  maxIterations = 5
+): Promise<string> {
+  let iterations = 0
+  const msgs = [...messages]
+
+  while (iterations < maxIterations) {
+    iterations++
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        tools: TRELLO_TOOLS,
+        messages: msgs,
+      }),
+      signal: AbortSignal.timeout(45000),
+    })
+
+    if (!res.ok) throw new Error(`Anthropic error ${res.status}: ${await res.text()}`)
+    const data = await res.json() as any
+
+    // Check stop reason
+    if (data.stop_reason === 'end_turn') {
+      // Extract text from content blocks
+      const textBlock = data.content.find((b: any) => b.type === 'text')
+      return textBlock?.text || ''
+    }
+
+    if (data.stop_reason === 'tool_use') {
+      // Process all tool_use blocks
+      const toolUseBlocks = data.content.filter((b: any) => b.type === 'tool_use')
+      if (!toolUseBlocks.length) {
+        const textBlock = data.content.find((b: any) => b.type === 'text')
+        return textBlock?.text || ''
+      }
+
+      // Add assistant message with tool_use
+      msgs.push({ role: 'assistant', content: data.content })
+
+      // Execute tools and collect results
+      const toolResults = []
+      for (const toolUse of toolUseBlocks) {
+        console.log(`[Tool] ${toolUse.name}:`, JSON.stringify(toolUse.input))
+        const result = await executeTrelloTool(toolUse.name, toolUse.input as Record<string, string>)
+        console.log(`[Tool result]:`, result.slice(0, 100))
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: result,
+        })
+      }
+
+      // Add tool results as user message
+      msgs.push({ role: 'user', content: toolResults })
+      continue
+    }
+
+    // Fallback: extract any text
+    const textBlock = data.content?.find((b: any) => b.type === 'text')
+    return textBlock?.text || JSON.stringify(data.content)
+  }
+
+  return 'Max tool iterations reached'
+}
+
 // POST /api/agents/:slug/chat
 router.post('/agents/:slug/chat', async (req, res) => {
   const { slug } = req.params
@@ -947,38 +1240,28 @@ router.post('/agents/:slug/chat', async (req, res) => {
 
 You are chatting with Joe Hawn, CEO of Grandview Tek. Be concise, direct, and action-oriented. No filler. Lead with your recommendation or response. When delegating, be specific about which agent you assign and what exactly you tell them.
 
-Company context: Grandview Tek is an IT services/staffing company targeting $15M+ revenue. You are one of 22 AI agents in the GrandviewOS platform. The hierarchy is: CEO (Joe Hawn) → COO (Ray Dalio) → CTO (Elon) / CMO (Steve Jobs) / CRO (Marc Benioff) → specialists.${trelloSection}`
+Company context: Grandview Tek is an IT services/staffing company targeting $15M+ revenue. You are one of 22 AI agents in the GrandviewOS platform. The hierarchy is: CEO (Joe Hawn) → COO (Ray Dalio) → CTO (Elon) / CMO (Steve Jobs) / CRO (Marc Benioff) → specialists.
 
-  // Build messages for Anthropic API (max last 20 turns)
+## Trello Access
+You have FULL access to the GVT Trello board and CAN take real actions. You have these tools available:
+- trello_get_board: See all lists and cards
+- trello_get_lists: See list names and IDs
+- trello_create_card: Create a new card in any list
+- trello_move_card: Move a card between lists
+- trello_update_card: Update card name, description, or due date
+- trello_complete_card: Archive/complete a card
+- trello_add_comment: Add a comment to a card
+
+When Joe asks you to do something in Trello (create a card, move something, update status), USE THE TOOLS. Don't just say you will — actually do it. Confirm with the card URL when done.${trelloSection}`
+
+  // Build messages for Anthropic API (max last 20 turns, text-only content for history)
   const apiMessages = history.slice(-20).map(m => ({
     role: m.role as 'user' | 'assistant',
-    content: m.content,
+    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
   }))
 
   try {
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: apiMessages,
-      }),
-      signal: AbortSignal.timeout(30000),
-    })
-
-    if (!anthropicRes.ok) {
-      const err = await anthropicRes.text()
-      res.status(500).json({ error: `Anthropic API error: ${err}` }); return
-    }
-
-    const data = await anthropicRes.json() as any
-    const response = data.content[0].text
+    const response = await runAgentWithTools(systemPrompt, apiMessages, agent.model || 'claude-sonnet-4-6', 1024)
 
     history.push({ role: 'assistant', content: response, timestamp: new Date().toISOString() })
     await writeFile(historyFile, JSON.stringify(history, null, 2))
