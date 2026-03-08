@@ -149,12 +149,17 @@ router.get('/:id/audio', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const { title } = req.body
+    console.log(`[PATCH standup] id=${req.params.id} tenantId=${req.tenantId} title="${title}"`)
     if (!title?.trim()) { res.status(400).json({ error: 'title required' }); return }
-    const s = await prisma.standup.findFirst({ where: { id: req.params.id, tenantId: req.tenantId! } })
-    if (!s) { res.status(404).json({ error: 'Not found' }); return }
+    // Try without tenantId filter first to diagnose
+    const s = await prisma.standup.findFirst({ where: { id: req.params.id } })
+    console.log(`[PATCH standup] found=${!!s} standup_tenantId=${s?.tenantId}`)
+    if (!s) { res.status(404).json({ error: 'Standup not found' }); return }
+    if (s.tenantId !== req.tenantId) { res.status(403).json({ error: `Tenant mismatch: standup=${s.tenantId} request=${req.tenantId}` }); return }
     const updated = await prisma.standup.update({ where: { id: s.id }, data: { title: title.trim() } })
     res.json({ ok: true, title: updated.title })
   } catch (err) {
+    console.error('[PATCH standup] error:', err)
     res.status(500).json({ error: String(err) })
   }
 })
