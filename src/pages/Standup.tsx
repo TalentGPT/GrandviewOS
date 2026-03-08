@@ -118,13 +118,21 @@ function LiveMeetingView({ standup, onTitleChange }: { standup: StandupResponse;
   const doneCount = items.filter(i => i.done).length
 
   const saveTitle = async () => {
-    if (!titleValue.trim() || titleValue === standup.title) { setEditingTitle(false); return }
-    const { data } = await updateStandupTitle(standup.id, titleValue.trim())
-    if (data?.ok) {
-      addToast('Title updated', 'success')
-      onTitleChange?.(standup.id, data.title)
-    }
+    const newTitle = titleValue.trim()
+    if (!newTitle || newTitle === standup.title) { setEditingTitle(false); return }
+    // Optimistic update immediately
+    onTitleChange?.(standup.id, newTitle)
     setEditingTitle(false)
+    // Persist to DB
+    const { data } = await updateStandupTitle(standup.id, newTitle)
+    if (data?.ok) {
+      addToast('Title saved', 'success')
+    } else {
+      // Revert on failure
+      onTitleChange?.(standup.id, standup.title)
+      setTitleValue(standup.title)
+      addToast('Failed to save title', 'error')
+    }
   }
 
   const toggleItem = (idx: number) => {
@@ -371,7 +379,7 @@ export default function Standup() {
             Demo
           </button>
         </div>
-        <button onClick={() => setShowArchive(!showArchive)}
+        <button onClick={() => { setShowArchive(!showArchive); if (!showArchive) loadStandups() }}
           className="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
           style={{ background: showArchive ? 'var(--accent-green)22' : 'var(--bg-3)', color: showArchive ? 'var(--accent-green)' : 'var(--text-secondary)', border: `1px solid ${showArchive ? 'var(--accent-green)44' : 'var(--border-divider)'}` }}>
           {showArchive ? 'Back' : 'Archive'}
