@@ -224,7 +224,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                 </div>
               )}
             </div>
-            ))}
+          ))}
             {thinking && (
               <div className="flex justify-start">
                 <div className="rounded-lg p-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
