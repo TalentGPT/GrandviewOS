@@ -271,65 +271,44 @@ router.get('/projects', async (req, res) => {
 })
 
 // Agent Tasks
-// Agent Tasks — reads from bridge (direct connector, no tenant config needed)
-const BRIDGE_URL = process.env.OPENCLAW_BRIDGE_URL || 'http://3.145.179.193:7100'
-const BRIDGE_TOKEN = process.env.OPENCLAW_BRIDGE_TOKEN || 'gv-bridge-2026'
+// Agent Tasks — pure bridge proxy, zero DB dependency
+const AGENT_BRIDGE_URL = 'http://3.145.179.193:7100'
+const AGENT_BRIDGE_TOKEN = 'gv-bridge-2026'
 
-async function bridgeFetch<T>(path: string, options?: RequestInit): Promise<T | null> {
+async function agentBridgeReq<T>(path: string, options?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(`${BRIDGE_URL}${path}`, {
+    const res = await fetch(`${AGENT_BRIDGE_URL}${path}`, {
       ...options,
-      headers: { 'Authorization': `Bearer ${BRIDGE_TOKEN}`, 'Content-Type': 'application/json', ...(options?.headers as Record<string, string> ?? {}) },
-      signal: AbortSignal.timeout(10000),
+      headers: {
+        'Authorization': `Bearer ${AGENT_BRIDGE_TOKEN}`,
+        'Content-Type': 'application/json',
+        ...(options?.headers as Record<string, string> ?? {}),
+      },
+      signal: AbortSignal.timeout(12000),
     })
-    if (!res.ok) { console.error(`[bridge] ${path} → ${res.status}`); return null }
+    console.log(`[agent-bridge] ${options?.method || 'GET'} ${path} → ${res.status}`)
+    if (!res.ok) return null
     return await res.json() as T
-  } catch (e) { console.error(`[bridge] ${path} error:`, e); return null }
+  } catch (e) {
+    console.error(`[agent-bridge] ${path} failed:`, e)
+    return null
+  }
 }
 
 router.get('/agent-tasks', async (req, res) => {
-  try {
-    // First try DB
-    let tasks: any[] = await prisma.agentTask.findMany({ where: { tenantId: req.tenantId! }, orderBy: { createdAt: 'desc' } }).catch(() => [])
-
-    // If DB empty, fall back to bridge (and hydrate DB)
-    if (tasks.length === 0) {
-      const bridgeTasks = await bridgeFetch<any[]>('/api/agent-tasks')
-      if (bridgeTasks?.length) {
-        // Import bridge tasks into DB
-        for (const t of bridgeTasks) {
-          await prisma.agentTask.upsert({
-            where: { id: t.id },
-            update: {},
-            create: { id: t.id, tenantId: req.tenantId!, assignedBy: t.assignedBy || 'unknown', assignedTo: t.assignedTo || 'unknown', task: t.task || '', response: t.response || '', status: t.status || 'active', createdAt: t.createdAt ? new Date(t.createdAt) : undefined },
-          }).catch(() => {})
-        }
-        tasks = await prisma.agentTask.findMany({ where: { tenantId: req.tenantId! }, orderBy: { createdAt: 'desc' } }).catch(() => bridgeTasks)
-      }
-    }
-    res.json(tasks)
-  } catch (err) { res.status(500).json({ error: String(err) }) }
+  const tasks = await agentBridgeReq<any[]>('/api/agent-tasks')
+  if (tasks === null) { res.status(502).json({ error: 'Bridge unreachable' }); return }
+  res.json(tasks)
 })
 
 router.post('/agent-tasks', async (req, res) => {
-  try {
-    const { id, assignedBy, assignedTo, task, response, status } = req.body
-    const created = await prisma.agentTask.create({
-      data: { id: id || undefined, tenantId: req.tenantId!, assignedBy, assignedTo, task, response, status: status || 'active' },
-    })
-    res.json(created)
-  } catch (err) { res.status(500).json({ error: String(err) }) }
+  const result = await agentBridgeReq('/api/agent-tasks', { method: 'POST', body: JSON.stringify(req.body) })
+  res.json(result || { ok: true })
 })
 
 router.patch('/agent-tasks/:id', async (req, res) => {
-  try {
-    const { status } = req.body
-    const updated = await prisma.agentTask.update({ where: { id: req.params.id }, data: { status } })
-    res.json({ ok: true, ...updated })
-  } catch (err: any) {
-    if (err?.code === 'P2025') { res.status(404).json({ error: 'Task not found' }); return }
-    res.status(500).json({ error: String(err) })
-  }
+  const result = await agentBridgeReq(`/api/agent-tasks/${req.params.id}`, { method: 'PATCH', body: JSON.stringify(req.body) })
+  res.json(result || { ok: true })
 })
 
 // Agent Chat
