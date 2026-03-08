@@ -4,9 +4,14 @@ import { OpenClawConnector } from '../services/openclaw-connector.js'
 
 const router = Router()
 
+const DEFAULT_BRIDGE_URL = process.env.OPENCLAW_BRIDGE_URL || 'http://3.145.179.193:7100'
+const DEFAULT_BRIDGE_TOKEN = process.env.OPENCLAW_BRIDGE_TOKEN || 'gv-bridge-2026'
+
 async function getConnector(tenantId: string): Promise<OpenClawConnector> {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } })
-  return new OpenClawConnector(tenant?.openclawUrl || '', tenant?.openclawToken || '')
+  const url = tenant?.openclawUrl || DEFAULT_BRIDGE_URL
+  const token = tenant?.openclawToken || DEFAULT_BRIDGE_TOKEN
+  return new OpenClawConnector(url, token)
 }
 
 // Delete sample/seed sessions (keep only synced ones)
