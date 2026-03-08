@@ -245,27 +245,29 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
     <>
       {/* Meeting header */}
       <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-        {editingTitle ? (
-          <input
-            ref={titleInputRef}
-            value={titleValue}
-            onChange={e => setTitleValue(e.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitleValue(standup.title); setEditingTitle(false) } }}
-            autoFocus
-            className="text-base font-semibold mb-1 w-full bg-transparent border-b focus:outline-none"
-            style={{ color: 'var(--text-primary)', borderColor: 'var(--accent-teal)' }}
-          />
-        ) : (
-          <div
-            className="text-base font-semibold mb-1 cursor-pointer hover:opacity-70 flex items-center gap-2 group"
-            onClick={() => { setEditingTitle(true); setTimeout(() => titleInputRef.current?.select(), 10) }}
-            title="Click to edit title"
+        <div className="flex items-center gap-2 mb-1">
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              value={titleValue}
+              onChange={e => setTitleValue(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitleValue(standup.title); setEditingTitle(false) } }}
+              autoFocus
+              className="text-base font-semibold flex-1 bg-transparent border-b focus:outline-none"
+              style={{ color: 'var(--text-primary)', borderColor: 'var(--accent-teal)' }}
+            />
+          ) : (
+            <span className="text-base font-semibold flex-1">{titleValue}</span>
+          )}
+          <button
+            onClick={() => { if (editingTitle) { saveTitle() } else { setEditingTitle(true); setTimeout(() => titleInputRef.current?.select(), 10) } }}
+            className="text-xs px-2 py-1 rounded cursor-pointer flex-shrink-0"
+            style={{ background: editingTitle ? 'var(--accent-teal)22' : 'var(--bg-3)', color: editingTitle ? 'var(--accent-teal)' : 'var(--text-secondary)', border: `1px solid ${editingTitle ? 'var(--accent-teal)44' : 'var(--border-divider)'}` }}
           >
-            {titleValue}
-            <span className="text-[10px] opacity-0 group-hover:opacity-50" style={{ color: 'var(--text-secondary)' }}>✏️</span>
-          </div>
-        )}
+            {editingTitle ? 'Save' : '✏️ Edit'}
+          </button>
+        </div>
         <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{standup.date} — {standup.time}</div>
         <div className="flex gap-2">
           {standup.participants.map(p => (
