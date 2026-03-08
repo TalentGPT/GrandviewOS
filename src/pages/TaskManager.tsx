@@ -276,12 +276,15 @@ export default function TaskManager() {
   }
 
   // Load agent tasks — auto-refresh every 20s when on tab
+  const [agentTasksError, setAgentTasksError] = useState<string | null>(null)
   useEffect(() => {
     if (tab !== 'agent-tasks') return
     const load = async () => {
       setAgentTasksLoading(true)
-      const { data } = await fetchAgentTasks()
-      if (data) setAgentTasks(data)
+      setAgentTasksError(null)
+      const { data, error } = await fetchAgentTasks()
+      if (data && Array.isArray(data)) { setAgentTasks(data); setAgentTasksError(null) }
+      else setAgentTasksError(error || 'No data returned')
       setAgentTasksLoading(false)
     }
     load()
@@ -618,7 +621,13 @@ export default function TaskManager() {
               </button>
             </div>
             {agentTasksLoading && <div className="text-center py-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Loading agent tasks...</div>}
-            {!agentTasksLoading && agentTasks.length === 0 && (
+            {!agentTasksLoading && agentTasksError && (
+              <div className="rounded-lg p-4 mb-4" style={{ background: 'var(--accent-red)11', border: '1px solid var(--accent-red)44' }}>
+                <div className="text-sm font-medium mb-1" style={{ color: 'var(--accent-red)' }}>⚠️ Bridge connection error</div>
+                <div className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{agentTasksError}</div>
+              </div>
+            )}
+            {!agentTasksLoading && !agentTasksError && agentTasks.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-3xl mb-2">🎯</div>
                 <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>No agent tasks yet</div>

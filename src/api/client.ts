@@ -95,7 +95,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<FetchRe
     }
 
     if (!res.ok) {
-      return { data: null, error: `HTTP ${res.status}` }
+      let body = ''
+      try { const j = await res.json(); body = j?.error || JSON.stringify(j) } catch {}
+      return { data: null, error: `HTTP ${res.status}${body ? ': ' + body : ''}` }
     }
     const data = (await res.json()) as T
     return { data, error: null }
