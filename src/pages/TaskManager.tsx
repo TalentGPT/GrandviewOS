@@ -599,6 +599,21 @@ export default function TaskManager() {
 
         {tab === 'agent-tasks' && (
           <motion.div key="agent-tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={async () => {
+                  setAgentTasksLoading(true)
+                  const { data } = await fetchAgentTasks()
+                  if (data) setAgentTasks(data)
+                  setAgentTasksLoading(false)
+                }}
+                disabled={agentTasksLoading}
+                className="text-xs px-3 py-1.5 rounded-md cursor-pointer hover:opacity-80 disabled:opacity-50"
+                style={{ background: 'var(--bg-3)', color: 'var(--accent-teal)', border: '1px solid var(--border-divider)' }}
+              >
+                {agentTasksLoading ? 'Loading...' : '↻ Refresh'}
+              </button>
+            </div>
             {agentTasksLoading && <div className="text-center py-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Loading agent tasks...</div>}
             {!agentTasksLoading && agentTasks.length === 0 && (
               <div className="text-center py-12">
