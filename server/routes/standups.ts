@@ -126,9 +126,13 @@ router.post('/', async (req, res) => {
   try {
     // Generate conversation with AI
     let conversationData: any
+    let aiError: string | null = null
     try {
+      if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY not set')
       conversationData = await generateStandupConversation(anthropicKey)
-    } catch {
+    } catch (e) {
+      aiError = String(e)
+      console.error('[Standup] AI generation failed:', aiError)
       // Fallback conversation if AI fails
       conversationData = {
         title: `Executive Standup — ${new Date().toLocaleDateString('en-US', { weekday: 'long' })} Update`,
@@ -170,6 +174,7 @@ router.post('/', async (req, res) => {
       id: standup.id,
       status: 'complete',
       title: standup.title,
+      aiError: aiError || undefined,
       date: standup.triggeredAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       time: standup.triggeredAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }) + ' UTC',
       participants: conversationData.conversation.map((c: any) => ({ name: c.speaker })),
