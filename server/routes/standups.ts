@@ -1,7 +1,12 @@
 import { Router } from 'express'
-import { readFile } from 'fs/promises'
 import prisma from '../db.js'
-import { getConnector } from '../services/openclaw-connector.js'
+import { OpenClawConnector } from '../services/openclaw-connector.js'
+
+async function getConnector(_tenantId: string): Promise<OpenClawConnector> {
+  const url = process.env.OPENCLAW_BRIDGE_URL || 'http://3.145.179.193:7100'
+  const token = process.env.OPENCLAW_BRIDGE_TOKEN || 'gv-bridge-2026'
+  return new OpenClawConnector(url, token)
+}
 
 const router = Router()
 

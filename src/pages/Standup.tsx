@@ -283,18 +283,24 @@ export default function Standup() {
   const [selectedMockStandup, setSelectedMockStandup] = useState(mockStandups[0])
   const [triggering, setTriggering] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await fetchStandups()
-      if (data && data.length > 0) {
-        setLiveStandups(data)
-        setSelectedLiveStandup(data[0])
+  const loadStandups = async () => {
+    const { data } = await fetchStandups()
+    if (data && data.length > 0) {
+      // Filter out empty/broken standups (no conversation)
+      const valid = data.filter((s: any) => s.conversation && s.conversation.length > 0)
+      if (valid.length > 0) {
+        setLiveStandups(valid)
+        setSelectedLiveStandup(valid[0])
+        setDataSource('live')
       } else {
         setDataSource('mock')
       }
+    } else {
+      setDataSource('mock')
     }
-    load()
-  }, [])
+  }
+
+  useEffect(() => { loadStandups() }, [])
 
   const handleTriggerStandup = async () => {
     setTriggering(true)
@@ -307,12 +313,12 @@ export default function Standup() {
     }
     if (!data) { setTriggering(false); return }
 
-    // Standup data returned directly in response
+    // Standup data returned directly — reload full list from DB
     setTriggering(false)
-    setLiveStandups(prev => [data, ...prev])
     setSelectedLiveStandup(data)
     setDataSource('live')
     addToast('Standup complete ✓', 'success')
+    loadStandups() // refresh full list so archive stays intact
   }
 
   const showLive = dataSource === 'live' && liveStandups.length > 0
