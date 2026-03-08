@@ -434,7 +434,8 @@ export async function getTrelloBoardLists(boardId: string): Promise<FetchResult<
 
 // ---- Agent Tasks ----
 export async function fetchAgentTasks(): Promise<FetchResult<any[]>> {
-  return apiFetch(`/openclaw/agent-tasks?_=${Date.now()}`)
+  // Use direct bridge proxy endpoint — bypasses openclaw router entirely
+  return apiFetch(`/bridge/agent-tasks?_=${Date.now()}`)
 }
 
 export async function updateAgentTask(id: string, update: { status?: string }): Promise<FetchResult<{ ok: boolean }>> {

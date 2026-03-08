@@ -69,6 +69,18 @@ app.use('/api/system', systemRoutes)
 // Mount the same router at /api for paths like /api/config, /api/cost/*, /api/briefs, etc.
 app.use('/api', systemRoutes)
 
+// Direct agent-tasks bridge proxy (no auth, no Prisma — guaranteed to work)
+app.get('/api/bridge/agent-tasks', async (_req, res) => {
+  try {
+    const r = await fetch('http://3.145.179.193:7100/api/agent-tasks', {
+      headers: { 'Authorization': 'Bearer gv-bridge-2026' },
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!r.ok) { res.status(502).json({ error: `Bridge ${r.status}` }); return }
+    res.json(await r.json())
+  } catch (e) { res.status(502).json({ error: String(e) }) }
+})
+
 // Static files
 app.use(express.static(distPath))
 
