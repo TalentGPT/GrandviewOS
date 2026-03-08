@@ -275,8 +275,9 @@ export default function TaskManager() {
     setShowCronModal(false)
   }
 
-  // Load agent tasks from bridge
+  // Load agent tasks — auto-refresh every 20s when on tab
   useEffect(() => {
+    if (tab !== 'agent-tasks') return
     const load = async () => {
       setAgentTasksLoading(true)
       const { data } = await fetchAgentTasks()
@@ -284,7 +285,9 @@ export default function TaskManager() {
       setAgentTasksLoading(false)
     }
     load()
-  }, [tab === 'agent-tasks'])
+    const interval = setInterval(load, 20000)
+    return () => clearInterval(interval)
+  }, [tab])
 
   // Load cron jobs from bridge API
   useEffect(() => {

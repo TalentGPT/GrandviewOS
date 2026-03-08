@@ -276,13 +276,15 @@ router.get('/projects', async (req, res) => {
 })
 
 // Agent Tasks
-// Agent Tasks — same connector pattern as working chat endpoint
+// Agent Tasks — uncached fetch, guaranteed fresh
 router.get('/agent-tasks', async (req, res) => {
   try {
     const connector = await getConnector(req.tenantId!)
-    console.log(`[agent-tasks] connector url: ${(connector as any).url || 'NO URL'}`)
-    const data = await connector.fetch<any[]>('/api/agent-tasks')
-    console.log(`[agent-tasks] fetched: ${data?.length ?? 'null'} tasks`)
+    const url = (connector as any).url as string
+    const token = (connector as any).token as string
+    console.log(`[agent-tasks] bridge url: "${url}" token: "${token?.slice(0,8)}..."`)
+    const data = await connector.fetchUncached<any[]>('/api/agent-tasks')
+    console.log(`[agent-tasks] result: ${data?.length ?? 'null'} tasks`)
     res.json(data || [])
   } catch (err) { console.error('[agent-tasks] error:', err); res.status(500).json({ error: String(err) }) }
 })
