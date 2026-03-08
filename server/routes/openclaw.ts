@@ -274,7 +274,8 @@ router.get('/projects', async (req, res) => {
 router.get('/agent-tasks', async (req, res) => {
   try {
     const connector = await getConnector(req.tenantId!)
-    const data = await connector.fetch<any[]>('/api/agent-tasks')
+    // Bypass cache — always fetch fresh task list
+    const data = await connector.fetchUncached<any[]>('/api/agent-tasks')
     res.json(data || [])
   } catch (err) { res.status(500).json({ error: String(err) }) }
 })

@@ -986,19 +986,28 @@ Company context: Grandview Tek is an IT services/staffing company targeting $15M
         if (!targetAgent) continue
         processedSlugs.add(targetSlug)
 
-        // Extract the specific task assigned to this agent
-        // Find lines near the agent name mention that contain the assignment
+        // Extract the full task section assigned to this agent
+        // Find where agent name is mentioned, grab from there to next AGENT TASK section or end
         const lines = response.split('\n')
-        const agentNamePattern = new RegExp(targetAgent.name.split(' ')[0], 'i')
-        let taskText = ''
+        const agentFirstName = targetAgent.name.split(' ')[0]
+        const agentNamePattern = new RegExp(agentFirstName, 'i')
+        const agentTaskPattern = /AGENT TASK|---\s*$|^---/
+        let taskStartIdx = -1
         for (let i = 0; i < lines.length; i++) {
-          if (agentNamePattern.test(lines[i])) {
-            // Grab next 3 lines as the task
-            taskText = lines.slice(i, i + 4).join(' ').trim()
-            break
-          }
+          if (agentNamePattern.test(lines[i])) { taskStartIdx = i; break }
         }
-        if (!taskText) taskText = `Task delegated by ${agent.name}: ${response.slice(0, 200)}`
+        let taskText = ''
+        if (taskStartIdx >= 0) {
+          // Find the end: next "AGENT TASK" block for a different agent, or end of string
+          let taskEndIdx = lines.length
+          for (let i = taskStartIdx + 1; i < lines.length; i++) {
+            if (agentTaskPattern.test(lines[i]) && i > taskStartIdx + 2) {
+              taskEndIdx = i; break
+            }
+          }
+          taskText = lines.slice(taskStartIdx, taskEndIdx).join('\n').trim()
+        }
+        if (!taskText || taskText.length < 20) taskText = `Task delegated by ${agent.name}:\n\n${response}`
 
         // Auto-send to target agent
         try {

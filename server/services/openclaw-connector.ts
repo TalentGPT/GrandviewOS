@@ -24,6 +24,19 @@ export class OpenClawConnector {
     this.cache.set(key, { data, timestamp: Date.now() })
   }
 
+  async fetchUncached<T>(path: string): Promise<T | null> {
+    if (!this.url) return null
+    try {
+      const res = await fetch(`${this.url}${path}`, {
+        headers: { 'Authorization': `Bearer ${this.token}`, 'X-Bridge-Token': this.token },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) return null
+      const data = await res.json() as T
+      return data
+    } catch { return null }
+  }
+
   async fetch<T>(path: string): Promise<T | null> {
     if (!this.url) return null
     const cached = this.getCached<T>(path)
