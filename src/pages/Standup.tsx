@@ -307,18 +307,12 @@ export default function Standup() {
     }
     if (!data) { setTriggering(false); return }
 
-    const standupId = data.id
-    const poll = setInterval(async () => {
-      const { data: standup } = await fetchStandup(standupId)
-      if (standup && standup.status !== 'running') {
-        clearInterval(poll)
-        setTriggering(false)
-        setLiveStandups(prev => [standup, ...prev])
-        setSelectedLiveStandup(standup)
-        setDataSource('live')
-        addToast(standup.status === 'complete' ? 'Standup complete' : 'Standup finished with errors', standup.status === 'complete' ? 'success' : 'error')
-      }
-    }, 3000)
+    // Standup data returned directly in response
+    setTriggering(false)
+    setLiveStandups(prev => [data, ...prev])
+    setSelectedLiveStandup(data)
+    setDataSource('live')
+    addToast('Standup complete ✓', 'success')
   }
 
   const showLive = dataSource === 'live' && liveStandups.length > 0

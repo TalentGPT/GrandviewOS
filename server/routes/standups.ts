@@ -147,7 +147,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Create standup record immediately (in progress)
+    // Create standup as completed immediately (audio generates in background)
     const standup = await prisma.standup.create({
       data: {
         tenantId: req.tenantId!,
@@ -160,57 +160,42 @@ router.post('/', async (req, res) => {
         ],
         transcript: conversationData.conversation,
         actionItems: conversationData.actionItems,
-        status: 'processing',
+        status: 'completed',
+        completedAt: new Date(),
       },
     })
 
-    res.json({ id: standup.id, status: 'processing', title: standup.title })
+    // Return full standup immediately so frontend can display it
+    res.json({
+      id: standup.id,
+      status: 'complete',
+      title: standup.title,
+      date: standup.triggeredAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      time: standup.triggeredAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }) + ' UTC',
+      participants: conversationData.conversation.map((c: any) => ({ name: c.speaker })),
+      conversation: conversationData.conversation,
+      actionItems: conversationData.actionItems,
+      createdAt: standup.triggeredAt.toISOString(),
+    })
 
-    // Generate audio in background if ElevenLabs key exists
+    // Generate ElevenLabs audio in background
     if (elevenLabsKey) {
       ;(async () => {
         try {
           const audioDir = join('/tmp', 'grandviewos-standups', standup.id)
           await mkdir(audioDir, { recursive: true })
-
-          // Generate audio for each line
           const audioSegments: Buffer[] = []
           for (const line of conversationData.conversation) {
             const audio = await generateElevenLabsAudio(line.text, line.speaker, elevenLabsKey)
             if (audio) audioSegments.push(audio)
-            // Small pause between speakers
-            if (audioSegments.length > 0) {
-              // 0.5s silence at 44100Hz, 16-bit, mono (raw PCM approximation via small buffer)
-              audioSegments.push(Buffer.alloc(44100)) 
-            }
           }
-
           if (audioSegments.length > 0) {
-            const fullAudio = Buffer.concat(audioSegments)
             const audioPath = join(audioDir, 'standup.mp3')
-            await writeFile(audioPath, fullAudio)
-            await prisma.standup.update({
-              where: { id: standup.id },
-              data: { status: 'completed', completedAt: new Date(), audioPath },
-            })
-          } else {
-            await prisma.standup.update({
-              where: { id: standup.id },
-              data: { status: 'completed', completedAt: new Date() },
-            })
+            await writeFile(audioPath, Buffer.concat(audioSegments))
+            await prisma.standup.update({ where: { id: standup.id }, data: { audioPath } })
           }
-        } catch {
-          await prisma.standup.update({
-            where: { id: standup.id },
-            data: { status: 'completed', completedAt: new Date() },
-          })
-        }
+        } catch { /* audio gen failed, standup still shows */ }
       })()
-    } else {
-      await prisma.standup.update({
-        where: { id: standup.id },
-        data: { status: 'completed', completedAt: new Date() },
-      })
     }
   } catch (err) {
     res.status(500).json({ error: String(err) })
