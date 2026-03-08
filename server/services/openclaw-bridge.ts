@@ -771,12 +771,80 @@ const AGENT_TASKS_FILE = join(MEMORY_DIR, 'agent-tasks.json')
 
 interface AgentTask { id: string; assignedBy: string; assignedTo: string; task: string; response: string; status: 'active' | 'complete'; createdAt: string }
 
+// ---- Trello task card creation ----
+const AGENT_TASKS_LIST_FILE = join(MEMORY_DIR, 'agent-tasks-list-id.txt')
+
+async function getOrCreateAgentTasksList(): Promise<string | null> {
+  if (!TRELLO_KEY || !TRELLO_TOKEN_VAL) return null
+  // Try cached list ID first
+  try {
+    const cachedId = (await readFile(AGENT_TASKS_LIST_FILE, 'utf-8')).trim()
+    if (cachedId) return cachedId
+  } catch {}
+
+  // Get board ID from config
+  let boardId: string | null = null
+  try {
+    const cfg = JSON.parse(await readFile(TRELLO_CONFIG_FILE, 'utf-8'))
+    boardId = cfg.boardId
+  } catch {}
+  if (!boardId) return null
+
+  // Check if "AGENT TASKS" list already exists
+  const listsUrl = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,id`
+  const listsRes = await fetch(listsUrl, { signal: AbortSignal.timeout(10000) })
+  if (!listsRes.ok) return null
+  const lists = await listsRes.json() as Array<{ id: string; name: string }>
+  const existing = lists.find(l => l.name.toLowerCase().includes('agent task') || l.name === 'AGENT TASKS')
+  if (existing) {
+    await writeFile(AGENT_TASKS_LIST_FILE, existing.id)
+    return existing.id
+  }
+
+  // Create the list
+  const createParams = new URLSearchParams({ name: 'AGENT TASKS', idBoard: boardId, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL, pos: 'top' })
+  const createRes = await fetch(`https://api.trello.com/1/lists?${createParams}`, { method: 'POST', signal: AbortSignal.timeout(10000) })
+  if (!createRes.ok) return null
+  const newList = await createRes.json() as { id: string }
+  await writeFile(AGENT_TASKS_LIST_FILE, newList.id)
+  console.log(`[Trello] Created AGENT TASKS list: ${newList.id}`)
+  return newList.id
+}
+
+async function createTrelloTaskCard(task: AgentTask): Promise<void> {
+  try {
+    const listId = await getOrCreateAgentTasksList()
+    if (!listId) return
+
+    const agentName = task.assignedTo.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    const source = task.assignedBy === 'standup' ? '🎤 Standup' : `📊 ${task.assignedBy.replace(/-/g, ' ')}`
+    const due = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Due tomorrow by default
+
+    const params = new URLSearchParams({
+      idList: listId,
+      name: `[${agentName}] ${task.task.slice(0, 80)}`,
+      desc: `**Assigned to:** ${agentName}\n**Source:** ${source}\n**Task ID:** ${task.id}\n\n**Task:**\n${task.task}\n\n**Agent Response:**\n${task.response}`,
+      due,
+      key: TRELLO_KEY,
+      token: TRELLO_TOKEN_VAL,
+    })
+
+    const res = await fetch(`https://api.trello.com/1/cards?${params}`, { method: 'POST', signal: AbortSignal.timeout(10000) })
+    if (res.ok) {
+      const card = await res.json() as { id: string; url: string }
+      console.log(`[Trello] Created task card for ${agentName}: ${card.url}`)
+    }
+  } catch (e) { console.error('[Trello] Failed to create task card:', e) }
+}
+
 async function storeDelegatedTask(task: AgentTask): Promise<void> {
   let tasks: AgentTask[] = []
   try { tasks = JSON.parse(await readFile(AGENT_TASKS_FILE, 'utf-8')) } catch {}
   tasks.unshift(task)
   await mkdir(MEMORY_DIR, { recursive: true })
   await writeFile(AGENT_TASKS_FILE, JSON.stringify(tasks, null, 2))
+  // Create Trello card in background (non-blocking)
+  createTrelloTaskCard(task).catch(e => console.error('[Trello] Task card error:', e))
 }
 
 // GET /api/agent-tasks — list all delegated tasks
@@ -906,7 +974,7 @@ Company context: Grandview Tek is an IT services/staffing company targeting $15M
     ]
 
     // Only auto-delegate if response contains assignment language
-    const hasAssignments = /assigning to|→|assigned to|assignment\s+\d|owns\s+\w|delegat/i.test(response)
+    const hasAssignments = /assigning to|→|assigned to|assignment\s+\d|owns\s+\w|delegat|AGENT TASK|I'll delegate|executing now|launched|on it\./i.test(response)
     if (hasAssignments) {
       const processedSlugs = new Set<string>()
       for (const { pattern, slug: targetSlug } of DELEGATION_PATTERNS) {
