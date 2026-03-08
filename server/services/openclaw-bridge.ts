@@ -680,7 +680,71 @@ router.post('/standups/generate', async (req, res) => {
     } catch (e) { console.error('[Standup] Audio error:', e) }
   }
 
-  res.json({ title, conversation, actionItems, audioUrl })
+  // Auto-assign action items to agents
+  const ASSIGNEE_MAP: Record<string, string> = {
+    'ray dalio': 'ray-dalio', 'ray': 'ray-dalio',
+    'elon': 'elon',
+    'steve jobs': 'steve-jobs', 'steve': 'steve-jobs',
+    'marc benioff': 'marc-benioff', 'marc': 'marc-benioff',
+    'nova': 'nova', 'atlas': 'atlas', 'pixel': 'pixel', 'frame': 'frame',
+    'docker': 'docker', 'sentinel': 'sentinel', 'tester': 'tester',
+    'scribe': 'scribe', 'viral': 'viral', 'clay': 'clay', 'funnel': 'funnel',
+    'lens': 'lens', 'canvas': 'canvas', 'motion': 'motion',
+    'deal': 'deal', 'scout': 'scout', 'closer': 'closer', 'outreach': 'outreach',
+  }
+
+  const taskAssignments: Array<{ slug: string; name: string; emoji: string; task: string; response: string; taskId: string }> = []
+
+  for (const item of actionItems) {
+    const assigneeSlug = ASSIGNEE_MAP[(item.assignee || '').toLowerCase().trim()]
+    if (!assigneeSlug) continue
+    const targetAgent = AGENT_PERSONAS[assigneeSlug]
+    if (!targetAgent) continue
+
+    try {
+      const historyFile = join(AGENT_CHATS_DIR, `${assigneeSlug}.json`)
+      let agentHistory: Array<{ role: string; content: string; timestamp: string; source?: string }> = []
+      try { agentHistory = JSON.parse(await readFile(historyFile, 'utf-8')) } catch {}
+
+      const taskMsg = `[ACTION ITEM FROM STANDUP — ${title}]\n\n${item.text}\n\nThis is your assigned action item from today's executive standup. Acknowledge the task and give a specific execution plan with concrete next steps and timeline.`
+      agentHistory.push({ role: 'user', content: taskMsg, timestamp: new Date().toISOString(), source: 'standup' })
+
+      const agentRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 512,
+          system: `${targetAgent.persona}\n\nYou have just received an action item from an executive standup. Respond with a concrete execution plan: what you will do, by when, and how. Be specific. No filler.`,
+          messages: agentHistory.slice(-10).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        }),
+        signal: AbortSignal.timeout(20000),
+      })
+
+      if (agentRes.ok) {
+        const agentData = await agentRes.json() as any
+        const agentResponse = agentData.content[0].text
+        const taskId = `standup-${standupId}-${assigneeSlug}-${Date.now()}`
+        agentHistory.push({ role: 'assistant', content: agentResponse, timestamp: new Date().toISOString() })
+        await writeFile(historyFile, JSON.stringify(agentHistory, null, 2))
+
+        await storeDelegatedTask({
+          id: taskId,
+          assignedBy: 'standup',
+          assignedTo: assigneeSlug,
+          task: item.text,
+          response: agentResponse,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        })
+
+        taskAssignments.push({ slug: assigneeSlug, name: targetAgent.name, emoji: targetAgent.emoji, task: item.text, response: agentResponse, taskId })
+        console.log(`[Standup] Action item assigned to ${targetAgent.name}`)
+      }
+    } catch (e) { console.error(`[Standup] Failed to assign to ${assigneeSlug}:`, e) }
+  }
+
+  res.json({ title, conversation, actionItems, audioUrl, taskAssignments })
 })
 
 // GET /api/standups/:id/audio — serve audio from VPS disk

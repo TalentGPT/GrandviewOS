@@ -4,13 +4,21 @@ import StatCard from '../components/StatCard'
 import PageHeader from '../components/PageHeader'
 import { PageSkeleton } from '../components/Skeleton'
 import { sessions as mockSessions, overnightLog } from '../data/mockSessions'
-import { fetchSessions, fetchSessionTranscript, fetchLiveCronJobs, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
+import { fetchSessions, fetchSessionTranscript, fetchLiveCronJobs, fetchAgentTasks, updateAgentTask, formatCost, formatTokens, getModelColor, getModelShortName, createEventSource } from '../api/client'
 import ModelFleetGrid from '../components/ModelFleetGrid'
 import CostBreakdownView from '../components/CostBreakdown'
 import type { ApiSession, SessionMessage } from '../types/api'
 import type { Session, TranscriptMessage } from '../data/mockSessions'
 
-type Tab = 'sessions' | 'cron' | 'overnight' | 'costs'
+type Tab = 'sessions' | 'cron' | 'overnight' | 'costs' | 'agent-tasks'
+
+const AGENT_EMOJIS: Record<string, string> = {
+  'ray-dalio': '📊', 'elon': '🚀', 'steve-jobs': '🍎', 'marc-benioff': '☁️',
+  'nova': '🛡️', 'atlas': '🏗️', 'pixel': '🎨', 'frame': '🖼️', 'docker': '🐳',
+  'sentinel': '📡', 'tester': '🧪', 'scribe': '✍️', 'viral': '📱', 'clay': '🦞',
+  'funnel': '📈', 'lens': '🔍', 'canvas': '🎭', 'motion': '🎬',
+  'deal': '🤝', 'scout': '🔭', 'closer': '💼', 'outreach': '📧', 'standup': '🎤',
+}
 type DataSource = 'live' | 'mock'
 
 function apiToDisplaySession(s: ApiSession): Session & { lastMessage?: string } {
@@ -213,6 +221,8 @@ function SessionCard({ children, onClick, isActive }: { children: React.ReactNod
 export default function TaskManager() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('sessions')
+  const [agentTasks, setAgentTasks] = useState<any[]>([])
+  const [agentTasksLoading, setAgentTasksLoading] = useState(false)
   const [selectedMockSession, setSelectedMockSession] = useState<Session | null>(null)
   const [selectedLiveSessionId, setSelectedLiveSessionId] = useState<string | null>(null)
   const [isLive, setIsLive] = useState(true)
@@ -264,6 +274,17 @@ export default function TaskManager() {
     setCronList(prev => [...prev, newCron])
     setShowCronModal(false)
   }
+
+  // Load agent tasks from bridge
+  useEffect(() => {
+    const load = async () => {
+      setAgentTasksLoading(true)
+      const { data } = await fetchAgentTasks()
+      if (data) setAgentTasks(data)
+      setAgentTasksLoading(false)
+    }
+    load()
+  }, [tab === 'agent-tasks'])
 
   // Load cron jobs from bridge API
   useEffect(() => {
@@ -330,6 +351,7 @@ export default function TaskManager() {
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'sessions', label: 'Active Sessions' },
+    { key: 'agent-tasks', label: 'Agent Tasks' },
     { key: 'cron', label: 'Cron Jobs' },
     { key: 'overnight', label: 'Overnight Log' },
     { key: 'costs', label: 'Cost Breakdown' },
@@ -572,6 +594,58 @@ export default function TaskManager() {
                 </div>
               )
             })}
+          </motion.div>
+        )}
+
+        {tab === 'agent-tasks' && (
+          <motion.div key="agent-tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+            {agentTasksLoading && <div className="text-center py-8 text-sm" style={{ color: 'var(--text-secondary)' }}>Loading agent tasks...</div>}
+            {!agentTasksLoading && agentTasks.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-3xl mb-2">🎯</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>No agent tasks yet</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Tasks appear here when agents receive assignments from Ray Dalio or standups</div>
+              </div>
+            )}
+            {agentTasks.map((task: any) => (
+              <div key={task.id} className="rounded-xl p-4 border" style={{ background: 'var(--bg-2)', borderColor: 'var(--border-divider)' }}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl mt-0.5">{AGENT_EMOJIS[task.assignedTo] || '🤖'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-sm font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
+                        {task.assignedTo.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
+                        background: task.status === 'active' ? 'var(--accent-green)22' : 'var(--bg-3)',
+                        color: task.status === 'active' ? 'var(--accent-green)' : 'var(--text-secondary)',
+                        border: `1px solid ${task.status === 'active' ? 'var(--accent-green)44' : 'var(--border-divider)'}`,
+                      }}>{task.status === 'active' ? 'Active' : 'Complete'}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                        {task.assignedBy === 'standup' ? '🎤 Standup' : `📊 ${task.assignedBy}`}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--accent-teal)' }}>{task.task}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{task.response?.slice(0, 250)}{task.response?.length > 250 ? '...' : ''}</p>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={async () => {
+                          await updateAgentTask(task.id, { status: task.status === 'active' ? 'complete' : 'active' })
+                          setAgentTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'active' ? 'complete' : 'active' } : t))
+                        }}
+                        className="text-[10px] px-2 py-1 rounded cursor-pointer"
+                        style={{ background: 'var(--bg-3)', color: 'var(--text-secondary)', border: '1px solid var(--border-divider)' }}
+                      >
+                        {task.status === 'active' ? 'Mark Complete' : 'Reopen'}
+                      </button>
+                      <span className="text-[10px] self-center" style={{ color: 'var(--text-secondary)' }}>
+                        {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </motion.div>
         )}
 
