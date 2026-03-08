@@ -790,8 +790,14 @@ async function getOrCreateAgentTasksList(): Promise<string | null> {
   } catch {}
   if (!boardId) return null
 
+  // Resolve shortLink to full board ID (required for list creation)
+  const boardInfoRes = await fetch(`https://api.trello.com/1/boards/${boardId}?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=id,name`, { signal: AbortSignal.timeout(10000) })
+  if (!boardInfoRes.ok) return null
+  const boardInfo = await boardInfoRes.json() as { id: string; name: string }
+  const fullBoardId = boardInfo.id
+
   // Check if "AGENT TASKS" list already exists
-  const listsUrl = `https://api.trello.com/1/boards/${boardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,id`
+  const listsUrl = `https://api.trello.com/1/boards/${fullBoardId}/lists?key=${TRELLO_KEY}&token=${TRELLO_TOKEN_VAL}&fields=name,id`
   const listsRes = await fetch(listsUrl, { signal: AbortSignal.timeout(10000) })
   if (!listsRes.ok) return null
   const lists = await listsRes.json() as Array<{ id: string; name: string }>
@@ -801,8 +807,8 @@ async function getOrCreateAgentTasksList(): Promise<string | null> {
     return existing.id
   }
 
-  // Create the list
-  const createParams = new URLSearchParams({ name: 'AGENT TASKS', idBoard: boardId, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL, pos: 'top' })
+  // Create the list using full board ID
+  const createParams = new URLSearchParams({ name: 'AGENT TASKS', idBoard: fullBoardId, key: TRELLO_KEY, token: TRELLO_TOKEN_VAL, pos: 'top' })
   const createRes = await fetch(`https://api.trello.com/1/lists?${createParams}`, { method: 'POST', signal: AbortSignal.timeout(10000) })
   if (!createRes.ok) return null
   const newList = await createRes.json() as { id: string }
