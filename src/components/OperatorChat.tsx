@@ -193,38 +193,39 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[85%] rounded-lg p-3" style={{
-                  background: msg.role === 'user' ? 'var(--bg-3)' : 'var(--bg-2)',
-                  border: `1px solid ${msg.role === 'user' ? 'var(--accent-teal)33' : 'var(--border-divider)'}`,
-                }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-semibold" style={{ color: msg.role === 'user' ? 'var(--accent-gold)' : 'var(--accent-teal)' }}>
-                      {msg.role === 'user' ? '👤 You' : `${selectedAgent.emoji} ${selectedAgent.name}`}
-                    </span>
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                      {formatTime(msg.timestamp)}
-                    </span>
-                  </div>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{msg.content}</p>
-                </div>
-              </div>
-              {msg.delegations && msg.delegations.length > 0 && (
-                <div className="ml-2 flex flex-col gap-2 mt-1">
-                  {msg.delegations.map((d, di) => (
-                    <div key={di} className="rounded-lg p-3 border max-w-[85%]" style={{ background: 'var(--bg-1)', borderColor: 'var(--accent-teal)44' }}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span>{d.emoji}</span>
-                        <span className="text-xs font-semibold" style={{ color: 'var(--accent-teal)' }}>{d.name} — {d.role}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Active</span>
-                      </div>
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{d.response.slice(0, 200)}{d.response.length > 200 ? '...' : ''}</p>
+              <div key={i} className="flex flex-col gap-2">
+                <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className="max-w-[85%] rounded-lg p-3" style={{
+                    background: msg.role === 'user' ? 'var(--bg-3)' : 'var(--bg-2)',
+                    border: `1px solid ${msg.role === 'user' ? 'var(--accent-teal)33' : 'var(--border-divider)'}`,
+                  }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-semibold" style={{ color: msg.role === 'user' ? 'var(--accent-gold)' : 'var(--accent-teal)' }}>
+                        {msg.role === 'user' ? '👤 You' : `${selectedAgent.emoji} ${selectedAgent.name}`}
+                      </span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                        {formatTime(msg.timestamp)}
+                      </span>
                     </div>
-                  ))}
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{msg.content}</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {msg.delegations && msg.delegations.length > 0 && (
+                  <div className="flex flex-col gap-2 pl-2">
+                    {msg.delegations.map((d, di) => (
+                      <div key={di} className="rounded-lg p-3 border max-w-[85%]" style={{ background: 'var(--bg-1)', borderColor: 'var(--accent-teal)44' }}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span>{d.emoji}</span>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--accent-teal)' }}>{d.name} — {d.role}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Active</span>
+                        </div>
+                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{d.response.slice(0, 200)}{d.response.length > 200 ? '...' : ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
             {thinking && (
               <div className="flex justify-start">
                 <div className="rounded-lg p-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
