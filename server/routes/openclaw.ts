@@ -271,44 +271,31 @@ router.get('/projects', async (req, res) => {
 })
 
 // Agent Tasks
-// Agent Tasks — pure bridge proxy, zero DB dependency
-const AGENT_BRIDGE_URL = 'http://3.145.179.193:7100'
-const AGENT_BRIDGE_TOKEN = 'gv-bridge-2026'
-
-async function agentBridgeReq<T>(path: string, options?: RequestInit): Promise<T | null> {
-  try {
-    const res = await fetch(`${AGENT_BRIDGE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${AGENT_BRIDGE_TOKEN}`,
-        'Content-Type': 'application/json',
-        ...(options?.headers as Record<string, string> ?? {}),
-      },
-      signal: AbortSignal.timeout(12000),
-    })
-    console.log(`[agent-bridge] ${options?.method || 'GET'} ${path} → ${res.status}`)
-    if (!res.ok) return null
-    return await res.json() as T
-  } catch (e) {
-    console.error(`[agent-bridge] ${path} failed:`, e)
-    return null
-  }
-}
-
+// Agent Tasks — same connector pattern as working chat endpoint
 router.get('/agent-tasks', async (req, res) => {
-  const tasks = await agentBridgeReq<any[]>('/api/agent-tasks')
-  if (tasks === null) { res.status(502).json({ error: 'Bridge unreachable' }); return }
-  res.json(tasks)
+  try {
+    const connector = await getConnector(req.tenantId!)
+    console.log(`[agent-tasks] connector url: ${(connector as any).url || 'NO URL'}`)
+    const data = await connector.fetch<any[]>('/api/agent-tasks')
+    console.log(`[agent-tasks] fetched: ${data?.length ?? 'null'} tasks`)
+    res.json(data || [])
+  } catch (err) { console.error('[agent-tasks] error:', err); res.status(500).json({ error: String(err) }) }
 })
 
 router.post('/agent-tasks', async (req, res) => {
-  const result = await agentBridgeReq('/api/agent-tasks', { method: 'POST', body: JSON.stringify(req.body) })
-  res.json(result || { ok: true })
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>('/api/agent-tasks', req.body)
+    res.json(data || { ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
 router.patch('/agent-tasks/:id', async (req, res) => {
-  const result = await agentBridgeReq(`/api/agent-tasks/${req.params.id}`, { method: 'PATCH', body: JSON.stringify(req.body) })
-  res.json(result || { ok: true })
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>(`/api/agent-tasks/${req.params.id}`, req.body)
+    res.json(data || { ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
 })
 
 // Agent Chat
