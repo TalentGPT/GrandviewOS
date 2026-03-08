@@ -138,4 +138,12 @@ export class OpenClawConnector {
   async getAgents(): Promise<any[]> {
     return (await this.fetch<any[]>('/api/agents')) || []
   }
+
+  getBridgeUrl(path: string): string {
+    return `${this.url}${path}`
+  }
+
+  getToken(): string {
+    return this.token
+  }
 }

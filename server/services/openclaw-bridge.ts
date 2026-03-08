@@ -598,6 +598,106 @@ router.get('/projects', async (_req, res) => {
 })
 
 // ============================================================
+// STANDUP GENERATION — AI conversation + ElevenLabs audio on VPS
+// ============================================================
+
+const STANDUPS_DIR = join(MEMORY_DIR, 'standups')
+
+const STANDUP_VOICES: Record<string, string> = {
+  'Ray Dalio':    'pNInz6obpgDQGcFmaJgB',
+  'Elon':         'VR6AewLTigWG4xSOukaG',
+  'Steve Jobs':   'yoZ06aMxZJJ28mfd3POQ',
+  'Marc Benioff': 'JBFqnCBsd6RMkjVDRZzb',
+}
+
+async function generateElevenLabsLine(text: string, speaker: string, apiKey: string): Promise<Buffer | null> {
+  const voiceId = STANDUP_VOICES[speaker] || STANDUP_VOICES['Ray Dalio']
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ text, model_id: 'eleven_turbo_v2_5', voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) { console.error(`[ElevenLabs] ${res.status} for ${speaker}`); return null }
+    return Buffer.from(await res.arrayBuffer())
+  } catch (e) { console.error('[ElevenLabs] error:', e); return null }
+}
+
+// POST /api/standups/generate — generate AI conversation + ElevenLabs audio, store on VPS
+router.post('/standups/generate', async (req, res) => {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || ''
+  const elevenLabsKey = process.env.ELEVENLABS_API_KEY || ''
+  const { standupId } = req.body
+
+  if (!standupId) { res.status(400).json({ error: 'standupId required' }); return }
+  if (!anthropicKey) { res.status(500).json({ error: 'ANTHROPIC_API_KEY not set on bridge' }); return }
+
+  // Generate AI conversation
+  let conversation: Array<{ speaker: string; text: string }> = []
+  let title = `Executive Standup — ${new Date().toLocaleDateString('en-US', { weekday: 'long' })} Update`
+  let actionItems: Array<{ text: string; assignee: string; done: boolean }> = []
+
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: `You are orchestrating a brief executive standup for Grandview Tek (IT services/staffing, targeting $15M+ revenue). Generate a realistic 5-turn standup between Ray Dalio (COO), Elon (CTO), Steve Jobs (CMO), Marc Benioff (CRO). Keep each speaker's text under 100 words. Return ONLY valid JSON with no markdown: {"title":"...","conversation":[{"speaker":"Ray Dalio","text":"..."},{"speaker":"Elon","text":"..."},{"speaker":"Steve Jobs","text":"..."},{"speaker":"Marc Benioff","text":"..."},{"speaker":"Ray Dalio","text":"..."}],"actionItems":[{"text":"...","assignee":"Elon","done":false},{"text":"...","assignee":"Steve Jobs","done":false},{"text":"...","assignee":"Marc Benioff","done":false}]}`,
+        messages: [{ role: 'user', content: 'Generate the standup for today.' }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+    const data = await aiRes.json() as any
+    const text = data.content[0].text
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      conversation = parsed.conversation || []
+      title = parsed.title || title
+      actionItems = parsed.actionItems || []
+    }
+  } catch (e) { console.error('[Standup] AI error:', e) }
+
+  // Generate ElevenLabs audio
+  let audioUrl: string | null = null
+  if (elevenLabsKey && conversation.length > 0) {
+    try {
+      await mkdir(STANDUPS_DIR, { recursive: true })
+      const segments: Buffer[] = []
+      for (const line of conversation) {
+        const audio = await generateElevenLabsLine(line.text, line.speaker, elevenLabsKey)
+        if (audio) segments.push(audio)
+      }
+      if (segments.length > 0) {
+        const audioPath = join(STANDUPS_DIR, `${standupId}.mp3`)
+        await writeFile(audioPath, Buffer.concat(segments))
+        audioUrl = `/api/standups/${standupId}/audio`
+        console.log(`[Standup] Audio saved: ${audioPath}`)
+      }
+    } catch (e) { console.error('[Standup] Audio error:', e) }
+  }
+
+  res.json({ title, conversation, actionItems, audioUrl })
+})
+
+// GET /api/standups/:id/audio — serve audio from VPS disk
+router.get('/standups/:id/audio', async (req, res) => {
+  try {
+    const audioPath = join(STANDUPS_DIR, `${req.params.id}.mp3`)
+    const audio = await readFile(audioPath)
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Content-Length', audio.length.toString())
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.end(audio)
+  } catch {
+    res.status(404).json({ error: 'Audio not found' })
+  }
+})
+
+// ============================================================
 // AGENT CHAT — Direct Anthropic API with per-agent personas
 // ============================================================
 

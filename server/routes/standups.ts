@@ -1,96 +1,9 @@
 import { Router } from 'express'
-import { writeFile, readFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { readFile } from 'fs/promises'
 import prisma from '../db.js'
+import { getConnector } from '../services/openclaw-connector.js'
 
 const router = Router()
-
-// ElevenLabs voice IDs for each agent
-const ELEVENLABS_VOICES: Record<string, string> = {
-  'Ray Dalio':    'pNInz6obpgDQGcFmaJgB', // Adam — deep, authoritative
-  'Elon':         'VR6AewLTigWG4xSOukaG', // Arnold — technical, decisive
-  'Steve Jobs':   'yoZ06aMxZJJ28mfd3POQ', // Sam — warm, persuasive
-  'Marc Benioff': 'JBFqnCBsd6RMkjVDRZzb', // George — British, confident
-}
-
-// Generate ElevenLabs audio for a line of dialogue
-async function generateElevenLabsAudio(text: string, agentName: string, apiKey: string): Promise<Buffer | null> {
-  const voiceId = ELEVENLABS_VOICES[agentName] || ELEVENLABS_VOICES['Ray Dalio']
-  try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-      signal: AbortSignal.timeout(30000),
-    })
-    if (!res.ok) return null
-    return Buffer.from(await res.arrayBuffer())
-  } catch { return null }
-}
-
-// Generate standup conversation via Anthropic
-async function generateStandupConversation(anthropicKey: string): Promise<{
-  conversation: Array<{ speaker: string; text: string }>
-  actionItems: Array<{ text: string; assignee: string; done: boolean }>
-  title: string
-}> {
-  const systemPrompt = `You are orchestrating a brief executive standup for Grandview Tek (IT services/staffing, targeting $15M+ revenue).
-
-Generate a realistic 5-turn standup conversation between:
-- Ray Dalio (COO): Opens and closes the meeting. Operational focus, radical transparency.
-- Elon (CTO): Engineering update. Technical, direct.
-- Steve Jobs (CMO): Marketing update. Story-driven, metrics.
-- Marc Benioff (CRO): Revenue update. Pipeline-focused, energetic.
-
-Return ONLY valid JSON in this exact format:
-{
-  "title": "Executive Standup — [Day of week] Update",
-  "conversation": [
-    {"speaker": "Ray Dalio", "text": "..."},
-    {"speaker": "Elon", "text": "..."},
-    {"speaker": "Steve Jobs", "text": "..."},
-    {"speaker": "Marc Benioff", "text": "..."},
-    {"speaker": "Ray Dalio", "text": "..."}
-  ],
-  "actionItems": [
-    {"text": "...", "assignee": "Elon", "done": false},
-    {"text": "...", "assignee": "Steve Jobs", "done": false},
-    {"text": "...", "assignee": "Marc Benioff", "done": false}
-  ]
-}`
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: 'Generate the standup for today.' }],
-    }),
-    signal: AbortSignal.timeout(30000),
-  })
-
-  if (!res.ok) throw new Error('Anthropic API error')
-  const data = await res.json() as any
-  const text = data.content[0].text
-  // Extract JSON from response
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('No JSON in response')
-  return JSON.parse(jsonMatch[0])
-}
 
 // GET /api/standups
 router.get('/', async (req, res) => {
@@ -108,7 +21,7 @@ router.get('/', async (req, res) => {
       participants: (s.participants as any[]) || [],
       conversation: (s.transcript as any[]) || [],
       actionItems: (s.actionItems as any[]) || [],
-      audioFile: s.audioPath || undefined,
+      audioFile: s.audioPath ? `/api/standups/${s.id}/audio` : undefined,
       hasAudio: !!s.audioPath,
       createdAt: s.triggeredAt.toISOString(),
     }))
@@ -118,91 +31,68 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST /api/standups — trigger new standup with real AI + ElevenLabs audio
+// POST /api/standups — trigger new standup via bridge
 router.post('/', async (req, res) => {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || ''
-  const elevenLabsKey = process.env.ELEVENLABS_API_KEY || ''
+  // Create placeholder record first to get an ID
+  const standup = await prisma.standup.create({
+    data: {
+      tenantId: req.tenantId!,
+      title: `Executive Standup — ${new Date().toLocaleDateString('en-US', { weekday: 'long' })} Update`,
+      participants: [
+        { name: 'Ray Dalio', emoji: '📊', role: 'COO' },
+        { name: 'Elon', emoji: '🚀', role: 'CTO' },
+        { name: 'Steve Jobs', emoji: '🍎', role: 'CMO' },
+        { name: 'Marc Benioff', emoji: '☁️', role: 'CRO' },
+      ],
+      transcript: [],
+      actionItems: [],
+      status: 'processing',
+    },
+  }).catch(err => { res.status(500).json({ error: String(err) }); return null })
+
+  if (!standup) return
 
   try {
-    // Generate conversation with AI
-    let conversationData: any
-    let aiError: string | null = null
-    try {
-      if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY not set')
-      conversationData = await generateStandupConversation(anthropicKey)
-    } catch (e) {
-      aiError = String(e)
-      console.error('[Standup] AI generation failed:', aiError)
-      // Fallback conversation if AI fails
-      conversationData = {
-        title: `Executive Standup — ${new Date().toLocaleDateString('en-US', { weekday: 'long' })} Update`,
-        conversation: [
-          { speaker: 'Ray Dalio', text: 'Good morning team. Let\'s run through today\'s updates.' },
-          { speaker: 'Elon', text: 'Engineering is on track. Shipped the agent chat system yesterday.' },
-          { speaker: 'Steve Jobs', text: 'GrandviewOS launch is generating buzz. The product tells the story itself.' },
-          { speaker: 'Marc Benioff', text: 'Revenue pipeline is building. Platform story is resonating with prospects.' },
-          { speaker: 'Ray Dalio', text: 'Solid progress across all fronts. Keep executing. Meeting adjourned.' },
-        ],
-        actionItems: [
-          { text: 'Complete ElevenLabs voice integration', assignee: 'Elon', done: false },
-          { text: 'Draft GrandviewOS launch announcement', assignee: 'Steve Jobs', done: false },
-          { text: 'Follow up with 3 enterprise prospects', assignee: 'Marc Benioff', done: false },
-        ],
-      }
-    }
+    // Call bridge for AI generation + ElevenLabs audio (bridge has both keys)
+    const connector = await getConnector(req.tenantId!)
+    const result = await connector.post<{
+      title: string
+      conversation: Array<{ speaker: string; text: string }>
+      actionItems: Array<{ text: string; assignee: string; done: boolean }>
+      audioUrl: string | null
+    }>('/api/standups/generate', { standupId: standup.id })
 
-    // Create standup as completed immediately (audio generates in background)
-    const standup = await prisma.standup.create({
+    const { title, conversation, actionItems, audioUrl } = result || {}
+
+    // Update DB with results
+    const updated = await prisma.standup.update({
+      where: { id: standup.id },
       data: {
-        tenantId: req.tenantId!,
-        title: conversationData.title,
-        participants: [
-          { name: 'Ray Dalio', emoji: '📊', role: 'COO', voiceId: ELEVENLABS_VOICES['Ray Dalio'] },
-          { name: 'Elon', emoji: '🚀', role: 'CTO', voiceId: ELEVENLABS_VOICES['Elon'] },
-          { name: 'Steve Jobs', emoji: '🍎', role: 'CMO', voiceId: ELEVENLABS_VOICES['Steve Jobs'] },
-          { name: 'Marc Benioff', emoji: '☁️', role: 'CRO', voiceId: ELEVENLABS_VOICES['Marc Benioff'] },
-        ],
-        transcript: conversationData.conversation,
-        actionItems: conversationData.actionItems,
+        title: title || standup.title,
+        transcript: conversation || [],
+        actionItems: actionItems || [],
+        audioPath: audioUrl || null,
         status: 'completed',
         completedAt: new Date(),
       },
     })
 
-    // Return full standup immediately so frontend can display it
     res.json({
-      id: standup.id,
+      id: updated.id,
       status: 'complete',
-      title: standup.title,
-      aiError: aiError || undefined,
-      date: standup.triggeredAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      time: standup.triggeredAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }) + ' UTC',
-      participants: conversationData.conversation.map((c: any) => ({ name: c.speaker })),
-      conversation: conversationData.conversation,
-      actionItems: conversationData.actionItems,
-      createdAt: standup.triggeredAt.toISOString(),
+      title: updated.title,
+      date: updated.triggeredAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      time: updated.triggeredAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }) + ' UTC',
+      participants: (updated.participants as any[]) || [],
+      conversation: (updated.transcript as any[]) || [],
+      actionItems: (updated.actionItems as any[]) || [],
+      audioFile: audioUrl ? `/api/standups/${updated.id}/audio` : undefined,
+      hasAudio: !!audioUrl,
+      createdAt: updated.triggeredAt.toISOString(),
     })
-
-    // Generate ElevenLabs audio in background
-    if (elevenLabsKey) {
-      ;(async () => {
-        try {
-          const audioDir = join('/tmp', 'grandviewos-standups', standup.id)
-          await mkdir(audioDir, { recursive: true })
-          const audioSegments: Buffer[] = []
-          for (const line of conversationData.conversation) {
-            const audio = await generateElevenLabsAudio(line.text, line.speaker, elevenLabsKey)
-            if (audio) audioSegments.push(audio)
-          }
-          if (audioSegments.length > 0) {
-            const audioPath = join(audioDir, 'standup.mp3')
-            await writeFile(audioPath, Buffer.concat(audioSegments))
-            await prisma.standup.update({ where: { id: standup.id }, data: { audioPath } })
-          }
-        } catch { /* audio gen failed, standup still shows */ }
-      })()
-    }
   } catch (err) {
+    // Update to failed
+    await prisma.standup.update({ where: { id: standup.id }, data: { status: 'failed' } }).catch(() => {})
     res.status(500).json({ error: String(err) })
   }
 })
@@ -229,17 +119,24 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// GET /api/standups/:id/audio — stream the audio file
+// GET /api/standups/:id/audio — proxy to bridge
 router.get('/:id/audio', async (req, res) => {
   try {
     const s = await prisma.standup.findFirst({ where: { id: req.params.id } })
     if (!s?.audioPath) { res.status(404).json({ error: 'Audio not available' }); return }
-    const audio = await readFile(s.audioPath)
+
+    const connector = await getConnector(req.tenantId || '')
+    const bridgeUrl = connector.getBridgeUrl(`/api/standups/${req.params.id}/audio`)
+    const audioRes = await fetch(bridgeUrl, {
+      headers: { 'Authorization': `Bearer ${connector.getToken()}` },
+    })
+    if (!audioRes.ok) { res.status(404).json({ error: 'Audio not found on bridge' }); return }
+    const audio = Buffer.from(await audioRes.arrayBuffer())
     res.setHeader('Content-Type', 'audio/mpeg')
     res.setHeader('Content-Length', audio.length.toString())
     res.end(audio)
-  } catch {
-    res.status(404).json({ error: 'Audio file not found' })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
   }
 })
 
