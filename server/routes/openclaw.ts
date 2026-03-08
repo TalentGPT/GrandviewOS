@@ -270,6 +270,23 @@ router.get('/projects', async (req, res) => {
   }
 })
 
+// Agent Tasks
+router.get('/agent-tasks', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.fetch<any[]>('/api/agent-tasks')
+    res.json(data || [])
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
+router.patch('/agent-tasks/:id', async (req, res) => {
+  try {
+    const connector = await getConnector(req.tenantId!)
+    const data = await connector.post<any>(`/api/agent-tasks/${req.params.id}`, req.body)
+    res.json(data || { ok: true })
+  } catch (err) { res.status(500).json({ error: String(err) }) }
+})
+
 // Agent Chat
 router.post('/agents/:slug/chat', async (req, res) => {
   try {

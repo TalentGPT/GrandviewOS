@@ -422,6 +422,19 @@ export async function getTrelloBoardLists(boardId: string): Promise<FetchResult<
   return apiFetch<Array<{ id: string; name: string }>>(`/openclaw/trello/boards/${encodeURIComponent(boardId)}/lists`)
 }
 
+// ---- Agent Tasks ----
+export async function fetchAgentTasks(): Promise<FetchResult<any[]>> {
+  return apiFetch('/openclaw/agent-tasks')
+}
+
+export async function updateAgentTask(id: string, update: { status?: string }): Promise<FetchResult<{ ok: boolean }>> {
+  return apiFetch(`/openclaw/agent-tasks/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(update),
+  })
+}
+
 // ---- Agent Chat ----
 export async function sendAgentMessage(slug: string, message: string): Promise<FetchResult<{ response: string; sessionId: string; agent: { name: string; emoji: string; role: string } }>> {
   return apiFetch(`/openclaw/agents/${encodeURIComponent(slug)}/chat`, {

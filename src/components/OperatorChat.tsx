@@ -2,10 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { sendAgentMessage, fetchAgentHistory, clearAgentHistory } from '../api/client'
 
+interface Delegation {
+  slug: string; name: string; emoji: string; role: string; task: string; response: string; taskId: string
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  delegations?: Delegation[]
 }
 
 const AGENTS = [
@@ -75,6 +80,7 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
           role: 'assistant',
           content: res.data!.response,
           timestamp: new Date().toISOString(),
+          delegations: res.data!.delegations?.length ? res.data!.delegations : undefined,
         }])
       } else {
         setMessages(prev => [...prev, {
@@ -203,6 +209,21 @@ export default function OperatorChat({ isOpen, onClose }: { isOpen: boolean; onC
                   <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{msg.content}</p>
                 </div>
               </div>
+              {msg.delegations && msg.delegations.length > 0 && (
+                <div className="ml-2 flex flex-col gap-2 mt-1">
+                  {msg.delegations.map((d, di) => (
+                    <div key={di} className="rounded-lg p-3 border max-w-[85%]" style={{ background: 'var(--bg-1)', borderColor: 'var(--accent-teal)44' }}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span>{d.emoji}</span>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--accent-teal)' }}>{d.name} — {d.role}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--accent-green)22', color: 'var(--accent-green)', border: '1px solid var(--accent-green)44' }}>Active</span>
+                      </div>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{d.response.slice(0, 200)}{d.response.length > 200 ? '...' : ''}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             ))}
             {thinking && (
               <div className="flex justify-start">

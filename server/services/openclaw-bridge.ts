@@ -703,6 +703,35 @@ router.get('/standups/:id/audio', async (req, res) => {
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''
 const AGENT_CHATS_DIR = join(MEMORY_DIR, 'agent-chats')
+const AGENT_TASKS_FILE = join(MEMORY_DIR, 'agent-tasks.json')
+
+interface AgentTask { id: string; assignedBy: string; assignedTo: string; task: string; response: string; status: 'active' | 'complete'; createdAt: string }
+
+async function storeDelegatedTask(task: AgentTask): Promise<void> {
+  let tasks: AgentTask[] = []
+  try { tasks = JSON.parse(await readFile(AGENT_TASKS_FILE, 'utf-8')) } catch {}
+  tasks.unshift(task)
+  await mkdir(MEMORY_DIR, { recursive: true })
+  await writeFile(AGENT_TASKS_FILE, JSON.stringify(tasks, null, 2))
+}
+
+// GET /api/agent-tasks — list all delegated tasks
+router.get('/agent-tasks', async (_req, res) => {
+  try {
+    const tasks: AgentTask[] = JSON.parse(await readFile(AGENT_TASKS_FILE, 'utf-8'))
+    res.json(tasks)
+  } catch { res.json([]) }
+})
+
+// PATCH /api/agent-tasks/:id — update task status
+router.patch('/agent-tasks/:id', async (req, res) => {
+  try {
+    let tasks: AgentTask[] = JSON.parse(await readFile(AGENT_TASKS_FILE, 'utf-8'))
+    tasks = tasks.map(t => t.id === req.params.id ? { ...t, ...req.body } : t)
+    await writeFile(AGENT_TASKS_FILE, JSON.stringify(tasks, null, 2))
+    res.json({ ok: true })
+  } catch { res.status(500).json({ error: 'Failed to update task' }) }
+})
 
 const AGENT_PERSONAS: Record<string, { name: string; role: string; model: string; emoji: string; persona: string }> = {
   'joe-hawn':     { name: 'Joe Hawn', role: 'CEO', model: 'claude-opus-4-6', emoji: '⚡', persona: 'You are Joe Hawn, CEO of Grandview Tek. Strategic operator. Execution-focused. High-agency.' },
@@ -798,7 +827,86 @@ Company context: Grandview Tek is an IT services/staffing company targeting $15M
     history.push({ role: 'assistant', content: response, timestamp: new Date().toISOString() })
     await writeFile(historyFile, JSON.stringify(history, null, 2))
 
-    res.json({ response, sessionId: slug, agent: { name: agent.name, emoji: agent.emoji, role: agent.role } })
+    // Auto-delegate to sub-agents if this agent issued assignments
+    const delegations: Array<{ slug: string; name: string; emoji: string; role: string; task: string; response: string; taskId: string }> = []
+
+    const DELEGATION_PATTERNS: Array<{ pattern: RegExp; slug: string }> = [
+      { pattern: /MARC\s+BENIOFF|Marc\s+Benioff/gi, slug: 'marc-benioff' },
+      { pattern: /ELON(?!\s+MUSK)|Elon\b/gi, slug: 'elon' },
+      { pattern: /STEVE\s+JOBS|Steve\s+Jobs/gi, slug: 'steve-jobs' },
+      { pattern: /NOVA\b/gi, slug: 'nova' },
+      { pattern: /ATLAS\b/gi, slug: 'atlas' },
+      { pattern: /SCRIBE\b/gi, slug: 'scribe' },
+      { pattern: /CLOSER\b/gi, slug: 'closer' },
+      { pattern: /OUTREACH\b/gi, slug: 'outreach' },
+    ]
+
+    // Only auto-delegate if response contains assignment language
+    const hasAssignments = /assigning to|→|assigned to|assignment\s+\d|owns\s+\w|delegat/i.test(response)
+    if (hasAssignments) {
+      const processedSlugs = new Set<string>()
+      for (const { pattern, slug: targetSlug } of DELEGATION_PATTERNS) {
+        if (processedSlugs.has(targetSlug)) continue
+        if (!pattern.test(response)) continue
+        pattern.lastIndex = 0
+
+        const targetAgent = AGENT_PERSONAS[targetSlug]
+        if (!targetAgent) continue
+        processedSlugs.add(targetSlug)
+
+        // Extract the specific task assigned to this agent
+        // Find lines near the agent name mention that contain the assignment
+        const lines = response.split('\n')
+        const agentNamePattern = new RegExp(targetAgent.name.split(' ')[0], 'i')
+        let taskText = ''
+        for (let i = 0; i < lines.length; i++) {
+          if (agentNamePattern.test(lines[i])) {
+            // Grab next 3 lines as the task
+            taskText = lines.slice(i, i + 4).join(' ').trim()
+            break
+          }
+        }
+        if (!taskText) taskText = `Task delegated by ${agent.name}: ${response.slice(0, 200)}`
+
+        // Auto-send to target agent
+        try {
+          const targetHistoryFile = join(AGENT_CHATS_DIR, `${targetSlug}.json`)
+          let targetHistory: Array<{ role: string; content: string; timestamp: string; delegatedBy?: string }> = []
+          try { targetHistory = JSON.parse(await readFile(targetHistoryFile, 'utf-8')) } catch {}
+
+          const delegationMsg = `[TASK FROM ${agent.name.toUpperCase()} — ${agent.role}]\n\n${taskText}\n\nAcknowledge this assignment and outline your immediate action plan. Be specific and direct.`
+          targetHistory.push({ role: 'user', content: delegationMsg, timestamp: new Date().toISOString(), delegatedBy: slug })
+
+          const targetSystemPrompt = `${targetAgent.persona}\n\nYou are chatting with Joe Hawn, CEO of Grandview Tek. You have just received a task from ${agent.name} (${agent.role}). Respond with a concise action plan. Be direct, specific, no filler.`
+
+          const targetRes = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 512,
+              system: targetSystemPrompt,
+              messages: targetHistory.slice(-10).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            }),
+            signal: AbortSignal.timeout(20000),
+          })
+
+          if (targetRes.ok) {
+            const targetData = await targetRes.json() as any
+            const targetResponse = targetData.content[0].text
+            const taskId = `${targetSlug}-${Date.now()}`
+            targetHistory.push({ role: 'assistant', content: targetResponse, timestamp: new Date().toISOString() })
+            await writeFile(targetHistoryFile, JSON.stringify(targetHistory, null, 2))
+            delegations.push({ slug: targetSlug, name: targetAgent.name, emoji: targetAgent.emoji, role: targetAgent.role, task: taskText, response: targetResponse, taskId })
+
+            // Store in tasks log
+            await storeDelegatedTask({ id: taskId, assignedBy: slug, assignedTo: targetSlug, task: taskText, response: targetResponse, status: 'active', createdAt: new Date().toISOString() })
+          }
+        } catch (e) { console.error(`[Delegation] Failed to delegate to ${targetSlug}:`, e) }
+      }
+    }
+
+    res.json({ response, sessionId: slug, agent: { name: agent.name, emoji: agent.emoji, role: agent.role }, delegations })
   } catch (err) {
     res.status(500).json({ error: String(err) })
   }
