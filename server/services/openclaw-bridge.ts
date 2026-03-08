@@ -837,13 +837,31 @@ async function createTrelloTaskCard(task: AgentTask): Promise<void> {
   } catch (e) { console.error('[Trello] Failed to create task card:', e) }
 }
 
+const REPLIT_APP_URL = process.env.REPLIT_APP_URL || ''
+const REPLIT_JWT = process.env.REPLIT_ADMIN_JWT || ''
+
+async function syncTaskToReplit(task: AgentTask): Promise<void> {
+  if (!REPLIT_APP_URL || !REPLIT_JWT) return
+  try {
+    const res = await fetch(`${REPLIT_APP_URL}/api/openclaw/agent-tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${REPLIT_JWT}` },
+      body: JSON.stringify(task),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (res.ok) console.log(`[Bridge→Replit] Task synced: ${task.id}`)
+    else console.warn(`[Bridge→Replit] Sync failed: ${res.status}`)
+  } catch (e) { console.warn('[Bridge→Replit] Sync error:', e) }
+}
+
 async function storeDelegatedTask(task: AgentTask): Promise<void> {
   let tasks: AgentTask[] = []
   try { tasks = JSON.parse(await readFile(AGENT_TASKS_FILE, 'utf-8')) } catch {}
   tasks.unshift(task)
   await mkdir(MEMORY_DIR, { recursive: true })
   await writeFile(AGENT_TASKS_FILE, JSON.stringify(tasks, null, 2))
-  // Create Trello card in background (non-blocking)
+  // Sync to Replit DB and create Trello card (non-blocking)
+  syncTaskToReplit(task).catch(e => console.error('[Replit sync] error:', e))
   createTrelloTaskCard(task).catch(e => console.error('[Trello] Task card error:', e))
 }
 

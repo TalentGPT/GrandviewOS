@@ -289,3 +289,14 @@ model WeeklyReview {
   highlights String[] @default([])
   createdAt  DateTime @default(now())
 }
+
+model AgentTask {
+  id         String   @id @default(uuid())
+  tenantId   String
+  assignedBy String
+  assignedTo String
+  task       String
+  response   String
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+}
