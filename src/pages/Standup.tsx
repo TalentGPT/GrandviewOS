@@ -150,12 +150,31 @@ function LiveMeetingView({ standup, onTitleChange }: { standup: StandupResponse;
     <>
       {/* Meeting header */}
       <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-base font-semibold">{standup.title}</div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{standup.date} — {standup.time}</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleValue}
+                onChange={e => setTitleValue(e.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitleValue(standup.title); setEditingTitle(false) } }}
+                autoFocus
+                className="text-base font-semibold flex-1 bg-transparent border-b focus:outline-none"
+                style={{ color: 'var(--text-primary)', borderColor: 'var(--accent-teal)' }}
+              />
+            ) : (
+              <span className="text-base font-semibold truncate">{titleValue}</span>
+            )}
+            <button
+              onClick={() => editingTitle ? saveTitle() : (setEditingTitle(true), setTimeout(() => titleInputRef.current?.select(), 10))}
+              className="text-xs px-2 py-0.5 rounded cursor-pointer flex-shrink-0"
+              style={{ background: editingTitle ? 'var(--accent-teal)22' : 'var(--bg-3)', color: editingTitle ? 'var(--accent-teal)' : 'var(--text-secondary)', border: `1px solid ${editingTitle ? 'var(--accent-teal)44' : 'var(--border-divider)'}` }}
+            >
+              {editingTitle ? 'Save' : '✏️'}
+            </button>
           </div>
-          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{
+          <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{
             background: standup.status === 'complete' ? 'var(--accent-green)22' : standup.status === 'running' ? 'var(--accent-teal)22' : 'var(--accent-red)22',
             color: standup.status === 'complete' ? 'var(--accent-green)' : standup.status === 'running' ? 'var(--accent-teal)' : 'var(--accent-red)',
           }}>
