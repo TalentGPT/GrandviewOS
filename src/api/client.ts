@@ -145,6 +145,14 @@ export async function fetchAgentFiles(agentId: string): Promise<FetchResult<Arra
 }
 
 // Standups
+export async function updateStandupTitle(id: string, title: string): Promise<FetchResult<{ ok: boolean; title: string }>> {
+  return apiFetch(`/standups/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  })
+}
+
 export async function triggerStandup(): Promise<FetchResult<{ id: string; status: string }>> {
   return apiFetch<{ id: string; status: string }>('/standups', { method: 'POST' })
 }

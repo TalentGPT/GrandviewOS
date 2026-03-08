@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../components/Toast'
-import { triggerStandup, fetchStandups, fetchStandup, getStandupAudioUrl } from '../api/client'
+import { triggerStandup, fetchStandups, fetchStandup, getStandupAudioUrl, updateStandupTitle } from '../api/client'
 import { standups as mockStandups } from '../data/mockStandups'
 import type { StandupResponse } from '../types/api'
 import PageHeader from '../components/PageHeader'
@@ -109,10 +109,23 @@ function ActionItemsList({ items: initialItems, onToggle }: {
   )
 }
 
-function LiveMeetingView({ standup }: { standup: StandupResponse }) {
+function LiveMeetingView({ standup, onTitleChange }: { standup: StandupResponse; onTitleChange?: (id: string, title: string) => void }) {
   const { addToast } = useToast()
   const [items, setItems] = useState(standup.actionItems.map(i => ({ ...i })))
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState(standup.title)
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const doneCount = items.filter(i => i.done).length
+
+  const saveTitle = async () => {
+    if (!titleValue.trim() || titleValue === standup.title) { setEditingTitle(false); return }
+    const { data } = await updateStandupTitle(standup.id, titleValue.trim())
+    if (data?.ok) {
+      addToast('Title updated', 'success')
+      onTitleChange?.(standup.id, data.title)
+    }
+    setEditingTitle(false)
+  }
 
   const toggleItem = (idx: number) => {
     setItems(prev => prev.map((item, i) => i === idx ? { ...item, done: !item.done } : item))
@@ -232,7 +245,27 @@ function MockMeetingView({ standup }: { standup: StandupMeeting }) {
     <>
       {/* Meeting header */}
       <div className="rounded-lg p-5 mb-6" style={{ background: 'var(--bg-2)', border: '1px solid var(--border-divider)' }}>
-        <div className="text-base font-semibold mb-1">{standup.title}</div>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            value={titleValue}
+            onChange={e => setTitleValue(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitleValue(standup.title); setEditingTitle(false) } }}
+            autoFocus
+            className="text-base font-semibold mb-1 w-full bg-transparent border-b focus:outline-none"
+            style={{ color: 'var(--text-primary)', borderColor: 'var(--accent-teal)' }}
+          />
+        ) : (
+          <div
+            className="text-base font-semibold mb-1 cursor-pointer hover:opacity-70 flex items-center gap-2 group"
+            onClick={() => { setEditingTitle(true); setTimeout(() => titleInputRef.current?.select(), 10) }}
+            title="Click to edit title"
+          >
+            {titleValue}
+            <span className="text-[10px] opacity-0 group-hover:opacity-50" style={{ color: 'var(--text-secondary)' }}>✏️</span>
+          </div>
+        )}
         <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{standup.date} — {standup.time}</div>
         <div className="flex gap-2">
           {standup.participants.map(p => (
@@ -391,7 +424,10 @@ export default function Standup() {
         ) : (
           <motion.div key="meeting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
             {showLive && selectedLiveStandup ? (
-              <LiveMeetingView standup={selectedLiveStandup} />
+              <LiveMeetingView standup={selectedLiveStandup} onTitleChange={(id, title) => {
+                setSelectedLiveStandup(prev => prev && prev.id === id ? { ...prev, title } : prev)
+                setLiveStandups(prev => prev.map(s => s.id === id ? { ...s, title } : s))
+              }} />
             ) : (
               <MockMeetingView standup={selectedMockStandup} />
             )}

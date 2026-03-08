@@ -145,6 +145,20 @@ router.get('/:id/audio', async (req, res) => {
   }
 })
 
+// PATCH /api/standups/:id — update title
+router.patch('/:id', async (req, res) => {
+  try {
+    const { title } = req.body
+    if (!title?.trim()) { res.status(400).json({ error: 'title required' }); return }
+    const s = await prisma.standup.findFirst({ where: { id: req.params.id, tenantId: req.tenantId! } })
+    if (!s) { res.status(404).json({ error: 'Not found' }); return }
+    const updated = await prisma.standup.update({ where: { id: s.id }, data: { title: title.trim() } })
+    res.json({ ok: true, title: updated.title })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 // PATCH /api/standups/:id/action-items/:idx
 router.patch('/:id/action-items/:idx', async (req, res) => {
   try {
